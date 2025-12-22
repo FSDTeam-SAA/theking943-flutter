@@ -7,6 +7,7 @@ class CustomTextField extends StatelessWidget {
   final TextInputType keyboardType;
   final Widget? suffixIcon;
   final Widget? prefixIcon;
+  final String? Function(String?)? validator; // ভ্যালিডেশন যোগ করা হয়েছে
 
   const CustomTextField({
     super.key,
@@ -16,6 +17,7 @@ class CustomTextField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.suffixIcon,
     this.prefixIcon,
+    this.validator,
   });
 
   @override
@@ -33,10 +35,13 @@ class CustomTextField extends StatelessWidget {
           ),
         ],
       ),
-      child: TextField(
+      child: TextFormField( // TextField এর বদলে TextFormField ব্যবহার করা হয়েছে
         controller: controller,
         obscureText: obscureText,
         keyboardType: keyboardType,
+        validator: validator,
+        enabled: true, // নিশ্চিত করা হয়েছে যেন ফিল্ডটি ইনেবল থাকে
+        style: const TextStyle(color: Colors.black), // টেক্সট কালার স্পষ্ট করা হয়েছে
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: TextStyle(color: Colors.grey[400]),

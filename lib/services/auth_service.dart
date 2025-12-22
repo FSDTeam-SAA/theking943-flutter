@@ -3,34 +3,47 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-
-  //static const String baseUrl = 'http://10.0.2.2:5000'; // Android Emulator
-   static const String baseUrl = 'http://localhost:5000'; // iOS Simulator
+  // static const String baseUrl = 'http://10.0.2.2:5000'; // Android Emulator
+  static const String baseUrl = 'http://localhost:5000'; // iOS Simulator
   // static const String baseUrl = 'http://192.168.1.5:5000'; // Physical Device
   
   /// Register করার function
+  /// এখানে license, specialty, experience প্যারামিটারগুলো যোগ করা হয়েছে
   Future<Map<String, dynamic>> register({
     required String name,
     required String email,
     required String password,
     required String userType,
+    String? license,    // New
+    String? specialty,  // New
+    String? experience, // New
   }) async {
     try {
       print('🔄 Registering user: $email as $userType');
       
+      // বডি ডাটা ম্যাপ তৈরি
+      final Map<String, dynamic> requestBody = {
+        'fullName': name,
+        'email': email,
+        'password': password,
+        'confirmPassword': password,
+        'role': userType.toLowerCase(), 
+      };
+
+      // যদি ইউজার টাইপ Doctor হয়, তবেই এই ফিল্ডগুলো ম্যাপে যোগ হবে
+      if (userType.toLowerCase() == 'doctor') {
+        requestBody['medicalLicense'] = license;
+        requestBody['specialty'] = specialty;
+        requestBody['experience'] = experience;
+      }
+
       final response = await http.post(
         Uri.parse('$baseUrl/api/v1/auth/register'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: jsonEncode({
-          'fullName': name,
-          'email': email,
-          'password': password,
-          'confirmPassword': password,
-          'role': userType.toLowerCase(), 
-        }),
+        body: jsonEncode(requestBody), // ডাইনামিক বডি পাঠানো হচ্ছে
       ).timeout(
         const Duration(seconds: 10),
         onTimeout: () {
@@ -64,7 +77,7 @@ class AuthService {
     }
   }
 
-  /// Login করার function
+  /// Login করার function (আগের মতোই আছে)
   Future<Map<String, dynamic>> login({
     required String email,
     required String password,
@@ -90,17 +103,12 @@ class AuthService {
       );
 
       print('📥 Response Status: ${response.statusCode}');
-      print('📥 Response Body: ${response.body}');
-
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        // Token এবং user data save করুন
         if (data['data']?['accessToken'] != null) {
           await _saveToken(data['data']['accessToken']);
         }
-        
-        // User info save করুন
         if (data['data']?['user'] != null) {
           await _saveUserInfo(data['data']['user']);
         }
@@ -125,7 +133,7 @@ class AuthService {
     }
   }
 
-  /// Token save করার private function
+  /// Token save করার function
   Future<void> _saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', token);
@@ -159,13 +167,13 @@ class AuthService {
     };
   }
 
-  /// Check if user is logged in
+  /// Check user login state
   Future<bool> isLoggedIn() async {
     final token = await getToken();
     return token != null && token.isNotEmpty;
   }
 
-  /// Logout করার function
+  /// Logout function
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
