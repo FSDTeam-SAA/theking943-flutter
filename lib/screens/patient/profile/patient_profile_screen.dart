@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+// আপনার স্ক্রিনগুলোর পাথ সঠিক আছে কিনা দেখে নিন
 import 'package:docmobi/screens/patient/profile/personal_info_screen.dart';
 import 'package:docmobi/screens/patient/profile/my_appointment_screen.dart';
 import 'package:docmobi/screens/patient/profile/my_wishlist_screen.dart';
 import 'package:docmobi/screens/patient/profile/help_support_screen.dart';
 import 'package:docmobi/screens/patient/profile/change_password_screen.dart';
+// মেইন নেভিগেশন ফাইলটি অবশ্যই ইম্পোর্ট করতে হবে যাতে বটম বার ফিরে আসে
+import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart'; 
 
 class PatientProfileScreen extends StatefulWidget {
   const PatientProfileScreen({super.key});
@@ -24,7 +27,20 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFF0B3267)),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            // ১. যদি কোনো সাব-পেজ (যেমন Personal Info) থেকে এখানে আসা হয় তবে পপ করবে
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              // ২. পপ করার কিছু না থাকলে সরাসরি মেইন নেভিগেশনে পাঠাবে
+              // এতে বটম বার থাকবে এবং ম্যাপের পপআপ সমস্যা হবে না
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const PatientMainNavigation()),
+                (route) => false,
+              );
+            }
+          },
         ),
         title: const Text(
           'My Profile',
@@ -40,7 +56,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
           children: [
             const SizedBox(height: 20),
 
-            /// Profile Picture
+            /// Profile Picture Section
             const CircleAvatar(
               radius: 50,
               backgroundImage: AssetImage('assets/images/doctor1.png'),
@@ -78,9 +94,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const PersonalInfoScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const PersonalInfoScreen()),
                 );
               },
             ),
@@ -91,9 +105,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const MyAppointmentScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const MyAppointmentScreen()),
                 );
               },
             ),
@@ -104,23 +116,18 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const MyWishlistScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const MyWishlistScreen()),
                 );
               },
             ),
 
-         
             _buildMenuItem(
               icon: Icons.lock_outline,
               title: 'Change Password',
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const ChangePasswordScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
                 );
               },
             ),
@@ -177,37 +184,26 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const HelpSupportScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
                 );
               },
             ),
 
             const SizedBox(height: 20),
 
-            /// Logout Button
+            /// Logout Button with Confirmation Dialog
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                width: double.infinity,
-                height: 50,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Colors.red, Colors.redAccent],
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Implement logout
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+              child: InkWell(
+                onTap: () => _showLogoutDialog(context),
+                child: Container(
+                  width: double.infinity,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Colors.red, Colors.redAccent],
                     ),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -231,6 +227,31 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
             const SizedBox(height: 30),
           ],
         ),
+      ),
+    );
+  }
+
+  // লগআউট কনফার্মেশন ডায়ালগ
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () {
+              // এখানে আপনার লগআউট লজিক দিতে পারেন (যেমন সেশন ক্লিয়ার করা)
+              Navigator.pop(context);
+            },
+            child: const Text('Log Out', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }
@@ -264,8 +285,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                   ),
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios,
-                  size: 16, color: Colors.grey),
+              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
             ],
           ),
         ),

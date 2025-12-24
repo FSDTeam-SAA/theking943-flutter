@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/auth/sign_in_screen.dart';
 import 'package:docmobi/widgets/custom_button.dart';
+// আপনার হোম স্ক্রিনটি ইম্পোর্ট করুন
+import 'package:docmobi/screens/patient/home/patient_home_screen.dart'; 
 
 class SelectProfileScreen extends StatefulWidget {
   const SelectProfileScreen({super.key});
@@ -12,7 +14,6 @@ class SelectProfileScreen extends StatefulWidget {
 class _SelectProfileScreenState extends State<SelectProfileScreen> {
   String? selectedProfile;
 
-  // SnackBar দেখানোর জন্য এই মেথডটি যোগ করা হয়েছে
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -29,12 +30,27 @@ class _SelectProfileScreenState extends State<SelectProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        // leading: IconButton(
+        //   icon: const Icon(Icons.arrow_back, color: Colors.black),
+        //   onPressed: () {
+        //     // ব্যাক বাটনে ক্লিক করলে সরাসরি হোম পেজে পাঠিয়ে দেবে
+        //     Navigator.pushAndRemoveUntil(
+        //       context,
+        //       MaterialPageRoute(builder: (context) => const PatientHomeScreen()),
+        //       (route) => false, // এটি পেছনের সব রুট ক্লিয়ার করে দেবে যাতে আর এরর না আসে
+        //     );
+        //   },
+        // ),
+      ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: Column(
             children: [
-              const Spacer(),
+              const SizedBox(height: 10),
               const Text(
                 'Select Profile',
                 style: TextStyle(
@@ -43,18 +59,16 @@ class _SelectProfileScreenState extends State<SelectProfileScreen> {
                   color: Color(0xFF0B3267),
                 ),
               ),
-              const SizedBox(height: 60),
+              const Spacer(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  // Patient Card
                   _buildProfileCard(
                     title: 'Patient',
                     imagePath: 'assets/images/patient.png',
                     isSelected: selectedProfile == 'Patient',
                     onTap: () => setState(() => selectedProfile = 'Patient'),
                   ),
-                  // Doctor Card
                   _buildProfileCard(
                     title: 'Doctor',
                     imagePath: 'assets/images/doctor.png',
@@ -65,7 +79,6 @@ class _SelectProfileScreenState extends State<SelectProfileScreen> {
               ),
               const Spacer(),
               
-              // Continue button
               CustomButton(
                 text: 'Continue',
                 onPressed: selectedProfile != null
@@ -89,7 +102,6 @@ class _SelectProfileScreenState extends State<SelectProfileScreen> {
     );
   }
 
-  // কোড ক্লিন রাখার জন্য প্রোফাইল কার্ডের আলাদা উইজেট
   Widget _buildProfileCard({
     required String title,
     required String imagePath,
@@ -99,40 +111,33 @@ class _SelectProfileScreenState extends State<SelectProfileScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 150,
+        width: MediaQuery.of(context).size.width * 0.42,
         height: 200,
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1664CD).withOpacity(0.1) : Colors.white,
+          color: isSelected ? const Color(0xFF1664CD).withOpacity(0.05) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? const Color(0xFF1664CD) : Colors.grey[300]!,
-            width: isSelected ? 3 : 1,
+            width: isSelected ? 2 : 1,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 2,
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
               imagePath,
-              height: 100,
-              width: 100,
-              errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, size: 80),
+              height: 90,
+              width: 90,
+              errorBuilder: (context, error, stackTrace) => 
+                  const Icon(Icons.account_circle, size: 80, color: Colors.grey),
             ),
             const SizedBox(height: 15),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 20,
+              style: TextStyle(
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF0B3267),
+                color: isSelected ? const Color(0xFF1664CD) : const Color(0xFF0B3267),
               ),
             ),
           ],

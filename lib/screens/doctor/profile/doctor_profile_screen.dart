@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+// আপনার প্রজেক্টের সঠিক পাথ অনুযায়ী এই ইমপোর্টগুলো চেক করে নিন
 import 'package:docmobi/screens/doctor/profile/doctor_personal_info_screen.dart';
 import 'package:docmobi/screens/doctor/profile/doctor_my_schedule_screen.dart';
-import 'package:docmobi/screens/patient/profile/help_support_screen.dart';
+import 'package:docmobi/screens/doctor/profile/doctor_earnigs.dart'; 
 import 'package:docmobi/screens/patient/profile/change_password_screen.dart';
 
 class DoctorProfileScreen extends StatefulWidget {
@@ -12,319 +13,249 @@ class DoctorProfileScreen extends StatefulWidget {
 }
 
 class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
-  String selectedLanguage = 'English';
-  bool isAvailable = true;
+  String selectedLanguage = 'English'; 
+  bool isVoiceVideoCallActive = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         automaticallyImplyLeading: false,
         title: const Text(
           'My Profile',
           style: TextStyle(
-            color: Color(0xFF0B3267),
+        
+            color: Color(0xFF1B2C49),
             fontWeight: FontWeight.bold,
+            fontSize: 22,
           ),
         ),
-        centerTitle: true,
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const SizedBox(height: 20),
-            // Profile Picture
-            Stack(
-              children: [
-                const CircleAvatar(
-                  radius: 50,
-                  backgroundImage: AssetImage('assets/images/doctor_booking.png'),
-                ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF0B3267), Color(0xFF1664CD)],
-                      ),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 15),
-            const Text(
-              'The King',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF0B3267),
-              ),
-            ),
-            const SizedBox(height: 5),
-            const Text(
-              'Pediatric Surgery',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
             const SizedBox(height: 10),
-            // Availability Toggle
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isAvailable ? const Color(0xFF27AE60).withOpacity(0.1) : Colors.grey[100],
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isAvailable ? const Color(0xFF27AE60) : Colors.grey[300]!,
+            // --- Profile Header ---
+            Center(
+              child: Column(
+                children: [
+                  const CircleAvatar(
+                    radius: 55,
+                    backgroundImage: AssetImage('assets/images/doctor_booking.png'),
                   ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.circle,
-                          size: 12,
-                          color: isAvailable ? const Color(0xFF27AE60) : Colors.grey,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          isAvailable ? 'Available for Appointments' : 'Not Available',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: isAvailable ? const Color(0xFF27AE60) : Colors.grey[600],
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 12),
+                  const Text(
+                    'The king',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1B2C49),
                     ),
-                    Switch(
-                      value: isAvailable,
-                      activeColor: const Color(0xFF27AE60),
-                      onChanged: (value) {
-                        setState(() {
-                          isAvailable = value;
-                        });
-                      },
+                  ),
+                  const Text(
+                    'Cardiologist',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w500,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 30),
-            // Menu Items
-            _buildMenuItem(
+
+            // --- Personal Info ---
+            _buildProfileItem(
               icon: Icons.person_outline,
               title: 'Personal Info',
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const DoctorPersonalInfoScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const DoctorPersonalInfoScreen()),
                 );
               },
             ),
-            _buildMenuItem(
-              icon: Icons.schedule,
+
+            // --- Appointment Setting (FIXED ERROR) ---
+            _buildProfileItem(
+              icon: Icons.calendar_today_outlined,
               title: 'Appointment Setting',
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const DoctorMyScheduleScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const DoctorMyScheduleScreen()),
                 );
               },
             ),
-            _buildMenuItem(
-              icon: Icons.receipt_long_outlined,
+
+            // --- Toggle Switch ---
+            _buildProfileItem(
+              icon: Icons.phone_outlined,
+              title: 'Voice and Video call',
+              trailing: Switch(
+                value: isVoiceVideoCallActive,
+                activeColor: Colors.white,
+                activeTrackColor: const Color(0xFF1664CD),
+                inactiveThumbColor: Colors.white,
+                inactiveTrackColor: Colors.grey[300],
+                onChanged: (value) {
+                  setState(() {
+                    isVoiceVideoCallActive = value;
+                  });
+                },
+              ),
+            ),
+
+            // --- Language Section ---
+            _buildLanguageDropdown(),
+
+            // --- My Earning (FIXED NAVIGATION) ---
+            _buildProfileItem(
+              icon: Icons.attach_money_outlined,
               title: 'My Earning',
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Earnings feature coming soon')),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const EarningOverviewScreen()), 
                 );
               },
             ),
-            _buildMenuItem(
+
+            // --- Password & Support ---
+            _buildProfileItem(
               icon: Icons.lock_outline,
               title: 'Change Password',
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const ChangePasswordScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
                 );
               },
             ),
-            // Language Selector
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey[300]!),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.language, color: Color(0xFF1664CD)),
-                    const SizedBox(width: 15),
-                    const Expanded(
-                      child: Text(
-                        'Language',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Color(0xFF0B3267),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    DropdownButton<String>(
-                      value: selectedLanguage,
-                      underline: const SizedBox(),
-                      icon: const Icon(Icons.keyboard_arrow_down),
-                      items: ['English', 'French', 'Arabic']
-                          .map(
-                            (value) => DropdownMenuItem(
-                              value: value,
-                              child: Text(value),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedLanguage = value!;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            _buildMenuItem(
-              icon: Icons.help_outline,
+
+            _buildProfileItem(
+              icon: Icons.headphones_outlined,
               title: 'Help & Support',
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const HelpSupportScreen(),
-                  ),
-                );
+                // Navigator.push(
+                //   context,
+                //   MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
+                // );
               },
             ),
-            const SizedBox(height: 20),
-            // Logout Button
+
+            const SizedBox(height: 25),
+
+            // --- Log-Out Button ---
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: SizedBox(
                 width: double.infinity,
-                height: 50,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Colors.red, Colors.redAccent],
+                height: 55,
+                child: ElevatedButton.icon(
+                  onPressed: () => _showLogoutDialog(context),
+                  icon: const Icon(Icons.logout, color: Colors.white),
+                  label: const Text(
+                    'Log Out',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: ElevatedButton(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Logout'),
-                        content: const Text('Are you sure you want to logout?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              // TODO: Implement logout
-                              Navigator.pop(context);
-                            },
-                            child: const Text('Logout', style: TextStyle(color: Colors.red)),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.logout, color: Colors.white),
-                      SizedBox(width: 10),
-                      Text(
-                        'Log Out',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
+                    backgroundColor: Colors.red,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMenuItem({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: const Color(0xFF1664CD)),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF0B3267),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-            ],
+  // Language Dropdown UI
+  Widget _buildLanguageDropdown() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 25, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE9F0FF),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+          child: const Icon(Icons.language_outlined, color: Color(0xFF1B2C49), size: 22),
+        ),
+        title: const Text('Language', style: TextStyle(fontSize: 16, color: Color(0xFF1B2C49), fontWeight: FontWeight.w600)),
+        trailing: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: selectedLanguage,
+            icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF1B2C49)),
+            items: <String>['French', 'English', 'Arabic'].map((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value, style: const TextStyle(color: Color(0xFF1B2C49))),
+              );
+            }).toList(),
+            onChanged: (val) => setState(() => selectedLanguage = val!),
           ),
         ),
+      ),
+    );
+  }
+
+  // Reusable Item Builder
+  Widget _buildProfileItem({
+    required IconData icon,
+    required String title,
+    Widget? trailing,
+    VoidCallback? onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 25, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE9F0FF),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+          child: Icon(icon, color: const Color(0xFF1B2C49), size: 22),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(fontSize: 16, color: Color(0xFF1B2C49), fontWeight: FontWeight.w600),
+        ),
+        trailing: trailing ?? const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFF1B2C49)),
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Logout', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }

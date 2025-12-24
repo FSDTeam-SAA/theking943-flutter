@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-// আপনার মেইন নেভিগেশন ফাইলটি ইম্পোর্ট করুন (যেখানে বটম বার আছে)
-import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart';
+import 'package:docmobi/screens/doctor/navigation/doctor_main_navigation.dart';
 
 class DoctorReelsScreen extends StatefulWidget {
   const DoctorReelsScreen({super.key});
@@ -33,13 +32,13 @@ class _DoctorReelsScreenState extends State<DoctorReelsScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFF1A1A1A)),
           onPressed: () {
-            // ব্ল্যাক স্ক্রিন এরর ফিক্স লজিক
+          
             if (Navigator.of(context).canPop()) {
               Navigator.pop(context);
             } else {
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (context) => const PatientMainNavigation()),
+                MaterialPageRoute(builder: (context) => const DoctorMainNavigation()),
                 (route) => false,
               );
             }
@@ -188,7 +187,7 @@ class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
                 } else {
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (context) => const PatientMainNavigation()),
+                    MaterialPageRoute(builder: (context) => const DoctorMainNavigation()),
                     (route) => false,
                   );
                 }

@@ -1,164 +1,129 @@
 import 'package:flutter/material.dart';
-import 'package:docmobi/models/message_model.dart';
 import 'package:docmobi/screens/patient/messages/chat_screen.dart';
 
-class MessagesListScreen extends StatelessWidget {
-  const MessagesListScreen({super.key});
+class MessagesScreen extends StatelessWidget {
+  const MessagesScreen({super.key});
+
+  // এই ফাংশনটি আপনাকে হোম স্ক্রিনে নিয়ে যাবে
+  void _goBackToHome(BuildContext context) {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context); // সাধারণ ব্যাক করার জন্য
+    } else {
+      // যদি সরাসরি এই পেজে আসেন, তবে রুট ক্লিয়ার করে হোমে যাবে
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final List<Message> messages = [
-      Message(
-        id: '1',
-        doctorName: 'Dr. Jaynor Abedin',
-        doctorImage: 'assets/images/doctor1.png',
-        lastMessage: 'Thank you for your visit',
-        time: '6:45am',
-        isRead: false,
-      ),
-      Message(
-        id: '2',
-        doctorName: 'Dr. Jaynor Abedin',
-        doctorImage: 'assets/images/doctor2.png',
-        lastMessage: 'Your prescription is ready',
-        time: '6:45am',
-        isRead: true,
-      ),
-      Message(
-        id: '3',
-        doctorName: 'Dr. Jaynor Abedin',
-        doctorImage: 'assets/images/doctor3.png',
-        lastMessage: 'Please take your medicine',
-        time: '6:45am',
-        isRead: true,
-      ),
-      Message(
-        id: '4',
-        doctorName: 'Dr. Jaynor Abedin',
-        doctorImage: 'assets/images/doctor4.png',
-        lastMessage: 'See you next week',
-        time: '6:45am',
-        isRead: true,
-      ),
-      Message(
-        id: '5',
-        doctorName: 'Dr. Jaynor Abedin',
-        doctorImage: 'assets/images/doctor5.png',
-        lastMessage: 'How are you feeling today?',
-        time: '6:45am',
-        isRead: true,
-      ),
-    ];
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFE5EEFF),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Doctor\'s Messages',
-          style: TextStyle(
-            color: Color(0xFF0B3267),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(20),
-        itemCount: messages.length,
-        itemBuilder: (context, index) {
-          return _buildMessageCard(context, messages[index]);
-        },
-      ),
-    );
-  }
-
-  Widget _buildMessageCard(BuildContext context, Message message) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ChatScreen(
-              doctorName: message.doctorName,
-              doctorImage: message.doctorImage,
-            ),
-          ),
-        );
+    return PopScope(
+      canPop: false, // সিস্টেম ব্যাক বাটন আমরা নিজে হ্যান্ডেল করব
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _goBackToHome(context);
       },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 15),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: const Offset(0, 2),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFF),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          toolbarHeight: 80,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () => _goBackToHome(context), // Appbar এর ব্যাক বাটন
+          ),
+          title: const Text(
+            "Doctor’s Messages",
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
             ),
-          ],
+          ),
         ),
-        child: Row(
-          children: [
-            Stack(
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundImage: AssetImage(message.doctorImage),
-                ),
-                if (!message.isRead)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
+        body: ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          itemCount: 6,
+          itemBuilder: (context, index) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: InkWell( // GestureDetector এর বদলে InkWell দিলে ক্লিক ইফেক্ট পাওয়া যায়
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ChatDetailScreen(
+                        doctorName: "Dr. Joynal Abedin",
                       ),
                     ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-              ],
-            ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    message.doctorName,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: message.isRead ? FontWeight.normal : FontWeight.bold,
-                      color: const Color(0xFF0B3267),
-                    ),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          height: 56,
+                          width: 56,
+                          color: Colors.grey[300], // ইমেজ লোড না হলে কালার দেখাবে
+                          child: Image.asset(
+                            "assets/images/doctor1.png",
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => 
+                               const Icon(Icons.person), // ইমেজ না থাকলে আইকন
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Dr. Joynal Abedin",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1B2C49),
+                              ),
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              "Hi, how can I help you",
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Text(
+                        "10:30am",
+                        style: TextStyle(
+                          color: Colors.black54,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 5),
-                  Text(
-                    message.lastMessage,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                ),
               ),
-            ),
-            Text(
-              message.time,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[500],
-              ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );

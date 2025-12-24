@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/doctor/home/doctor_home_screen.dart';
 import 'package:docmobi/screens/doctor/appointments/doctor_appointments_screen.dart';
-import 'package:docmobi/screens/doctor/posts/doctor_create_post_screen.dart';
-import 'package:docmobi/screens/patient/messages/messages_list_screen.dart';
+import 'package:docmobi/screens/doctor/reels/doctor_reels_screen.dart'; 
 import 'package:docmobi/screens/doctor/profile/doctor_profile_screen.dart';
+import 'package:docmobi/screens/doctor/messages/messages_list_screen.dart';
 
 class DoctorMainNavigation extends StatefulWidget {
   const DoctorMainNavigation({super.key});
@@ -18,8 +18,8 @@ class _DoctorMainNavigationState extends State<DoctorMainNavigation> {
   final List<Widget> _screens = const [
     DoctorHomeScreen(),
     DoctorAppointmentsScreen(),
-    DoctorCreatePostScreen(),
-    MessagesListScreen(),
+    DoctorReelsScreen(), // এখানে আপনার Reels এর স্ক্রিনটি বসিয়ে দিবেন
+    DoctorMessagesScreen(),
     DoctorProfileScreen(),
   ];
 
@@ -31,14 +31,14 @@ class _DoctorMainNavigationState extends State<DoctorMainNavigation> {
         children: _screens,
       ),
       bottomNavigationBar: Container(
+        padding: const EdgeInsets.only(top: 10, bottom: 10), // স্ক্রিনশটের মতো গ্যাপের জন্য
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
-              spreadRadius: 1,
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 15,
+              offset: const Offset(0, -5),
             ),
           ],
         ),
@@ -51,28 +51,66 @@ class _DoctorMainNavigationState extends State<DoctorMainNavigation> {
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
+          elevation: 0, // কন্টেইনারে শ্যাডো দিয়েছি তাই এখানে ০
           selectedItemColor: const Color(0xFF1664CD),
-          unselectedItemColor: Colors.grey,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
+          unselectedItemColor: const Color(0xFF4B5563), // হালকা কালচে গ্রে
+          selectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+          items: [
+            const BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.home_outlined, size: 28),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.home, size: 28),
+              ),
               label: 'Home',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today),
+            const BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.calendar_today_outlined, size: 26),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.calendar_today, size: 26),
+              ),
               label: 'Appointments',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.add_circle),
-              label: 'Create Post',
+            // --- Create Post এর বদলে Reels যুক্ত করা হয়েছে ---
+            const BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.video_library_outlined, size: 26),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.video_library, size: 26),
+              ),
+              label: 'Reels',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.message),
+            const BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.mail_outline, size: 26),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.mail, size: 26),
+              ),
               label: 'Messages',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
+            const BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.person_outline, size: 28),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.person, size: 28),
+              ),
               label: 'Profile',
             ),
           ],

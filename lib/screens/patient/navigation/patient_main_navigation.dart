@@ -19,7 +19,7 @@ class _PatientMainNavigationState extends State<PatientMainNavigation> {
     PatientHomeScreen(),
     PatientAppointmentsScreen(),
     DoctorReelsScreen(),
-    MessagesListScreen(),
+    MessagesScreen(),
     PatientProfileScreen(),
   ];
 

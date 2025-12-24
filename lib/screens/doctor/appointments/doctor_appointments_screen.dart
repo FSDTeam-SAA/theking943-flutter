@@ -8,139 +8,115 @@ class DoctorAppointmentsScreen extends StatefulWidget {
 }
 
 class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
-  bool isPending = true;
+  String selectedTab = "Confirmed"; // শুরুতে Confirmed ট্যাব সিলেক্ট করা থাকবে যাতে আপনি বাটন চেক করতে পারেন
 
-  final List<Map<String, dynamic>> pendingAppointments = [
+  final List<Map<String, dynamic>> appointments = [
     {
-      'patientName': 'The King',
-      'time': '10:00 AM - 10:30 AM',
-      'date': 'Nov.03,2025',
-      'type': 'Video Call',
+      'name': 'Bessie Cooper',
+      'date': 'Nov25,2025',
+      'time': '10:30 am',
+      'duration': '30min',
+      'type': 'Physical', // এটার জন্য Mark as Completed দেখাবে
+      'price': '20 DZD',
       'image': 'assets/images/doctor1.png',
     },
     {
-      'patientName': 'John Doe',
-      'time': '11:00 AM - 11:30 AM',
-      'date': 'Nov.03,2025',
-      'type': 'Physical Visit',
+      'name': 'Kristin Watson',
+      'date': 'Nov25,2025',
+      'time': '10:30 am',
+      'duration': '30min',
+      'type': 'Video', // এটার জন্য Start Session দেখাবে
+      'price': '20 DZD',
       'image': 'assets/images/doctor2.png',
-    },
-    {
-      'patientName': 'Jane Smith',
-      'time': '02:00 PM - 02:30 PM',
-      'date': 'Nov.04,2025',
-      'type': 'Video Call',
-      'image': 'assets/images/doctor3.png',
-    },
-  ];
-
-  final List<Map<String, dynamic>> completedAppointments = [
-    {
-      'patientName': 'Alice Johnson',
-      'time': '09:00 AM - 09:30 AM',
-      'date': 'Oct.28,2025',
-      'type': 'Physical Visit',
-      'image': 'assets/images/profile.png',
-    },
-    {
-      'patientName': 'Bob Wilson',
-      'time': '10:00 AM - 10:30 AM',
-      'date': 'Oct.27,2025',
-      'type': 'Video Call',
-      'image': 'assets/images/profile.png',
     },
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FD),
+      backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF8FAFF),
         elevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Text(
-          'Appointments',
-          style: TextStyle(
-            color: Color(0xFF1A1A1A),
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
+        // --- ব্যাক বাটন ফিক্স ---
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            // যদি মেমরিতে আগের স্ক্রিন থাকে তবে পপ করবে
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              // যদি আপনি সরাসরি এই স্ক্রিন রান করেন, তবে এটি প্রিন্ট হবে
+              debugPrint("No screen to go back to");
+            }
+          },
         ),
-        centerTitle: false,
+        title: const Text(
+          'Appointment Management',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 20),
+        ),
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Tab Buttons
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              "Manage your Video and physical\nConsultations",
+              style: TextStyle(color: Colors.grey, fontSize: 15, height: 1.4),
+            ),
+          ),
+          const SizedBox(height: 20),
+          
+          // --- Tab Bar ---
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        isPending = true;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isPending ? const Color(0xFF4A7BF7) : Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isPending ? const Color(0xFF4A7BF7) : const Color(0xFFE0E0E0),
-                        ),
-                      ),
-                      child: Text(
-                        'Pending (${pendingAppointments.length})',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: isPending ? Colors.white : const Color(0xFF666666),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        isPending = false;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: !isPending ? const Color(0xFF4A7BF7) : Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: !isPending ? const Color(0xFF4A7BF7) : const Color(0xFFE0E0E0),
-                        ),
-                      ),
-                      child: Text(
-                        'Completed',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: !isPending ? Colors.white : const Color(0xFF666666),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                _buildTabButton("Pending"),
+                _buildTabButton("Confirmed"),
+                _buildTabButton("Completed"),
               ],
             ),
           ),
-          // Appointments List
+          const SizedBox(height: 10),
+          const Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: Divider()),
+
+          // Export PDF (Only for Completed)
+          if (selectedTab == "Completed")
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 20, bottom: 10),
+                child: OutlinedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.file_download_outlined, size: 18),
+                  label: const Text("Export Pdf"),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF1664CD),
+                    side: const BorderSide(color: Color(0xFF1664CD)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+            ),
+
           Expanded(
-            child: _buildAppointmentsList(
-              isPending ? pendingAppointments : completedAppointments,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: appointments.length,
+              itemBuilder: (context, index) {
+                final data = appointments[index];
+                
+                if (selectedTab == "Pending") {
+                  return _buildPendingCard(data);
+                } else if (selectedTab == "Confirmed") {
+                  return _buildConfirmedCard(data);
+                } else {
+                  return _buildCompletedCard(data);
+                }
+              },
             ),
           ),
         ],
@@ -148,248 +124,184 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
     );
   }
 
-  Widget _buildAppointmentsList(List<Map<String, dynamic>> appointments) {
-    if (appointments.isEmpty) {
-      return const Center(
-        child: Text(
-          'No appointments found',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
+  Widget _buildTabButton(String title) {
+    bool isSelected = selectedTab == title;
+    return GestureDetector(
+      onTap: () => setState(() => selectedTab = title),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF1664CD) : const Color(0xFFE9F0FF),
+          borderRadius: BorderRadius.circular(10),
         ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: appointments.length,
-      itemBuilder: (context, index) {
-        return _buildAppointmentCard(appointments[index]);
-      },
+        child: Text(
+          title,
+          style: TextStyle(
+            color: isSelected ? Colors.white : const Color(0xFF1B2C49),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildAppointmentCard(Map<String, dynamic> appointment) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
+  Widget _buildPendingCard(Map<String, dynamic> data) {
+    return _baseCardLayout(
+      data: data,
+      statusLabel: "Pending",
+      statusColor: const Color(0xFFFAAD14),
+      statusBg: const Color(0xFFFFF7E6),
+      infoInBar: true,
+      actions: Row(
+        children: [
+          Expanded(child: _actionBtn("Cancel", const Color(0xFFD93D57), Colors.white)),
+          const SizedBox(width: 15),
+          Expanded(child: _actionBtn("Accepted", const Color(0xFFC6F2D6), const Color(0xFF27AE60))),
         ],
       ),
-      child: Column(
+    );
+  }
+
+  // --- ২. Confirmed কার্ডের ফিক্সড বাটন লজিক ---
+  Widget _buildConfirmedCard(Map<String, dynamic> data) {
+    return _baseCardLayout(
+      data: data,
+      statusLabel: null, 
+      infoInBar: false,
+      actions: Column(
         children: [
           Row(
             children: [
-              // Patient Image
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  image: DecorationImage(
-                    image: AssetImage(appointment['image']),
-                    fit: BoxFit.cover,
-                  ),
-                ),
+              Expanded(child: _actionBtn("Reschedule", const Color(0xFFE9F0FF), Colors.black87)),
+              const SizedBox(width: 15),
+              Expanded(child: _actionBtn("Cancel", const Color(0xFFD93D57), Colors.white)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: _actionBtn(
+              // লজিক: ভিডিও হলে Start Session, ফিজিক্যাল হলে Mark as Completed
+              data['type'] == "Video" ? "Start Session" : "Mark as Completed",
+              const Color(0xFF0B3267),
+              Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompletedCard(Map<String, dynamic> data) {
+    return _baseCardLayout(
+      data: data,
+      statusLabel: "Completed",
+      statusColor: const Color(0xFF52C41A),
+      statusBg: const Color(0xFFF6FFED),
+      infoInBar: false,
+      actions: const SizedBox.shrink(),
+    );
+  }
+
+  Widget _baseCardLayout({
+    required Map<String, dynamic> data,
+    String? statusLabel,
+    Color statusColor = Colors.grey,
+    Color statusBg = Colors.transparent,
+    required bool infoInBar,
+    required Widget actions,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.asset(data['image'], height: 60, width: 60, fit: BoxFit.cover),
               ),
               const SizedBox(width: 12),
-              // Patient Info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      appointment['patientName'],
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A1A1A),
+                    Text(data['name'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    if (!infoInBar) ...[
+                      const SizedBox(height: 5),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 5,
+                        children: [
+                          _smallIconText(data['type'] == "Video" ? Icons.videocam_outlined : Icons.location_on_outlined, data['type']),
+                          _smallIconText(Icons.calendar_today_outlined, data['date']),
+                          _smallIconText(Icons.access_time, "${data['time']}(${data['duration']})"),
+                          _smallIconText(Icons.payments_outlined, data['price']),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      appointment['type'],
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF666666),
-                      ),
-                    ),
+                    ],
                   ],
                 ),
               ),
-              // Status Badge
-              if (isPending)
+              if (statusLabel != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF4E5),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    'Pending',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFFFFA726),
-                    ),
-                  ),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD4F4DD),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    'Completed',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF27AE60),
-                    ),
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(8)),
+                  child: Text(statusLabel, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)),
                 ),
             ],
           ),
-          const SizedBox(height: 12),
-          // Info Row
-          Row(
-            children: [
-              Icon(Icons.calendar_today_outlined, size: 14, color: Colors.grey[600]),
-              const SizedBox(width: 4),
-              Text(
-                appointment['date'],
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[700],
-                ),
+          const SizedBox(height: 15),
+          if (infoInBar) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: const Color(0xFFE9F1FF), borderRadius: BorderRadius.circular(10)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _smallIconText(Icons.calendar_today_outlined, data['date']),
+                  _smallIconText(Icons.access_time, data['time']),
+                  _smallIconText(data['type'] == "Video" ? Icons.videocam_outlined : Icons.location_on_outlined, data['type']),
+                  _smallIconText(Icons.payments_outlined, data['price']),
+                ],
               ),
-              const SizedBox(width: 16),
-              Icon(Icons.access_time_outlined, size: 14, color: Colors.grey[600]),
-              const SizedBox(width: 4),
-              Text(
-                appointment['time'],
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[700],
-                ),
-              ),
-            ],
-          ),
-          if (isPending) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      _showConfirmDialog(context, 'Accept', appointment['patientName']);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF27AE60),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                    ),
-                    child: const Text(
-                      'Accept',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      _showConfirmDialog(context, 'Reject', appointment['patientName']);
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFFCC304C), width: 1.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                    ),
-                    child: const Text(
-                      'Reject',
-                      style: TextStyle(
-                        color: Color(0xFFCC304C),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ),
+            const SizedBox(height: 15),
           ],
+          actions,
         ],
       ),
     );
   }
 
-  void _showConfirmDialog(BuildContext context, String action, String patientName) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        title: Text(
-          '$action Appointment',
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
-        ),
-        content: Text(
-          'Are you sure you want to $action appointment with $patientName?',
-          style: const TextStyle(fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(
-                color: Color(0xFF666666),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Appointment ${action.toLowerCase()}ed successfully'),
-                  backgroundColor: action == 'Accept' ? const Color(0xFF27AE60) : const Color(0xFFE74C3C),
-                ),
-              );
-            },
-            child: Text(
-              action,
-              style: TextStyle(
-                color: action == 'Accept' ? const Color(0xFF27AE60) : const Color(0xFFE74C3C),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
+  Widget _smallIconText(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: Colors.grey[600]),
+        const SizedBox(width: 4),
+        Text(text, style: TextStyle(fontSize: 11, color: Colors.grey[700])),
+      ],
+    );
+  }
+
+  Widget _actionBtn(String label, Color bg, Color txt) {
+    return ElevatedButton(
+      onPressed: () {},
+      style: ElevatedButton.styleFrom(
+        backgroundColor: bg,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        padding: const EdgeInsets.symmetric(vertical: 12),
       ),
+      child: Text(label, style: TextStyle(color: txt, fontWeight: FontWeight.bold, fontSize: 14)),
     );
   }
 }

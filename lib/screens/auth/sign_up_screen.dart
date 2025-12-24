@@ -48,29 +48,39 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   void _handleSignUp() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    // পাসওয়ার্ড ম্যাচ চেক
     if (_passwordController.text != _confirmPasswordController.text) {
       _showSnackBar('Passwords do not match', isError: true);
       return;
     }
 
+    // ডাক্তার হলে লাইসেন্স চেক (ব্যাকএন্ড রিকোয়ারমেন্ট অনুযায়ী)
+    if (widget.userType == 'Doctor' && _licenseController.text.isEmpty) {
+      _showSnackBar('Medical license number is required', isError: true);
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
+      // ব্যাকএন্ডের Key গুলোর সাথে মিল রেখে ডাটা পাঠানো হচ্ছে
       final result = await _authService.register(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
-        userType: widget.userType,
-        license: widget.userType == 'Doctor' ? _licenseController.text.trim() : null,
+        confirmPassword: _confirmPasswordController.text, // ব্যাকএন্ডে এটি রিসিভ করা হচ্ছে
+        userType: widget.userType, // এটি নিচে 'role' হিসেবে পাঠাতে হবে
+        medicalLicenseNumber: widget.userType == 'Doctor' ? _licenseController.text.trim() : null,
         specialty: widget.userType == 'Doctor' ? _selectedSpecialty : null,
-        experience: widget.userType == 'Doctor' ? _experienceController.text.trim() : null,
+        experienceYears: widget.userType == 'Doctor' ? _experienceController.text.trim() : null,
       );
 
       setState(() => _isLoading = false);
-      if (result['success']) {
+      if (result['success'] == true) {
         _showSnackBar('Registration Successful!', isError: false);
         Navigator.pop(context); 
       } else {
-        _showSnackBar(result['message'], isError: true);
+        _showSnackBar(result['message'] ?? 'Registration failed', isError: true);
       }
     } catch (e) {
       setState(() => _isLoading = false);
@@ -106,7 +116,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Logo Section (200x200 as requested)
               Center(
                 child: Image.asset(
                   'assets/images/icon.png', 
@@ -116,7 +125,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
               
-              // Centered Texts (Like Screenshot)
               Center(
                 child: Column(
                   children: [
@@ -137,7 +145,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
               const Text("Full Name", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0B3267))),
               const SizedBox(height: 8),
-              CustomTextField(hintText: "The king", controller: _nameController),
+              CustomTextField(hintText: "Enter your full name", controller: _nameController),
 
               const SizedBox(height: 15),
               const Text("Email Address", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0B3267))),
@@ -148,7 +156,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(height: 15),
                 const Text("Medical License Number", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0B3267))),
                 const SizedBox(height: 8),
-                CustomTextField(hintText: "1111 1111 2222 33333", controller: _licenseController),
+                CustomTextField(hintText: "Enter License Number", controller: _licenseController),
 
                 const SizedBox(height: 15),
                 const Text("Medical Specialty*", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0B3267))),

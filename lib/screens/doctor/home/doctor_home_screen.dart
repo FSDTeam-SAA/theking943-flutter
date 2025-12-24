@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:docmobi/screens/doctor/appointments/doctor_appointments_screen.dart';
 import 'package:docmobi/screens/patient/notification/notification_screen.dart';
 
 class DoctorHomeScreen extends StatefulWidget {
@@ -13,284 +12,222 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE5EEFF),
+      backgroundColor: const Color(0xFFF8FAFF), // হালকা ব্যাকগ্রাউন্ড
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(20),
-                color: const Color(0xFFE5EEFF),
-                child: Column(
-                  children: [
-                    Row(
+        child: Column(
+          children: [
+            // --- Header (Same as Screenshot) ---
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                children: [
+                  const CircleAvatar(
+                    radius: 25,
+                    backgroundImage: AssetImage('assets/images/doctor_booking.png'),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const CircleAvatar(
-                          radius: 25,
-                          backgroundImage: AssetImage('assets/images/doctor_booking.png'),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Dr. The King',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF0B3267),
-                                ),
-                              ),
-                              Text(
-                                'Pediatric Surgery',
-                                style: TextStyle(fontSize: 14, color: Colors.grey),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.search, size: 28),
-                          onPressed: () {},
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.notifications_outlined, size: 28),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const NotificationScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              // Statistics Cards
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildStatCard(
-                        'Total Patients',
-                        '156',
-                        Icons.people,
-                        const Color(0xFF4A90E2),
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: _buildStatCard(
-                        'Appointments',
-                        '12',
-                        Icons.calendar_today,
-                        const Color(0xFF27AE60),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Today's Schedule
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Today\'s Schedule',
+                        Text(
+                          'Dr.The king',
                           style: TextStyle(
-                            fontSize: 20,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF0B3267),
+                            color: Color(0xFF1B2C49),
                           ),
                         ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const DoctorAppointmentsScreen(),
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            'See All',
-                            style: TextStyle(
-                              color: Color(0xFF1664CD),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                        Text(
+                          'Podiatric Surgery',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 15),
-                    _buildAppointmentCard(
-                      'The King',
-                      '10:00 AM - 10:30 AM',
-                      'Video Call',
-                      'assets/images/profile.png',
+                  ),
+                  _buildHeaderIcon(Icons.search),
+                  const SizedBox(width: 10),
+                  _buildHeaderIcon(Icons.notifications_outlined, onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationScreen()));
+                  }),
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // --- Post Creation Box ---
+                    _buildCreatePostBox(),
+
+                    // --- Social Feed List ---
+                    _buildSocialPost(
+                      'Dr. Joynal Abedin',
+                      '16h ago',
+                      'A core principle of patient centered and compassionate care',
+                      'assets/images/news.png', // আপনার ইমেজ পাথ
+                      '792', '792', '12',
                     ),
-                    const SizedBox(height: 15),
-                    _buildAppointmentCard(
-                      'John Doe',
-                      '11:00 AM - 11:30 AM',
-                      'Physical Visit',
-                      'assets/images/profile.png',
-                    ),
-                    const SizedBox(height: 15),
-                    _buildAppointmentCard(
-                      'Jane Smith',
-                      '02:00 PM - 02:30 PM',
-                      'Video Call',
-                      'assets/images/profile.png',
+                    _buildSocialPost(
+                      'Dr. Joynal Abedin',
+                      '16h ago',
+                      'A core principle of patient centered and compassionate care',
+                      'assets/images/news.png',
+                      '792', '792', '12',
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildHeaderIcon(IconData icon, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE9F1FF),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: const Color(0xFF1B2C49), size: 24),
+      ),
+    );
+  }
+
+  Widget _buildCreatePostBox() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: Colors.blue.withOpacity(0.1)),
       ),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 30),
+          Row(
+            children: [
+              const CircleAvatar(
+                radius: 20,
+                backgroundImage: AssetImage('assets/images/doctor.png'),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F8FF),
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: const Text(
+                    'Share your insights with follow doctors...',
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF0B3267),
-            ),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
-            textAlign: TextAlign.center,
+          const SizedBox(height: 15),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildPostAction(Icons.image_outlined, 'Photo', Colors.brown),
+              _buildPostAction(Icons.videocam_outlined, 'Video', Colors.black87),
+              _buildPostAction(Icons.play_circle_outline, 'Reels', Colors.black87),
+              ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: Color(0xFF1664CD)),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Creat a Post', style: TextStyle(color: Color(0xFF1664CD), fontSize: 12)),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAppointmentCard(String patientName, String time, String type, String image) {
+  Widget _buildPostAction(IconData icon, String label, Color color) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+      ],
+    );
+  }
+
+  Widget _buildSocialPost(String name, String time, String content, String image, String likes, String comments, String shares) {
     return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const CircleAvatar(
+                radius: 22,
+                backgroundImage: AssetImage('assets/images/doctor.png'),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(time, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(content, style: const TextStyle(fontSize: 14, height: 1.4)),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.asset(image, fit: BoxFit.cover, width: double.infinity, height: 200),
+          ),
+          const SizedBox(height: 15),
+          Row(
+            children: [
+              _buildStatChip(Icons.thumb_up_alt_outlined, likes),
+              const SizedBox(width: 10),
+              _buildStatChip(Icons.chat_bubble_outline, comments),
+              const Spacer(),
+              _buildStatChip(Icons.share_outlined, shares, isShare: true),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStatChip(IconData icon, String count, {bool isShare = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F6FF),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundImage: AssetImage(image),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  patientName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0B3267),
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
-                    const SizedBox(width: 5),
-                    Text(
-                      time,
-                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    Icon(
-                      type == 'Video Call' ? Icons.videocam : Icons.location_on,
-                      size: 14,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      type,
-                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF0B3267), Color(0xFF1664CD)],
-              ),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text(
-              'View',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
+          Icon(icon, size: 16, color: const Color(0xFF1B2C49)),
+          const SizedBox(width: 4),
+          Text(count, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
         ],
       ),
     );

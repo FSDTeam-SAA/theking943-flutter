@@ -15,11 +15,11 @@ class DoctorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
+      onTap: onTap ?? () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => DoctorDetailScreen(doctor: doctor),
+            builder: (context) => DoctorDetailsScreen(doctor: doctor),
           ),
         );
       },
@@ -40,6 +40,7 @@ class DoctorCard extends StatelessWidget {
         ),
         child: Row(
           children: [
+            // Image Section
             Container(
               width: 60,
               height: 60,
@@ -52,6 +53,8 @@ class DoctorCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 15),
+            
+            // Text Details Section
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,20 +89,32 @@ class DoctorCard extends StatelessWidget {
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF0B3267), Color(0xFF1664CD)],
+
+            // FIXED: 'Book Now' Button with Navigation
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DoctorDetailsScreen(doctor: doctor),
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0B3267), Color(0xFF1664CD)],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                'Book Now',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+                child: const Text(
+                  'Book Now',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),

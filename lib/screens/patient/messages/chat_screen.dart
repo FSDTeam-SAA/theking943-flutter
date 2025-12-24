@@ -1,251 +1,174 @@
 import 'package:flutter/material.dart';
 
-class ChatScreen extends StatefulWidget {
+class ChatDetailScreen extends StatefulWidget {
   final String doctorName;
-  final String doctorImage;
-
-  const ChatScreen({
-    super.key,
-    required this.doctorName,
-    required this.doctorImage,
-  });
+  const ChatDetailScreen({super.key, required this.doctorName});
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  State<ChatDetailScreen> createState() => _ChatDetailScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController _messageController = TextEditingController();
+class _ChatDetailScreenState extends State<ChatDetailScreen> {
+  final TextEditingController _controller = TextEditingController();
+
   final List<Map<String, dynamic>> _messages = [
-    {
-      'text': 'Hi there!',
-      'isSent': false,
-      'time': '09:41 AM',
-    },
-    {
-      'text': 'I\'ve sent the lab',
-      'isSent': true,
-      'time': '09:42 AM',
-    },
-    {
-      'text': 'Really?',
-      'isSent': false,
-      'time': '09:43 AM',
-    },
-    {
-      'text': 'Yeah. It\'s really good!',
-      'isSent': true,
-      'time': '09:44 AM',
-    },
+    {"text": "Hi, Mandy", "isMe": true},
+    {"text": "I've tried the app", "isMe": true},
+    {"text": "Really?", "isMe": false},
+    {"text": "Yeah, It's really good!", "isMe": true},
   ];
 
-  void _sendMessage() {
-    if (_messageController.text.trim().isNotEmpty) {
+  void _sendMsg() {
+    if (_controller.text.isNotEmpty) {
       setState(() {
-        _messages.add({
-          'text': _messageController.text,
-          'isSent': true,
-          'time': '09:45 AM',
-        });
+        _messages.add({"text": _controller.text, "isMe": true});
+        _controller.clear();
       });
-      _messageController.clear();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE5EEFF),
+      backgroundColor: const Color(0xFFF8FAFF), // স্ক্রিনশটের মতো হালকা ব্যাকগ্রাউন্ড
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF8FAFF),
         elevation: 0,
+        // --- স্ক্রিনশট অনুযায়ী ব্যাক বাটন ---
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF0B3267)),
+          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 26),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundImage: AssetImage(widget.doctorImage),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.doctorName,
-                    style: const TextStyle(
-                      color: Color(0xFF0B3267),
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Text(
-                    'Online',
-                    style: TextStyle(
-                      color: Colors.green,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+        title: const Text(
+          "Messages",
+          style: TextStyle(
+            color: Colors.black, 
+            fontSize: 22, 
+            fontWeight: FontWeight.w500
+          ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.videocam, color: Color(0xFF1664CD)),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.call, color: Color(0xFF1664CD)),
-            onPressed: () {},
-          ),
-        ],
+        centerTitle: true,
       ),
       body: Column(
         children: [
-          // Messages List
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Text(
+              "09:41 AM",
+              style: TextStyle(color: Colors.grey, fontSize: 14),
+            ),
+          ),
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: _messages.length,
               itemBuilder: (context, index) {
-                return _buildMessageBubble(_messages[index]);
+                final m = _messages[index];
+                return _buildBubble(m["text"], m["isMe"], index);
               },
             ),
           ),
-          // Message Input
-          Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
-                  spreadRadius: 1,
-                  blurRadius: 5,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _messageController,
-                            decoration: const InputDecoration(
-                              hintText: 'Type your message...',
-                              border: InputBorder.none,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.attach_file, color: Colors.grey),
-                          onPressed: () {},
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF0B3267), Color(0xFF1664CD)],
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white),
-                    onPressed: _sendMessage,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageBubble(Map<String, dynamic> message) {
-    bool isSent = message['isSent'];
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: Row(
-        mainAxisAlignment: isSent ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (!isSent) ...[
-            CircleAvatar(
-              radius: 15,
-              backgroundImage: AssetImage(widget.doctorImage),
-            ),
-            const SizedBox(width: 8),
-          ],
-          Flexible(
+          
+          // ইনপুট বক্স
+          Padding(
+            padding: const EdgeInsets.all(20.0),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 15),
               decoration: BoxDecoration(
-                gradient: isSent
-                    ? const LinearGradient(
-                        colors: [Color(0xFF0B3267), Color(0xFF1664CD)],
-                      )
-                    : null,
-                color: isSent ? null : Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(15),
-                  topRight: const Radius.circular(15),
-                  bottomLeft: Radius.circular(isSent ? 15 : 0),
-                  bottomRight: Radius.circular(isSent ? 0 : 15),
-                ),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(35),
+                border: Border.all(color: Colors.grey.shade200),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Text(
-                    message['text'],
-                    style: TextStyle(
-                      color: isSent ? Colors.white : const Color(0xFF0B3267),
-                      fontSize: 14,
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      decoration: const InputDecoration(
+                        hintText: "Type your message.......",
+                        hintStyle: TextStyle(color: Colors.grey),
+                        border: InputBorder.none,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 5),
-                  Text(
-                    message['time'],
-                    style: TextStyle(
-                      color: isSent ? Colors.white70 : Colors.grey,
-                      fontSize: 10,
-                    ),
-                  ),
+                  const Icon(Icons.link, color: Colors.black87),
+                  const SizedBox(width: 15),
+                  const Icon(Icons.image_outlined, color: Colors.black87),
                 ],
               ),
             ),
           ),
-          if (isSent) ...[
-            const SizedBox(width: 8),
-            const Icon(Icons.done_all, size: 16, color: Color(0xFF1664CD)),
-          ],
+          const SizedBox(height: 10),
         ],
       ),
     );
   }
 
-  @override
-  void dispose() {
-    _messageController.dispose();
-    super.dispose();
+  Widget _buildBubble(String text, bool isMe, int index) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (!isMe)
+                const CircleAvatar(
+                  radius: 16,
+                  // --- ইমেজ পাথটি আপনার প্রজেক্ট অনুযায়ী চেক করুন ---
+                  backgroundImage: AssetImage("assets/images/doctor1.png"),
+                ),
+              const SizedBox(width: 8),
+              Container(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.7,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                decoration: BoxDecoration(
+                  // স্ক্রিনশট অনুযায়ী কালার
+                  color: isMe ? const Color(0xFF6C5CE7) : Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(20),
+                    topRight: const Radius.circular(20),
+                    bottomLeft: isMe ? const Radius.circular(20) : const Radius.circular(5),
+                    bottomRight: isMe ? const Radius.circular(5) : const Radius.circular(20),
+                  ),
+                  boxShadow: [
+                    if (!isMe)
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 5,
+                        offset: const Offset(0, 2),
+                      ),
+                  ],
+                ),
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    color: isMe ? Colors.white : Colors.black87,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (isMe)
+                const CircleAvatar(
+                  radius: 16,
+                  // --- ইমেজ পাথটি আপনার প্রজেক্ট অনুযায়ী চেক করুন ---
+                  backgroundImage: AssetImage("assets/images/profile.png"),
+                ),
+            ],
+          ),
+          // "Typing..." স্ট্যাটাস শুধু ডেমো হিসেবে শেষ মেসেজের পর
+          if (!isMe && index == _messages.length - 1)
+            const Padding(
+              padding: EdgeInsets.only(left: 45, top: 5),
+              child: Text("Typing...", style: TextStyle(color: Colors.grey, fontSize: 12)),
+            ),
+        ],
+      ),
+    );
   }
 }
