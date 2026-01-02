@@ -1,3 +1,4 @@
+// import 'package:docmobi/screens/patient/home/patient_home_screen.dart';
 import 'package:docmobi/screens/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -14,6 +15,7 @@ class MyApp extends StatelessWidget {
       ),
       debugShowCheckedModeBanner: false,
       home: const SplashScreen(), 
+      // home: const PatientHomeScreen(), 
     );
   }
 }

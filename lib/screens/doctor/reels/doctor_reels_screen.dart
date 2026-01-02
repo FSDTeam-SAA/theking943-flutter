@@ -130,12 +130,12 @@ class ReelsViewerScreen extends StatefulWidget {
 
 class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
   late PageController _pageController;
-  late int _currentPage;
+  late int currentPage;
 
   @override
   void initState() {
     super.initState();
-    _currentPage = widget.initialIndex;
+    currentPage = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
   }
 
@@ -153,7 +153,7 @@ class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
         controller: _pageController,
         scrollDirection: Axis.vertical,
         itemCount: widget.reelsList.length,
-        onPageChanged: (index) => setState(() => _currentPage = index),
+        onPageChanged: (index) => setState(() => currentPage = index),
         itemBuilder: (context, index) => _buildReelPage(widget.reelsList[index]),
       ),
     );

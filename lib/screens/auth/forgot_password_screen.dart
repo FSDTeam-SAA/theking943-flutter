@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/auth/otp_screen.dart';
 import 'package:docmobi/widgets/custom_button.dart';
-import 'package:docmobi/widgets/custom_text_field.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -11,7 +10,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {

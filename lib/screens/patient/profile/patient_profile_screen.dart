@@ -1,4 +1,5 @@
-import 'package:docmobi/screens/patient/appointments/patient_appointments_screen.dart';
+import 'package:docmobi/screens/patient/profile/add_dependents_screen.dart';
+import 'package:docmobi/screens/patient/profile/my_appointment_screen.dart';
 import 'package:flutter/material.dart';
 // আপনার স্ক্রিনগুলোর পাথ সঠিক আছে কিনা দেখে নিন
 import 'package:docmobi/screens/patient/profile/personal_info_screen.dart';
@@ -90,6 +91,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
             /// Menu Items
             _buildMenuItem(
               icon: Icons.person_outline,
+
               title: 'Personal Info',
               onTap: () {
                 Navigator.push(
@@ -105,7 +107,18 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const PatientAppointmentsScreen()),
+                  MaterialPageRoute(builder: (context) => MyAppointmentScreen()),
+                );
+              },
+            ),
+
+            _buildMenuItem(
+              icon: Icons.group_add_outlined,
+              title: 'Add Dependents',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AddDependentScreen()),
                 );
               },
             ),

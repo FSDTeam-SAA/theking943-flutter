@@ -1,3 +1,4 @@
+import 'package:docmobi/screens/patient/home/dialog/location_permission_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/models/doctor_model.dart';
 import 'package:docmobi/widgets/doctor_card.dart';
@@ -312,67 +313,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
   Widget _buildLocationDialog() {
     return Container(
-      color: Colors.black54,
-      child: Center(
-        child: Container(
-          margin: const EdgeInsets.all(30),
-          padding: const EdgeInsets.all(25),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.location_on, size: 80, color: Color(0xFF1664CD)),
-              const SizedBox(height: 20),
-              const Text(
-                'Allow Mapps to access this device\'s precise location?',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0B3267)),
-              ),
-              const SizedBox(height: 30),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _dismissDialog, // মেথড কল করা হয়েছে
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF1664CD)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: const Text('Precise', style: TextStyle(color: Color(0xFF1664CD), fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [Color(0xFF0B3267), Color(0xFF1664CD)]),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: ElevatedButton(
-                        onPressed: _dismissDialog, // মেথড কল করা হয়েছে
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: const Text('Approximate', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              ...['While using the app', 'Only this time', 'Don\'t allow'].map((text) {
-                return TextButton(
-                  onPressed: _dismissDialog, // মেথড কল করা হয়েছে
-                  child: Text(text, style: const TextStyle(color: Color(0xFF1664CD), decoration: TextDecoration.underline)),
-                );
-              }).toList(),
-            ],
-          ),
-        ),
+      color: Colors.black54, // The dark overlay
+      // Pass the _dismissDialog method to the new widget
+      child: LocationPermissionDialog(
+        onDismiss: _dismissDialog, 
       ),
     );
   }

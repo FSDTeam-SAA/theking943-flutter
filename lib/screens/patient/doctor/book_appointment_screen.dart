@@ -103,13 +103,15 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                   Row(
                     children: [
                       _buildTypeOption(
-                        Icons.local_hospital_outlined,
+                        'assets/icons/physical_visit.png',
+                        // Icons.local_hospital_outlined,
                         "Physical Visit",
                         "Pay at Clinic",
                       ),
                       const SizedBox(width: 15),
                       _buildTypeOption(
-                        Icons.videocam_outlined,
+                        'assets/icons/video_call.png',
+                        // Icons.videocam_outlined,
                         "Video Call",
                         "Online Payment",
                       ),
@@ -296,7 +298,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     );
   }
 
-  Widget _buildTypeOption(IconData icon, String title, String subtitle) {
+  Widget _buildTypeOption(String image, String title, String subtitle) {
     bool isSelected = selectedType == title;
     return Expanded(
       child: GestureDetector(
@@ -313,10 +315,11 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           ),
           child: Column(
             children: [
-              Icon(
-                icon,
+              Image.asset(
+                image,
                 color: isSelected ? const Color(0xFF0D53C1) : Colors.black54,
-                size: 30,
+                width: 30,
+                height: 30,
               ),
               const SizedBox(height: 5),
               Text(
