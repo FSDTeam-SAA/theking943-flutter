@@ -816,7 +816,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           controller: controller,
           maxLines: null,
           decoration: const InputDecoration(
-            hintText: "Please describe your symptoms in detail.....",
+            hintText: "Please describe your symptoms in detail....",
             hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
             border: InputBorder.none,
           ),
