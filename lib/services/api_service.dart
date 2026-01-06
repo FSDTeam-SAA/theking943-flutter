@@ -869,7 +869,132 @@ static Future<Map<String, dynamic>> deletePostComment({
 }
 
 
+// ==================== CHAT API METHODS ====================
 
+/// Create or Get Chat (1-on-1)
+static Future<Map<String, dynamic>> createOrGetChat({
+  required String userId,
+}) async {
+  try {
+    final endpoint = '/api/v1/chat';
+    print('📤 POST Create/Get Chat: $_baseUrl$endpoint');
+
+    final response = await post(
+      endpoint,
+      {'userId': userId},
+      requiresAuth: true,
+    );
+    
+    print('📥 Chat Response: $response');
+    return response;
+  } catch (e) {
+    print('❌ Create Chat Error: $e');
+    return {
+      'success': false,
+      'message': _getErrorMessage(e),
+    };
+  }
+}
+
+/// Get My Chats
+static Future<Map<String, dynamic>> getMyChats() async {
+  try {
+    final endpoint = '/api/v1/chat';
+    print('📤 GET My Chats: $_baseUrl$endpoint');
+
+    final response = await get(endpoint, requiresAuth: true);
+    
+    print('📥 Chats Response: $response');
+    return response;
+  } catch (e) {
+    print('❌ Get Chats Error: $e');
+    return {
+      'success': false,
+      'message': _getErrorMessage(e),
+    };
+  }
+}
+
+/// Get Chat Messages
+static Future<Map<String, dynamic>> getChatMessages({
+  required String chatId,
+  int page = 1,
+  int limit = 20,
+}) async {
+  try {
+    final endpoint = '/api/v1/chat/$chatId/messages?page=$page&limit=$limit';
+    print('📤 GET Chat Messages: $_baseUrl$endpoint');
+
+    final response = await get(endpoint, requiresAuth: true);
+    
+    return response;
+  } catch (e) {
+    print('❌ Get Messages Error: $e');
+    return {
+      'success': false,
+      'message': _getErrorMessage(e),
+    };
+  }
+}
+
+/// Send Message
+static Future<Map<String, dynamic>> sendMessage({
+  required String chatId,
+  String? content,
+  List<File>? files,
+  String contentType = 'text',
+}) async {
+  try {
+    final url = '$_baseUrl/api/v1/chat/$chatId/message';
+    print('📤 POST Send Message: $url');
+
+    if (_token == null || _token!.isEmpty) {
+      return {
+        'success': false,
+        'message': 'Authentication required',
+        'requiresLogin': true,
+      };
+    }
+
+    var request = http.MultipartRequest('POST', Uri.parse(url));
+    request.headers['Authorization'] = 'Bearer $_token';
+
+    // Add content
+    if (content != null && content.isNotEmpty) {
+      request.fields['content'] = content;
+    }
+    
+    request.fields['contentType'] = contentType;
+
+    // Add files if provided
+    if (files != null && files.isNotEmpty) {
+      for (var file in files) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'files',
+            file.path,
+          ),
+        );
+      }
+    }
+
+    print('📤 Sending message...');
+
+    final streamedResponse = await request.send().timeout(
+      const Duration(seconds: 30),
+    );
+
+    final response = await http.Response.fromStream(streamedResponse);
+
+    return _handleResponse(response);
+  } catch (e) {
+    print('❌ Send Message Error: $e');
+    return {
+      'success': false,
+      'message': _getErrorMessage(e),
+    };
+  }
+}
 
 
 }
