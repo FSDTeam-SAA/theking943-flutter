@@ -1,10 +1,16 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   static String? _token;
-  static const String _baseUrl = 'http://localhost:5000'; // Change this to your backend URL
+  // ✅ Your Mac IP Address from same WiFi network
+  // Use this for Physical Android/iOS devices on same WiFi
+  static const String _baseUrl = 'http://192.168.10.210:5000';
+  
+  // For Android Emulator, use: 'http://10.0.2.2:5000'
+  // For iOS Simulator, use: 'http://localhost:5000'
 
   /// Initialize - Token load kora
   static Future<void> init() async {
@@ -307,4 +313,563 @@ class ApiService {
     // Remove this method if you're using ApiConfig
     print('⚠️ Base URL updated to: $url');
   }
+
+  // ==================== REELS API METHODS ====================
+
+  /// Create Reel with video upload
+  static Future<Map<String, dynamic>> createReel({
+    required File videoFile,
+    File? thumbnailFile,
+    String? caption,
+    String visibility = 'public',
+  }) async {
+    try {
+      final url = '$_baseUrl/api/v1/reels';
+      print('📤 POST (Multipart): $url');
+      print('🎥 Video: ${videoFile.path}');
+      print('🖼️ Thumbnail: ${thumbnailFile?.path ?? "None"}');
+      print('📝 Caption: $caption');
+      print('🔐 Visibility: $visibility');
+
+      if (_token == null || _token!.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Authentication required',
+          'requiresLogin': true,
+        };
+      }
+
+      var request = http.MultipartRequest('POST', Uri.parse(url));
+
+      // Add authorization header
+      request.headers['Authorization'] = 'Bearer $_token';
+
+      // Add video file
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'video',
+          videoFile.path,
+        ),
+      );
+
+      // Add thumbnail if exists
+      if (thumbnailFile != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'thumbnail',
+            thumbnailFile.path,
+          ),
+        );
+      }
+
+      // Add other fields
+      if (caption != null && caption.isNotEmpty) {
+        request.fields['caption'] = caption;
+      }
+      request.fields['visibility'] = visibility;
+
+      print('📤 Sending multipart request...');
+
+      // Send request
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 60), // Longer timeout for video upload
+      );
+
+      final response = await http.Response.fromStream(streamedResponse);
+
+      print('📥 Status: ${response.statusCode}');
+      print('📥 Response: ${response.body}');
+
+      return _handleResponse(response);
+    } catch (e) {
+      print('❌ Create Reel Error: $e');
+      return {
+        'success': false,
+        'message': _getErrorMessage(e),
+      };
+    }
+  }
+
+  /// Get All Reels (Public feed)
+  static Future<Map<String, dynamic>> getAllReels({
+    int page = 1,
+    int limit = 10,
+  }) async {
+    try {
+      final endpoint = '/api/v1/reels/all-reels?page=$page&limit=$limit';
+      print('📤 GET All Reels: $_baseUrl$endpoint');
+
+      final response = await get(endpoint, requiresAuth: false);
+      
+      print('📥 All Reels Response: $response');
+      return response;
+    } catch (e) {
+      print('❌ Get All Reels Error: $e');
+      return {
+        'success': false,
+        'message': _getErrorMessage(e),
+      };
+    }
+  }
+
+  /// Get My Reels (Authenticated user's reels)
+  static Future<Map<String, dynamic>> getMyReels({
+    int page = 1,
+    int limit = 10,
+  }) async {
+    try {
+      final endpoint = '/api/v1/reels?page=$page&limit=$limit';
+      print('📤 GET My Reels: $_baseUrl$endpoint');
+
+      final response = await get(endpoint, requiresAuth: true);
+      
+      print('📥 My Reels Response: $response');
+      return response;
+    } catch (e) {
+      print('❌ Get My Reels Error: $e');
+      return {
+        'success': false,
+        'message': _getErrorMessage(e),
+      };
+    }
+  }
+
+  /// Get Single Reel by ID
+  static Future<Map<String, dynamic>> getReelById(String reelId) async {
+    try {
+      final endpoint = '/api/v1/reels/$reelId';
+      print('📤 GET Reel by ID: $_baseUrl$endpoint');
+
+      final response = await get(endpoint, requiresAuth: true);
+      
+      print('📥 Reel Response: $response');
+      return response;
+    } catch (e) {
+      print('❌ Get Reel by ID Error: $e');
+      return {
+        'success': false,
+        'message': _getErrorMessage(e),
+      };
+    }
+  }
+
+  /// Update Reel
+  static Future<Map<String, dynamic>> updateReel({
+    required String reelId,
+    File? videoFile,
+    File? thumbnailFile,
+    String? caption,
+    String? visibility,
+  }) async {
+    try {
+      final url = '$_baseUrl/api/v1/reels/$reelId';
+      print('📤 PUT (Multipart): $url');
+
+      if (_token == null || _token!.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Authentication required',
+          'requiresLogin': true,
+        };
+      }
+
+      var request = http.MultipartRequest('PUT', Uri.parse(url));
+
+      // Add authorization header
+      request.headers['Authorization'] = 'Bearer $_token';
+
+      // Add video file if provided
+      if (videoFile != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'video',
+            videoFile.path,
+          ),
+        );
+      }
+
+      // Add thumbnail if provided
+      if (thumbnailFile != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'thumbnail',
+            thumbnailFile.path,
+          ),
+        );
+      }
+
+      // Add other fields
+      if (caption != null) {
+        request.fields['caption'] = caption;
+      }
+      if (visibility != null) {
+        request.fields['visibility'] = visibility;
+      }
+
+      print('📤 Sending update request...');
+
+      // Send request
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 60),
+      );
+
+      final response = await http.Response.fromStream(streamedResponse);
+
+      return _handleResponse(response);
+    } catch (e) {
+      print('❌ Update Reel Error: $e');
+      return {
+        'success': false,
+        'message': _getErrorMessage(e),
+      };
+    }
+  }
+
+  /// Delete Reel
+  static Future<Map<String, dynamic>> deleteReel(String reelId) async {
+    try {
+      final endpoint = '/api/v1/reels/$reelId';
+      print('📤 DELETE Reel: $_baseUrl$endpoint');
+
+      final response = await delete(endpoint, requiresAuth: true);
+      
+      print('📥 Delete Response: $response');
+      return response;
+    } catch (e) {
+      print('❌ Delete Reel Error: $e');
+      return {
+        'success': false,
+        'message': _getErrorMessage(e),
+      };
+    }
+  }
+// ==================== POST API METHODS ====================
+// Add these methods to your existing ApiService class
+
+/// Create Post with multiple media files
+static Future<Map<String, dynamic>> createPost({
+  required String content,
+  List<File>? mediaFiles,
+  String visibility = 'public',
+}) async {
+  try {
+    final url = '$_baseUrl/api/v1/posts';
+    print('📤 POST (Multipart): $url');
+    print('📝 Content: $content');
+    print('📷 Media files: ${mediaFiles?.length ?? 0}');
+
+    if (_token == null || _token!.isEmpty) {
+      return {
+        'success': false,
+        'message': 'Authentication required',
+        'requiresLogin': true,
+      };
+    }
+
+    var request = http.MultipartRequest('POST', Uri.parse(url));
+
+    // Add authorization header
+    request.headers['Authorization'] = 'Bearer $_token';
+
+    // Add content
+    if (content.isNotEmpty) {
+      request.fields['content'] = content;
+    }
+
+    // Add visibility
+    request.fields['visibility'] = visibility;
+
+    // Add media files
+    if (mediaFiles != null && mediaFiles.isNotEmpty) {
+      for (var file in mediaFiles) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'media',
+            file.path,
+          ),
+        );
+      }
+    }
+
+    print('📤 Sending multipart request...');
+
+    // Send request
+    final streamedResponse = await request.send().timeout(
+      const Duration(seconds: 60),
+    );
+
+    final response = await http.Response.fromStream(streamedResponse);
+
+    print('📥 Status: ${response.statusCode}');
+    print('📥 Response: ${response.body}');
+
+    return _handleResponse(response);
+  } catch (e) {
+    print('❌ Create Post Error: $e');
+    return {
+      'success': false,
+      'message': _getErrorMessage(e),
+    };
+  }
+}
+
+/// Get All Posts (Public feed)
+static Future<Map<String, dynamic>> getAllPosts({
+  int page = 1,
+  int limit = 10,
+}) async {
+  try {
+    final endpoint = '/api/v1/posts/all-posts?page=$page&limit=$limit';
+    print('📤 GET All Posts: $_baseUrl$endpoint');
+
+    final response = await get(endpoint, requiresAuth: false);
+    
+    print('📥 All Posts Response: $response');
+    return response;
+  } catch (e) {
+    print('❌ Get All Posts Error: $e');
+    return {
+      'success': false,
+      'message': _getErrorMessage(e),
+    };
+  }
+}
+
+/// Get My Posts (Authenticated user's posts - Doctor only)
+static Future<Map<String, dynamic>> getMyPosts({
+  int page = 1,
+  int limit = 10,
+}) async {
+  try {
+    final endpoint = '/api/v1/posts?page=$page&limit=$limit';
+    print('📤 GET My Posts: $_baseUrl$endpoint');
+
+    final response = await get(endpoint, requiresAuth: true);
+    
+    print('📥 My Posts Response: $response');
+    return response;
+  } catch (e) {
+    print('❌ Get My Posts Error: $e');
+    return {
+      'success': false,
+      'message': _getErrorMessage(e),
+    };
+  }
+}
+
+/// Get Single Post by ID
+static Future<Map<String, dynamic>> getPostById(String postId) async {
+  try {
+    final endpoint = '/api/v1/posts/$postId';
+    print('📤 GET Post by ID: $_baseUrl$endpoint');
+
+    final response = await get(endpoint, requiresAuth: true);
+    
+    print('📥 Post Response: $response');
+    return response;
+  } catch (e) {
+    print('❌ Get Post by ID Error: $e');
+    return {
+      'success': false,
+      'message': _getErrorMessage(e),
+    };
+  }
+}
+
+/// Update Post
+static Future<Map<String, dynamic>> updatePost({
+  required String postId,
+  String? content,
+  List<File>? mediaFiles,
+  String? visibility,
+}) async {
+  try {
+    final url = '$_baseUrl/api/v1/posts/$postId';
+    print('📤 PUT (Multipart): $url');
+
+    if (_token == null || _token!.isEmpty) {
+      return {
+        'success': false,
+        'message': 'Authentication required',
+        'requiresLogin': true,
+      };
+    }
+
+    var request = http.MultipartRequest('PUT', Uri.parse(url));
+
+    // Add authorization header
+    request.headers['Authorization'] = 'Bearer $_token';
+
+    // Add fields
+    if (content != null && content.isNotEmpty) {
+      request.fields['content'] = content;
+    }
+    if (visibility != null) {
+      request.fields['visibility'] = visibility;
+    }
+
+    // Add media files if provided
+    if (mediaFiles != null && mediaFiles.isNotEmpty) {
+      for (var file in mediaFiles) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'media',
+            file.path,
+          ),
+        );
+      }
+    }
+
+    print('📤 Sending update request...');
+
+    final streamedResponse = await request.send().timeout(
+      const Duration(seconds: 60),
+    );
+
+    final response = await http.Response.fromStream(streamedResponse);
+
+    return _handleResponse(response);
+  } catch (e) {
+    print('❌ Update Post Error: $e');
+    return {
+      'success': false,
+      'message': _getErrorMessage(e),
+    };
+  }
+}
+
+/// Delete Post
+static Future<Map<String, dynamic>> deletePost(String postId) async {
+  try {
+    final endpoint = '/api/v1/posts/$postId';
+    print('📤 DELETE Post: $_baseUrl$endpoint');
+
+    final response = await delete(endpoint, requiresAuth: true);
+    
+    print('📥 Delete Response: $response');
+    return response;
+  } catch (e) {
+    print('❌ Delete Post Error: $e');
+    return {
+      'success': false,
+      'message': _getErrorMessage(e),
+    };
+  }
+}
+
+/// Toggle Like on Post
+static Future<Map<String, dynamic>> toggleLikePost(String postId) async {
+  try {
+    final endpoint = '/api/v1/posts/$postId/like';
+    print('📤 POST Toggle Like: $_baseUrl$endpoint');
+
+    final response = await post(endpoint, {}, requiresAuth: true);
+    
+    print('📥 Like Response: $response');
+    return response;
+  } catch (e) {
+    print('❌ Toggle Like Error: $e');
+    return {
+      'success': false,
+      'message': _getErrorMessage(e),
+    };
+  }
+}
+
+/// Get Post Likes
+static Future<Map<String, dynamic>> getPostLikes({
+  required String postId,
+  int page = 1,
+  int limit = 20,
+}) async {
+  try {
+    final endpoint = '/api/v1/posts/$postId/likes?page=$page&limit=$limit';
+    print('📤 GET Post Likes: $_baseUrl$endpoint');
+
+    final response = await get(endpoint, requiresAuth: true);
+    
+    return response;
+  } catch (e) {
+    print('❌ Get Post Likes Error: $e');
+    return {
+      'success': false,
+      'message': _getErrorMessage(e),
+    };
+  }
+}
+
+/// Add Comment to Post
+static Future<Map<String, dynamic>> addPostComment({
+  required String postId,
+  required String content,
+}) async {
+  try {
+    final endpoint = '/api/v1/posts/$postId/comments';
+    print('📤 POST Add Comment: $_baseUrl$endpoint');
+
+    final response = await post(
+      endpoint,
+      {'content': content},
+      requiresAuth: true,
+    );
+    
+    print('📥 Comment Response: $response');
+    return response;
+  } catch (e) {
+    print('❌ Add Comment Error: $e');
+    return {
+      'success': false,
+      'message': _getErrorMessage(e),
+    };
+  }
+}
+
+/// Get Post Comments
+static Future<Map<String, dynamic>> getPostComments({
+  required String postId,
+  int page = 1,
+  int limit = 10,
+}) async {
+  try {
+    final endpoint = '/api/v1/posts/$postId/comments?page=$page&limit=$limit';
+    print('📤 GET Post Comments: $_baseUrl$endpoint');
+
+    final response = await get(endpoint, requiresAuth: true);
+    
+    return response;
+  } catch (e) {
+    print('❌ Get Post Comments Error: $e');
+    return {
+      'success': false,
+      'message': _getErrorMessage(e),
+    };
+  }
+}
+
+/// Delete Post Comment
+static Future<Map<String, dynamic>> deletePostComment({
+  required String postId,
+  required String commentId,
+}) async {
+  try {
+    final endpoint = '/api/v1/posts/$postId/comments/$commentId';
+    print('📤 DELETE Comment: $_baseUrl$endpoint');
+
+    final response = await delete(endpoint, requiresAuth: true);
+    
+    print('📥 Delete Comment Response: $response');
+    return response;
+  } catch (e) {
+    print('❌ Delete Comment Error: $e');
+    return {
+      'success': false,
+      'message': _getErrorMessage(e),
+    };
+  }
+}
+
+
+
+
+
 }

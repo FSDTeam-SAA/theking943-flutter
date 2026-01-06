@@ -1,6 +1,8 @@
 import 'package:docmobi/screens/doctor/posts/doctor_create_post_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/patient/notification/notification_screen.dart';
+import 'package:docmobi/services/api_service.dart';
+import 'package:video_player/video_player.dart';
 
 class DoctorHomeScreen extends StatefulWidget {
   const DoctorHomeScreen({super.key});
@@ -10,18 +12,69 @@ class DoctorHomeScreen extends StatefulWidget {
 }
 
 class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
-  // সার্চ স্টেট এবং কন্ট্রোলার
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
+  
+  List<dynamic> _posts = [];
+  bool _isLoading = true;
 
-  // নেভিগেশন ফাংশন (Create Post Page)
-  void _navigateToCreatePost() {
-    Navigator.push(
+  @override
+  void initState() {
+    super.initState();
+    _loadPosts();
+  }
+
+  Future<void> _loadPosts() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final result = await ApiService.getAllPosts(page: 1, limit: 20);
+      
+      print('📥 Full Response: $result'); // Debug
+      
+      if (result['success'] == true) {
+        // Backend returns: data.items (not data.posts)
+        final posts = result['data']?['items'] ?? 
+                     result['data']?['posts'] ?? 
+                     result['posts'] ?? 
+                     result['items'] ?? 
+                     [];
+        
+        print('✅ Loaded ${posts.length} posts');
+        print('📋 First post: ${posts.isNotEmpty ? posts[0] : "No posts"}');
+        
+        setState(() {
+          _posts = posts;
+          _isLoading = false;
+        });
+      } else {
+        print('⚠️ Failed to load posts: ${result['message']}');
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading posts: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _navigateToCreatePost() async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => const DoctorCreatePostScreen(),
       ),
     );
+    
+    // Reload posts when coming back from create post screen
+    if (result == true || result == null) {
+      _loadPosts();
+    }
   }
 
   @override
@@ -31,13 +84,11 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // --- Dynamic Header (Profile or Search Bar) ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
                 children: [
                   if (!_isSearching) ...[
-                    // প্রোফাইল সেকশন (যখন সার্চ হচ্ছে না)
                     const CircleAvatar(
                       radius: 25,
                       backgroundImage: AssetImage('assets/images/doctor_booking.png'),
@@ -63,7 +114,6 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                       ),
                     ),
                   ] else ...[
-                    // সার্চ বার সেকশন (যখন সার্চ আইকনে ক্লিক করা হয়)
                     Expanded(
                       child: Container(
                         height: 45,
@@ -86,7 +136,6 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                     const SizedBox(width: 10),
                   ],
 
-                  // সার্চ আইকন (Toggle Button)
                   _buildHeaderIcon(
                     _isSearching ? Icons.close : Icons.search,
                     onTap: () {
@@ -114,29 +163,37 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
             ),
 
             Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    // --- Post Creation Box ---
-                    _buildCreatePostBox(),
-
-                    // --- Social Feed List ---
-                    _buildSocialPost(
-                      'Dr. Joynal Abedin',
-                      '16h ago',
-                      'A core principle of patient centered and compassionate care',
-                      'assets/images/news.png',
-                      '792', '792', '12',
-                    ),
-                    _buildSocialPost(
-                      'Dr. Joynal Abedin',
-                      '16h ago',
-                      'A core principle of patient centered and compassionate care',
-                      'assets/images/news.png',
-                      '792', '792', '12',
-                    ),
-                  ],
-                ),
+              child: RefreshIndicator(
+                onRefresh: _loadPosts,
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: Column(
+                          children: [
+                            _buildCreatePostBox(),
+                            
+                            if (_posts.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.all(32.0),
+                                child: Text(
+                                  'No posts yet. Be the first to share!',
+                                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                                ),
+                              )
+                            else
+                              ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: _posts.length,
+                                itemBuilder: (context, index) {
+                                  final post = _posts[index];
+                                  return _buildSocialPost(post);
+                                },
+                              ),
+                          ],
+                        ),
+                      ),
               ),
             ),
           ],
@@ -250,7 +307,15 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
     );
   }
 
-  Widget _buildSocialPost(String name, String time, String content, String image, String likes, String comments, String shares) {
+  Widget _buildSocialPost(dynamic post) {
+    final String name = post['user']?['name'] ?? 'Unknown User';
+    final String timeAgo = _formatTimeAgo(post['created_at']);
+    final String content = post['content'] ?? '';
+    final List<dynamic> media = post['media'] ?? [];
+    final String likes = post['likes_count']?.toString() ?? '0';
+    final String comments = post['comments_count']?.toString() ?? '0';
+    final String shares = post['shares_count']?.toString() ?? '0';
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       padding: const EdgeInsets.all(15),
@@ -263,27 +328,33 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
         children: [
           Row(
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 22,
-                backgroundImage: AssetImage('assets/images/doctor.png'),
+                backgroundImage: post['user']?['profile_image'] != null
+                    ? NetworkImage(post['user']['profile_image'])
+                    : const AssetImage('assets/images/doctor.png') as ImageProvider,
               ),
               const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text(time, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text(timeAgo, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(content, style: const TextStyle(fontSize: 14, height: 1.4)),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.asset(image, fit: BoxFit.cover, width: double.infinity, height: 200),
-          ),
+          if (content.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(content, style: const TextStyle(fontSize: 14, height: 1.4)),
+          ],
+          
+          // Display media (images or videos)
+          if (media.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildMediaSection(media),
+          ],
+          
           const SizedBox(height: 15),
           Row(
             children: [
@@ -299,6 +370,129 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
     );
   }
 
+  Widget _buildMediaSection(List<dynamic> media) {
+    if (media.length == 1) {
+      final mediaItem = media[0];
+      final String mediaType = mediaItem['type'] ?? 'image';
+      final String mediaUrl = mediaItem['url'] ?? '';
+
+      if (mediaType == 'video') {
+        return _buildVideoPlayer(mediaUrl);
+      } else {
+        // Single Photo
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.network(
+            mediaUrl,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: 200,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                height: 200,
+                color: Colors.grey[200],
+                child: Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                        : null,
+                  ),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                height: 200,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                      SizedBox(height: 8),
+                      Text('Failed to load image', style: TextStyle(color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      }
+    } else {
+      // Multiple Photos - Horizontal Scroll
+      return SizedBox(
+        height: 200,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: media.length,
+          itemBuilder: (context, index) {
+            final mediaItem = media[index];
+            final String mediaType = mediaItem['type'] ?? 'image';
+            final String mediaUrl = mediaItem['url'] ?? '';
+            
+            // Check if it's video or image
+            if (mediaType == 'video') {
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: SizedBox(
+                  width: 200,
+                  child: _buildVideoPlayer(mediaUrl),
+                ),
+              );
+            } else {
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.network(
+                    mediaUrl,
+                    fit: BoxFit.cover,
+                    width: 200,
+                    height: 200,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        width: 200,
+                        height: 200,
+                        color: Colors.grey[200],
+                        child: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 200,
+                        height: 200,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.broken_image, color: Colors.grey),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              );
+            }
+          },
+        ),
+      );
+    }
+  }
+
+  Widget _buildVideoPlayer(String videoUrl) {
+    return VideoPlayerWidget(videoUrl: videoUrl);
+  }
+
   Widget _buildStatChip(IconData icon, String count) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -312,6 +506,124 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
           const SizedBox(width: 4),
           Text(count, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
         ],
+      ),
+    );
+  }
+
+  String _formatTimeAgo(dynamic timestamp) {
+    if (timestamp == null) return 'Just now';
+    
+    try {
+      DateTime postTime = DateTime.parse(timestamp.toString());
+      Duration difference = DateTime.now().difference(postTime);
+      
+      if (difference.inDays > 365) {
+        return '${(difference.inDays / 365).floor()}y ago';
+      } else if (difference.inDays > 30) {
+        return '${(difference.inDays / 30).floor()}mo ago';
+      } else if (difference.inDays > 0) {
+        return '${difference.inDays}d ago';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours}h ago';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes}m ago';
+      } else {
+        return 'Just now';
+      }
+    } catch (e) {
+      return 'Recently';
+    }
+  }
+}
+
+// Separate Video Player Widget
+class VideoPlayerWidget extends StatefulWidget {
+  final String videoUrl;
+
+  const VideoPlayerWidget({super.key, required this.videoUrl});
+
+  @override
+  State<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
+}
+
+class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
+  late VideoPlayerController _controller;
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeVideo();
+  }
+
+  Future<void> _initializeVideo() async {
+    _controller = VideoPlayerController.network(widget.videoUrl);
+    
+    try {
+      await _controller.initialize();
+      setState(() {
+        _isInitialized = true;
+      });
+    } catch (e) {
+      print('Error initializing video: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return Container(
+        height: 200,
+        decoration: BoxDecoration(
+          color: Colors.grey[300],
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (_controller.value.isPlaying) {
+            _controller.pause();
+          } else {
+            _controller.play();
+          }
+        });
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: AspectRatio(
+          aspectRatio: _controller.value.aspectRatio,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              VideoPlayer(_controller),
+              if (!_controller.value.isPlaying)
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  padding: const EdgeInsets.all(15),
+                  child: const Icon(
+                    Icons.play_arrow,
+                    color: Colors.white,
+                    size: 40,
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

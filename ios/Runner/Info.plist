@@ -45,5 +45,63 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- ==================== PERMISSIONS FOR REELS FEATURE ==================== -->
+	
+	<!-- Photo Library Access (Gallery theke video select korar jonno) -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to your photo library to select and upload medical reels</string>
+	
+	<!-- Photo Library Add Only (iOS 14+) -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>We need access to save videos to your photo library</string>
+	
+	<!-- Camera Access (Video record korar jonno) -->
+	<key>NSCameraUsageDescription</key>
+	<string>We need access to your camera to record and upload medical reels</string>
+	
+	<!-- Microphone Access (Video er audio record korar jonno) -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need access to your microphone to record audio for videos</string>
+	
+	<!-- Motion Usage (Optional - video recording er shomoy) -->
+	<key>NSMotionUsageDescription</key>
+	<string>We use motion data to enhance video recording quality</string>
+	
+	<!-- Local Network (Development er jonno - localhost API) -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>We need access to local network for API communication during development</string>
+	
+	<!-- App Transport Security Settings (HTTP API calls er jonno) -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- Allow all HTTP connections (Development only) -->
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		
+		<!-- Production e use korben (specific domain er jonno) -->
+		<!--
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>your-api-domain.com</key>
+			<dict>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+				<key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+		-->
+	</dict>
+	
+	<!-- Background Modes (Optional - video upload continue korar jonno) -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+	
 </dict>
 </plist>
