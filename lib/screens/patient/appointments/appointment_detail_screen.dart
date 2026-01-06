@@ -1,6 +1,9 @@
+import 'package:docmobi/screens/patient/messages/chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:docmobi/models/appointment_model.dart';
+
+import 'package:docmobi/services/api_service.dart';
 
 class AppointmentDetailScreen extends StatelessWidget {
   final AppointmentModel appointment;
@@ -60,24 +63,48 @@ class AppointmentDetailScreen extends StatelessWidget {
                           style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                         ),
                         const SizedBox(height: 5),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getStatusColor(appointment.status)
-                                .withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                          child: Text(
-                            appointment.status.toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: _getStatusColor(appointment.status),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _getStatusColor(appointment.status)
+                                    .withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                              child: Text(
+                                appointment.status.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: _getStatusColor(appointment.status),
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () => _navigateToChat(context),
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF6C5CE7).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(5),
+                                  border: Border.all(
+                                    color: const Color(0xFF6C5CE7),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.message_outlined,
+                                  size: 16,
+                                  color: Color(0xFF6C5CE7),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -242,6 +269,230 @@ class AppointmentDetailScreen extends StatelessWidget {
         return Colors.red;
       default:
         return Colors.grey;
+    }
+  }
+
+  // Navigate to chat screen - Create/Get chat first
+  void _navigateToChat(BuildContext context) async {
+    // 🔍 Debug: Print appointment data to see what we have
+    print('🔍 ==================== DEBUG START ====================');
+    print('🔍 Full Appointment Object:');
+    print('🔍 - Appointment ID: ${appointment.id}');
+    print('🔍 - Doctor ID: ${appointment.doctorId}');
+    print('🔍 - Doctor Name: ${appointment.doctorName}');
+    print('🔍 - Doctor Image: ${appointment.doctorImage}');
+    print('🔍 - Status: ${appointment.status}');
+    print('🔍 ====================================================');
+    
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Get doctor ID from appointment
+      final doctorId = appointment.doctorId;
+      
+      print('🔍 Extracted Doctor ID: $doctorId');
+      
+      if (doctorId == null || doctorId.isEmpty) {
+        Navigator.pop(context); // Close loading
+        
+        // Show detailed error with appointment data
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.bug_report, color: Colors.orange),
+                SizedBox(width: 8),
+                Text('Debug Info'),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    '⚠️ Doctor ID not found!',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text('Available data:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('• Appointment ID: ${appointment.id}'),
+                  Text('• Doctor Name: ${appointment.doctorName}'),
+                  Text('• Status: ${appointment.status}'),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'Fix: Check your AppointmentModel.fromJson() method. Make sure doctorId is properly mapped from backend.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
+      print('✅ Calling createOrGetChat API with doctorId: $doctorId');
+      
+      // Call API to create or get chat
+      final result = await ApiService.createOrGetChat(userId: doctorId);
+
+      Navigator.pop(context); // Close loading dialog
+
+      print('📥 Chat API Response: $result');
+
+      if (result['success'] == true) {
+        // Get chatId from the response
+        final chatId = result['data']['_id']?.toString();
+        
+        print('✅ Chat created successfully! Chat ID: $chatId');
+        
+        if (chatId == null || chatId.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to get chat ID from response'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        // Navigate to chat screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatDetailScreen(
+              chatId: chatId,
+              doctorName: appointment.doctorName ?? 'Doctor',
+              doctorAvatar: appointment.doctorImage,
+            ),
+          ),
+        );
+      } else {
+        // Show detailed error with debug info
+        final errorMessage = result['message'] ?? 'Failed to open chat';
+        
+        print('❌ Chat API Error: $errorMessage');
+        
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.red),
+                SizedBox(width: 8),
+                Text('Chat Error'),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    errorMessage,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Divider(),
+                  const Text(
+                    'Debug Info:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 5),
+                  Text('• Doctor ID sent: $doctorId'),
+                  Text('• Response: ${result['statusCode'] ?? 'N/A'}'),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Common Issues:',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          '1. "Cannot chat with yourself" → doctorId is wrong (might be your own patient ID)',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                        SizedBox(height: 3),
+                        Text(
+                          '2. "User not found" → doctorId doesn\'t exist in database',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                        SizedBox(height: 3),
+                        Text(
+                          '3. Check your appointment backend response to see what doctorId value you\'re getting',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      Navigator.pop(context); // Close loading
+      print('❌ Exception in _navigateToChat: $e');
+      
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.error, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Error'),
+            ],
+          ),
+          content: Text('$e'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
     }
   }
 

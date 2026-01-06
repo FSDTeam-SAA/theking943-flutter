@@ -1,12 +1,18 @@
+// ✅ Correct
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/patient/messages/chat_screen.dart';
-import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart'; 
+import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart';
 
-class MessagesScreen extends StatelessWidget {
+class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
 
-  
-  void _goBackToHome(BuildContext context) {
+  @override
+  State<MessagesScreen> createState() => _MessagesScreenState();
+}
+
+class _MessagesScreenState extends State<MessagesScreen> {
+  // ✅ Helper method এখানে থাকবে
+  void _goBackToHome() {
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
@@ -19,20 +25,20 @@ class MessagesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false, 
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        _goBackToHome(context);
+        _goBackToHome();
       },
       child: Scaffold(
-        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+        backgroundColor: const Color(0xFFF8FAFF),
         appBar: AppBar(
-          backgroundColor: const Color.fromARGB(0, 255, 255, 255),
+          backgroundColor: Colors.transparent,
           elevation: 0,
           toolbarHeight: 80,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () => _goBackToHome(context), 
+            onPressed: _goBackToHome,
           ),
           title: const Text(
             "Doctor's Messages",
@@ -55,12 +61,13 @@ class MessagesScreen extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (_) => const ChatDetailScreen(
+                        chatId: "demo_chat_id", // ✅ chatId required parameter
                         doctorName: "Dr. Joynal Abedin",
                       ),
                     ),
                   );
                 },
-                borderRadius: BorderRadius.circular(16), 
+                borderRadius: BorderRadius.circular(16),
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -78,16 +85,18 @@ class MessagesScreen extends StatelessWidget {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Container(
+                        child: Image.asset(
+                          "assets/images/doctor1.png",
                           height: 56,
                           width: 56,
-                          color: Colors.grey[300],
-                          child: Image.asset(
-                            "assets/images/doctor1.png",
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => 
-                               const Icon(Icons.person),
-                          ),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => 
+                             Container(
+                               height: 56,
+                               width: 56,
+                               color: Colors.grey[300],
+                               child: const Icon(Icons.person),
+                             ),
                         ),
                       ),
                       const SizedBox(width: 15),
@@ -106,7 +115,7 @@ class MessagesScreen extends StatelessWidget {
                             SizedBox(height: 6),
                             Text(
                               "Hi, how can I help you",
-                              maxLines: 1, 
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: Colors.grey,

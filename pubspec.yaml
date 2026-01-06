@@ -10,31 +10,43 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  shared_preferences: ^2.2.2
-  cupertino_icons: ^1.0.8
-  flutter_riverpod: ^3.1.0
-  intl: ^0.20.2
-  image_picker: ^1.2.1
-
-  # HTTP requests er jonno
-  http: ^1.1.0
   
-  # State management
+  # UI & Icons
+  cupertino_icons: ^1.0.8
+  
+  # State Management
+  flutter_riverpod: ^3.1.0
   provider: ^6.1.1
   
+  # Storage
+  shared_preferences: ^2.2.2
+  flutter_secure_storage: ^9.0.0
   
-  # JSON serialization (optional but helpful)
+  # HTTP & API
+  http: ^1.1.0
+  
+  # Media Handling
+  image_picker: ^1.2.1
+  video_player: ^2.8.1
+  
+  # Utilities
+  intl: ^0.20.2
+  share_plus: ^7.2.1
+  # JSON Serialization (optional)
   json_annotation: ^4.8.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  build_runner: ^2.4.6
+  json_serializable: ^6.7.1
 
 flutter:
   uses-material-design: true
 
   assets:
+    # Images
     - assets/images/icon.png
     - assets/images/onboarding1.png
     - assets/images/onboarding2.png
@@ -52,4 +64,6 @@ flutter:
     - assets/images/doctor5.png
     - assets/images/reelsviewdoctor.png
     - assets/images/news.png
+    
+    # Icons (all files in icons folder)
     - assets/icons/

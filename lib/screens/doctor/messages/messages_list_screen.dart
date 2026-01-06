@@ -2,34 +2,77 @@ import 'package:docmobi/screens/doctor/navigation/doctor_main_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/doctor/messages/chat_screen.dart';
 import 'package:docmobi/screens/doctor/home/doctor_home_screen.dart';
+import 'package:docmobi/services/api_service.dart';
 
 class DoctorMessagesScreen extends StatefulWidget {
   const DoctorMessagesScreen({super.key});
 
   @override
-  State<DoctorMessagesScreen> createState() => _MessagesScreenState();
+  State<DoctorMessagesScreen> createState() => _DoctorMessagesScreenState();
 }
 
-class _MessagesScreenState extends State<DoctorMessagesScreen> {
-  String selectedTab = "Doctors";
+class _DoctorMessagesScreenState extends State<DoctorMessagesScreen> {
+  String selectedTab = "All";
+  List<dynamic> _chats = [];
+  bool _isLoading = true;
 
-  final List<Map<String, String>> doctorChats = List.generate(8, (index) => {
-        "name": "Dr. Joynal Abedin",
-        "message": "Hi, how can I help you",
-        "time": "5:40 am",
-        "image": "assets/images/doctor1.png"
+  @override
+  void initState() {
+    super.initState();
+    _loadChats();
+  }
+
+  Future<void> _loadChats() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final result = await ApiService.getMyChats();
+      
+      if (result['success'] == true) {
+        setState(() {
+          _chats = result['data'] ?? [];
+          _isLoading = false;
+        });
+        print('✅ Loaded ${_chats.length} chats');
+      } else {
+        print('⚠️ Failed to load chats: ${result['message']}');
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading chats: $e');
+      setState(() {
+        _isLoading = false;
       });
+    }
+  }
 
-  final List<Map<String, String>> patientChats = [
-    {
-      "name": "Patient Name Example",
-      "message": "I need an appointment",
-      "time": "9:00 am",
-      "image": "assets/images/doctor1.png"
-    },
-  ];
+  List<dynamic> get _filteredChats {
+    if (selectedTab == "All") {
+      return _chats;
+    } else if (selectedTab == "Doctors") {
+      return _chats.where((chat) {
+        final participants = chat['participants'] as List?;
+        if (participants == null) return false;
+        
+        // Check if there's any doctor in participants (excluding self)
+        return participants.any((p) => p['role'] == 'doctor');
+      }).toList();
+    } else {
+      // Patient tab
+      return _chats.where((chat) {
+        final participants = chat['participants'] as List?;
+        if (participants == null) return false;
+        
+        // Check if there's any patient in participants
+        return participants.any((p) => p['role'] == 'patient');
+      }).toList();
+    }
+  }
 
-  // ব্যাক বাটন হ্যান্ডলার
   void _handleBack(BuildContext context) {
     if (Navigator.canPop(context)) {
       Navigator.pop(context);
@@ -44,11 +87,11 @@ class _MessagesScreenState extends State<DoctorMessagesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentChats = selectedTab == "Doctors" ? doctorChats : patientChats;
+    final displayChats = _filteredChats;
 
-    
+    // WillPopScope এর বদলে নতুন PopScope ব্যবহার করা হয়েছে (Flutter 3.12+)
     return PopScope(
-      canPop: false, // ম্যানুয়ালি হ্যান্ডেল করার জন্য false
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         _handleBack(context);
@@ -86,6 +129,7 @@ class _MessagesScreenState extends State<DoctorMessagesScreen> {
                 ),
                 child: Row(
                   children: [
+                    _buildTabButton("All"),
                     _buildTabButton("Doctors"),
                     _buildTabButton("Patient"),
                   ],
@@ -95,12 +139,36 @@ class _MessagesScreenState extends State<DoctorMessagesScreen> {
             const SizedBox(height: 20),
             // Chat List
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: currentChats.length,
-                itemBuilder: (context, index) {
-                  return _buildChatItem(currentChats[index]);
-                },
+              child: RefreshIndicator(
+                onRefresh: _loadChats,
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : displayChats.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.chat_bubble_outline, 
+                                    size: 64, 
+                                    color: Colors.grey[400]),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No conversations yet',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            itemCount: displayChats.length,
+                            itemBuilder: (context, index) {
+                              return _buildChatItem(displayChats[index]);
+                            },
+                          ),
               ),
             ),
           ],
@@ -134,17 +202,42 @@ class _MessagesScreenState extends State<DoctorMessagesScreen> {
     );
   }
 
-  Widget _buildChatItem(Map<String, String> chat) {
+  Widget _buildChatItem(Map<String, dynamic> chat) {
+    final participants = chat['participants'] as List? ?? [];
+    
+    // Find the other user (not me)
+    final otherUser = participants.firstWhere(
+      (p) => p['_id'] != null, // You should check against current user ID
+      orElse: () => {'fullName': 'Unknown', 'avatar': null, 'role': 'unknown'},
+    );
+    
+    final String name = otherUser['fullName']?.toString() ?? 'Unknown User';
+    final String? avatar = otherUser['avatar']?.toString();
+    final String role = otherUser['role']?.toString() ?? '';
+    
+    final lastMessage = chat['lastMessage'];
+    final String messageText = lastMessage?['content']?.toString() ?? 'No messages yet';
+    
+    final DateTime? updatedAt = chat['updatedAt'] != null 
+        ? DateTime.tryParse(chat['updatedAt'].toString())
+        : null;
+    final String timeText = updatedAt != null ? _formatTime(updatedAt) : '';
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: InkWell( // GestureDetector এর বদলে InkWell দিলে ক্লিক ইফেক্ট সুন্দর হয়
+      child: InkWell(
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => DoctorChatDetailScreen(doctorName: chat["name"]!),
+              builder: (_) => DoctorChatDetailScreen(
+                chatId: chat['_id'].toString(),
+                userName: name,
+                userAvatar: avatar,
+                userRole: role,
+              ),
             ),
-          );
+          ).then((_) => _loadChats()); // Refresh when coming back
         },
         borderRadius: BorderRadius.circular(16),
         child: Container(
@@ -162,33 +255,54 @@ class _MessagesScreenState extends State<DoctorMessagesScreen> {
           ),
           child: Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.asset(
-                  chat["image"]!,
-                  height: 56,
-                  width: 56,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => 
-                      const Icon(Icons.account_circle, size: 56), // ইমেজ না থাকলে আইকন দেখাবে
-                ),
+              CircleAvatar(
+                radius: 28,
+                backgroundImage: avatar != null
+                    ? NetworkImage(avatar)
+                    : const AssetImage('assets/images/doctor.png') as ImageProvider,
+                backgroundColor: Colors.grey[200],
               ),
               const SizedBox(width: 15),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      chat["name"]!,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1B2C49),
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            name,
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1B2C49),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (role == 'doctor')
+                          Container(
+                            margin: const EdgeInsets.only(left: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'Dr.',
+                              style: TextStyle(
+                                color: Color(0xFF1E61D4),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      chat["message"]!,
+                      messageText,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -199,8 +313,9 @@ class _MessagesScreenState extends State<DoctorMessagesScreen> {
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
-                chat["time"]!,
+                timeText,
                 style: const TextStyle(
                   color: Colors.black54,
                   fontSize: 11,
@@ -211,5 +326,20 @@ class _MessagesScreenState extends State<DoctorMessagesScreen> {
         ),
       ),
     );
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
   }
 }
