@@ -22,7 +22,7 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF), // ডিজাইনের হালকা নীল ব্যাকগ্রাউন্ড
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color.fromARGB(0, 255, 255, 255),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFF1B2C49)),

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:docmobi/models/appointment_model.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
 import 'package:docmobi/screens/patient/appointments/appointment_detail_screen.dart';
+import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart'; // ✅ Import করুন
 
 class PatientAppointmentsScreen extends StatefulWidget {
   const PatientAppointmentsScreen({super.key});
@@ -23,59 +24,87 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
     });
   }
 
+  // ✅ Back button handler
+  void _handleBackPress() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const PatientMainNavigation(),
+      ),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F8FF),
-      body: Consumer<AppointmentProvider>(
-        builder: (context, appointmentProvider, child) {
-          return Column(
-            children: [
-              const SizedBox(height: 60),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'My Appointment',
-                    style: TextStyle(
-                      color: Color(0xFF1A1A1A),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 22,
+    return PopScope(
+      canPop: false, // ✅ Device back button handle
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBackPress();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF5F8FF),
+        body: Consumer<AppointmentProvider>(
+          builder: (context, appointmentProvider, child) {
+            return Column(
+              children: [
+                // ✅ AppBar with Back Button
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 10, 20, 0),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Color(0xFF1A1A1A)),
+                          onPressed: _handleBackPress,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'My Appointment',
+                          style: TextStyle(
+                            color: Color(0xFF1A1A1A),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 22,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 25),
+                const SizedBox(height: 20),
 
-              // Tab Switch
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    _buildTab(
-                      title: "Up Coming (${appointmentProvider.upcomingAppointments.length})",
-                      active: isUpcoming,
-                      onTap: () => setState(() => isUpcoming = true),
-                    ),
-                    const SizedBox(width: 15),
-                    _buildTab(
-                      title: "Completed",
-                      active: !isUpcoming,
-                      onTap: () => setState(() => isUpcoming = false),
-                    ),
-                  ],
+                // Tab Switch
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      _buildTab(
+                        title: "Up Coming (${appointmentProvider.upcomingAppointments.length})",
+                        active: isUpcoming,
+                        onTap: () => setState(() => isUpcoming = true),
+                      ),
+                      const SizedBox(width: 15),
+                      _buildTab(
+                        title: "Completed",
+                        active: !isUpcoming,
+                        onTap: () => setState(() => isUpcoming = false),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
+                const SizedBox(height: 10),
 
-              // Content
-              Expanded(
-                child: _buildContent(appointmentProvider),
-              ),
-            ],
-          );
-        },
+                // Content
+                Expanded(
+                  child: _buildContent(appointmentProvider),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

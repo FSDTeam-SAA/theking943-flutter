@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'api_service.dart'; // Import koro
+import 'api_service.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://localhost:5000'; 
-  
+  static const String baseUrl = 'http://localhost:5000';
+
   /// Register function
   Future<Map<String, dynamic>> register({
     required String name,
@@ -19,13 +19,13 @@ class AuthService {
   }) async {
     try {
       print('🔄 Registering user: $email as $userType');
-      
+
       final Map<String, dynamic> requestBody = {
         'fullName': name,
         'email': email,
         'password': password,
         'confirmPassword': confirmPassword,
-        'role': userType.toLowerCase().trim(), 
+        'role': userType.toLowerCase().trim(),
       };
 
       if (userType.toLowerCase() == 'doctor') {
@@ -34,14 +34,16 @@ class AuthService {
         requestBody['experienceYears'] = experienceYears;
       }
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/v1/auth/register'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode(requestBody),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/v1/auth/register'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode(requestBody),
+          )
+          .timeout(const Duration(seconds: 10));
 
       print('📥 Response Status: ${response.statusCode}');
       print('📥 Response Body: ${response.body}');
@@ -49,12 +51,16 @@ class AuthService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // Token save koro (if provided after registration)
+        // Token save koro
         if (data['data'] != null && data['data']['accessToken'] != null) {
           await ApiService.saveToken(data['data']['accessToken']);
-          await _saveUserInfo(data['data']['user']);
+          
+          // ✅ User info + ROLE save koro
+          if (data['data']['user'] != null) {
+            await _saveUserInfo(data['data']['user']);
+          }
         }
-        
+
         return {
           'success': true,
           'message': data['message'] ?? 'Registration successful',
@@ -68,10 +74,7 @@ class AuthService {
       }
     } catch (e) {
       print('❌ Registration Error: $e');
-      return {
-        'success': false,
-        'message': _getErrorMessage(e)
-      };
+      return {'success': false, 'message': _getErrorMessage(e)};
     }
   }
 
@@ -82,37 +85,47 @@ class AuthService {
   }) async {
     try {
       print('🔄 Logging in user: $email');
-      
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/v1/auth/login'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
-      ).timeout(const Duration(seconds: 10));
+
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/v1/auth/login'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({
+              'email': email,
+              'password': password,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
       print('📥 Response Status: ${response.statusCode}');
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        // Save token using ApiService
+        // ✅ Save token
         if (data['data'] != null) {
           if (data['data']['accessToken'] != null) {
             await ApiService.saveToken(data['data']['accessToken']);
           }
+          
+          // ✅ Save user info + ROLE
           if (data['data']['user'] != null) {
             await _saveUserInfo(data['data']['user']);
+            
+            // Debug: Check saved role
+            final prefs = await SharedPreferences.getInstance();
+            final savedRole = prefs.getString('user_role');
+            print('✅ Saved Role: $savedRole');
           }
         }
 
         return {
           'success': true,
           'message': 'Login successful',
-          'data': data['data']
+          'data': data['data'],
+          'role': data['data']?['user']?['role'], // ✅ Return role
         };
       } else {
         return {
@@ -122,10 +135,7 @@ class AuthService {
       }
     } catch (e) {
       print('❌ Login Error: $e');
-      return {
-        'success': false,
-        'message': _getErrorMessage(e)
-      };
+      return {'success': false, 'message': _getErrorMessage(e)};
     }
   }
 
@@ -137,13 +147,53 @@ class AuthService {
     print('✅ Logged out successfully');
   }
 
-  // Helper functions
+  /// ✅ Get saved user role
+  static Future<String?> getUserRole() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('user_role');
+    } catch (e) {
+      print('❌ Error getting role: $e');
+      return null;
+    }
+  }
+
+  /// ✅ Get saved user info
+  static Future<Map<String, String?>> getUserInfo() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return {
+        'id': prefs.getString('user_id'),
+        'name': prefs.getString('user_name'),
+        'email': prefs.getString('user_email'),
+        'role': prefs.getString('user_role'),
+      };
+    } catch (e) {
+      print('❌ Error getting user info: $e');
+      return {};
+    }
+  }
+
+  // ✅ Helper: Save user info with role
   Future<void> _saveUserInfo(Map<String, dynamic> user) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user_id', user['_id'] ?? '');
-    await prefs.setString('user_name', user['fullName'] ?? '');
-    await prefs.setString('user_email', user['email'] ?? '');
-    await prefs.setString('user_role', user['role'] ?? '');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      await prefs.setString('user_id', user['_id'] ?? '');
+      await prefs.setString('user_name', user['fullName'] ?? '');
+      await prefs.setString('user_email', user['email'] ?? '');
+      
+      // ✅ CRITICAL: Save role properly
+      final role = user['role']?.toString().toLowerCase() ?? '';
+      await prefs.setString('user_role', role);
+      
+      print('✅ User info saved:');
+      print('   - ID: ${user['_id']}');
+      print('   - Name: ${user['fullName']}');
+      print('   - Role: $role');
+    } catch (e) {
+      print('❌ Error saving user info: $e');
+    }
   }
 
   Future<String?> getToken() async {
@@ -151,7 +201,7 @@ class AuthService {
   }
 
   String _getErrorMessage(dynamic error) {
-    if (error.toString().contains('SocketException') || 
+    if (error.toString().contains('SocketException') ||
         error.toString().contains('Connection') ||
         error.toString().contains('timeout')) {
       return 'Cannot connect to server. Ensure Node.js server is running at $baseUrl';

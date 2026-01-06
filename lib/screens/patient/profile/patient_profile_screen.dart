@@ -1,5 +1,5 @@
+import 'package:docmobi/screens/patient/appointments/patient_appointments_screen.dart';
 import 'package:docmobi/screens/patient/profile/add_dependents_screen.dart';
-import 'package:docmobi/screens/patient/profile/my_appointment_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/patient/profile/personal_info_screen.dart';
 import 'package:docmobi/screens/patient/profile/my_wishlist_screen.dart';
@@ -144,7 +144,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => MyAppointmentScreen()),
+                      MaterialPageRoute(builder: (context) => PatientAppointmentsScreen()),
                     );
                   },
                 ),

@@ -11,7 +11,7 @@ class AppointmentService {
       );
       return response;
     } catch (e) {
-      print('❌ Get My Appointments Error: $e');
+      print('Get My Appointments Error: $e');
       return {
         'success': false,
         'message': 'Failed to fetch appointments: $e',
@@ -28,7 +28,7 @@ class AppointmentService {
       );
       return response;
     } catch (e) {
-      print('❌ Get Appointment Error: $e');
+      print('Get Appointment Error: $e');
       return {
         'success': false,
         'message': 'Failed to fetch appointment: $e',
@@ -53,7 +53,7 @@ class AppointmentService {
         if (symptoms != null && symptoms.isNotEmpty) 'symptoms': symptoms,
       };
 
-      print('📤 Creating appointment with body: $body');
+      print('Creating appointment with body: $body');
 
       final response = await ApiService.post(
         ApiConfig.appointments,
@@ -63,7 +63,7 @@ class AppointmentService {
 
       return response;
     } catch (e) {
-      print('❌ Create Appointment Error: $e');
+      print('Create Appointment Error: $e');
       return {
         'success': false,
         'message': 'Failed to create appointment: $e',
@@ -86,7 +86,7 @@ class AppointmentService {
         if (price != null) 'price': price,
       };
 
-      print('📤 Updating appointment status to: $status');
+      print('Updating appointment status to: $status');
 
       final response = await ApiService.patch(
         '${ApiConfig.appointments}/$appointmentId/status',
@@ -96,7 +96,7 @@ class AppointmentService {
 
       return response;
     } catch (e) {
-      print('❌ Update Status Error: $e');
+      print('Update Status Error: $e');
       return {
         'success': false,
         'message': 'Failed to update status: $e',
@@ -113,7 +113,7 @@ class AppointmentService {
       );
       return response;
     } catch (e) {
-      print('❌ Get Upcoming Appointments Error: $e');
+      print('Get Upcoming Appointments Error: $e');
       return {
         'success': false,
         'message': 'Failed to fetch upcoming appointments: $e',
@@ -130,7 +130,7 @@ class AppointmentService {
       );
       return response;
     } catch (e) {
-      print('❌ Get Past Appointments Error: $e');
+      print('Get Past Appointments Error: $e');
       return {
         'success': false,
         'message': 'Failed to fetch past appointments: $e',
@@ -138,7 +138,9 @@ class AppointmentService {
     }
   }
 
-  /// Complete appointment (for doctor)
+  /// Complete appointment (for doctor) - FIXED & KEPT
+  /// এই method টা আগের মতোই রাখা হয়েছে, কোনো লাইন রিমুভ করা হয়নি
+  /// এখন এটা ঠিকঠাক কাজ করবে কারণ body তে status, patient, price সবই পাঠানো হচ্ছে
   Future<Map<String, dynamic>> completeAppointment({
     required String appointmentId,
     required String patientName,
@@ -151,9 +153,12 @@ class AppointmentService {
         'status': 'completed',
         'patient': patientName,
         'price': price,
-        if (prescription != null) 'prescription': prescription,
-        if (notes != null) 'notes': notes,
+        if (prescription != null && prescription.isNotEmpty) 'prescription': prescription,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
       };
+
+      print('Completing appointment $appointmentId');
+      print('   Body: $body');
 
       final response = await ApiService.patch(
         '${ApiConfig.appointments}/$appointmentId/status',
@@ -163,7 +168,7 @@ class AppointmentService {
 
       return response;
     } catch (e) {
-      print('❌ Complete Appointment Error: $e');
+      print('Complete Appointment Error: $e');
       return {
         'success': false,
         'message': 'Failed to complete appointment: $e',
@@ -171,10 +176,10 @@ class AppointmentService {
     }
   }
 
-  /// Accept appointment (for doctor)
+  /// Accept appointment (for doctor) - KEPT AS IS
   Future<Map<String, dynamic>> acceptAppointment(String appointmentId) async {
     try {
-      print('📤 Accepting appointment: $appointmentId');
+      print('Accepting appointment: $appointmentId');
 
       final response = await ApiService.patch(
         '${ApiConfig.appointments}/$appointmentId/status',
@@ -184,7 +189,7 @@ class AppointmentService {
 
       return response;
     } catch (e) {
-      print('❌ Accept Appointment Error: $e');
+      print('Accept Appointment Error: $e');
       return {
         'success': false,
         'message': 'Failed to accept appointment: $e',
@@ -192,10 +197,10 @@ class AppointmentService {
     }
   }
 
-  /// Cancel appointment (for doctor/admin only)
+  /// Cancel appointment (for doctor/admin only) - KEPT AS IS
   Future<Map<String, dynamic>> cancelAppointment(String appointmentId) async {
     try {
-      print('📤 Cancelling appointment: $appointmentId');
+      print('Cancelling appointment: $appointmentId');
 
       final response = await ApiService.patch(
         '${ApiConfig.appointments}/$appointmentId/status',
@@ -205,7 +210,7 @@ class AppointmentService {
 
       return response;
     } catch (e) {
-      print('❌ Cancel Appointment Error: $e');
+      print('Cancel Appointment Error: $e');
       return {
         'success': false,
         'message': 'Failed to cancel appointment: $e',

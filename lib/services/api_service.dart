@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/api_config.dart';
 
 class ApiService {
   static String? _token;
-  static const String _baseUrl = 'http://localhost:5000'; // Change this to your backend URL
 
   /// Initialize - Token load kora
   static Future<void> init() async {
@@ -74,7 +74,7 @@ class ApiService {
     bool requiresAuth = true,
   }) async {
     try {
-      final url = '$_baseUrl$endpoint';
+      final url = '${ApiConfig.baseUrl}$endpoint';
       print('📤 GET: $url');
       print('🔐 Auth Required: $requiresAuth');
 
@@ -103,7 +103,7 @@ class ApiService {
     bool requiresAuth = true,
   }) async {
     try {
-      final url = '$_baseUrl$endpoint';
+      final url = '${ApiConfig.baseUrl}$endpoint';
       print('📤 POST: $url');
       print('📦 Body: $body');
       print('🔐 Auth Required: $requiresAuth');
@@ -133,7 +133,7 @@ class ApiService {
     bool requiresAuth = true,
   }) async {
     try {
-      final url = '$_baseUrl$endpoint';
+      final url = '${ApiConfig.baseUrl}$endpoint';
       print('📤 PUT: $url');
       print('📦 Body: $body');
       print('🔐 Auth Required: $requiresAuth');
@@ -163,7 +163,7 @@ class ApiService {
     bool requiresAuth = true,
   }) async {
     try {
-      final url = '$_baseUrl$endpoint';
+      final url = '${ApiConfig.baseUrl}$endpoint';
       print('📤 PATCH: $url');
       print('📦 Body: $body');
       print('🔐 Auth Required: $requiresAuth');
@@ -192,7 +192,7 @@ class ApiService {
     bool requiresAuth = true,
   }) async {
     try {
-      final url = '$_baseUrl$endpoint';
+      final url = '${ApiConfig.baseUrl}$endpoint';
       print('📤 DELETE: $url');
       print('🔐 Auth Required: $requiresAuth');
 
@@ -216,7 +216,12 @@ class ApiService {
   /// Response handler
   static Map<String, dynamic> _handleResponse(http.Response response) {
     print('📥 Status: ${response.statusCode}');
-    print('📥 Response Body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}...');
+    
+    // Safe substring for logging
+    final bodyPreview = response.body.length > 500 
+        ? response.body.substring(0, 500) 
+        : response.body;
+    print('📥 Response Body: $bodyPreview...');
 
     try {
       final data = json.decode(response.body) as Map<String, dynamic>;
@@ -237,6 +242,14 @@ class ApiService {
           'success': false,
           'message': data['message'] ?? 'Session expired. Please login again.',
           'requiresLogin': true,
+          'statusCode': response.statusCode,
+        };
+      }
+      // Forbidden (403)
+      else if (response.statusCode == 403) {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Access denied',
           'statusCode': response.statusCode,
         };
       }
@@ -300,11 +313,5 @@ class ApiService {
     } else {
       return 'An error occurred: ${error.toString()}';
     }
-  }
-
-  /// Update base URL if needed (for different environments)
-  static void setBaseUrl(String url) {
-    // Remove this method if you're using ApiConfig
-    print('⚠️ Base URL updated to: $url');
   }
 }

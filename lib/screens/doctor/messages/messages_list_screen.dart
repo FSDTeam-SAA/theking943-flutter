@@ -1,3 +1,4 @@
+import 'package:docmobi/screens/doctor/navigation/doctor_main_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/doctor/messages/chat_screen.dart';
 import 'package:docmobi/screens/doctor/home/doctor_home_screen.dart';
@@ -33,11 +34,9 @@ class _MessagesScreenState extends State<DoctorMessagesScreen> {
     if (Navigator.canPop(context)) {
       Navigator.pop(context);
     } else {
-      // যদি stack-এ আর কোনো পেজ না থাকে, তবে Home এ পাঠিয়ে দিবে।
-      // pushReplacement এর বদলে pushAndRemoveUntil ব্যবহার করা নিরাপদ যাতে আগের সব রুট ক্লিয়ার হয়
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const DoctorHomeScreen()),
+        MaterialPageRoute(builder: (_) => const DoctorMainNavigation()),
         (route) => false,
       );
     }
@@ -47,7 +46,7 @@ class _MessagesScreenState extends State<DoctorMessagesScreen> {
   Widget build(BuildContext context) {
     final currentChats = selectedTab == "Doctors" ? doctorChats : patientChats;
 
-    // WillPopScope এর বদলে নতুন PopScope ব্যবহার করা হয়েছে (Flutter 3.12+)
+    
     return PopScope(
       canPop: false, // ম্যানুয়ালি হ্যান্ডেল করার জন্য false
       onPopInvokedWithResult: (didPop, result) {
@@ -55,9 +54,9 @@ class _MessagesScreenState extends State<DoctorMessagesScreen> {
         _handleBack(context);
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFF),
+        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
         appBar: AppBar(
-          backgroundColor: Colors.transparent,
+          backgroundColor: const Color.fromARGB(0, 255, 255, 255),
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(

@@ -1,39 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/patient/messages/chat_screen.dart';
+import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart'; 
 
 class MessagesScreen extends StatelessWidget {
   const MessagesScreen({super.key});
 
-  // এই ফাংশনটি আপনাকে হোম স্ক্রিনে নিয়ে যাবে
+  
   void _goBackToHome(BuildContext context) {
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context); // সাধারণ ব্যাক করার জন্য
-    } else {
-      // যদি সরাসরি এই পেজে আসেন, তবে রুট ক্লিয়ার করে হোমে যাবে
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-    }
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const PatientMainNavigation(),
+      ),
+      (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false, // সিস্টেম ব্যাক বাটন আমরা নিজে হ্যান্ডেল করব
+      canPop: false, 
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         _goBackToHome(context);
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFF),
+        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
         appBar: AppBar(
-          backgroundColor: Colors.transparent,
+          backgroundColor: const Color.fromARGB(0, 255, 255, 255),
           elevation: 0,
           toolbarHeight: 80,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () => _goBackToHome(context), // Appbar এর ব্যাক বাটন
+            onPressed: () => _goBackToHome(context), 
           ),
           title: const Text(
-            "Doctor’s Messages",
+            "Doctor's Messages",
             style: TextStyle(
               color: Colors.black,
               fontSize: 24,
@@ -47,7 +49,7 @@ class MessagesScreen extends StatelessWidget {
           itemBuilder: (context, index) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
-              child: InkWell( // GestureDetector এর বদলে InkWell দিলে ক্লিক ইফেক্ট পাওয়া যায়
+              child: InkWell(
                 onTap: () {
                   Navigator.push(
                     context,
@@ -58,6 +60,7 @@ class MessagesScreen extends StatelessWidget {
                     ),
                   );
                 },
+                borderRadius: BorderRadius.circular(16), 
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -78,12 +81,12 @@ class MessagesScreen extends StatelessWidget {
                         child: Container(
                           height: 56,
                           width: 56,
-                          color: Colors.grey[300], // ইমেজ লোড না হলে কালার দেখাবে
+                          color: Colors.grey[300],
                           child: Image.asset(
                             "assets/images/doctor1.png",
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) => 
-                               const Icon(Icons.person), // ইমেজ না থাকলে আইকন
+                               const Icon(Icons.person),
                           ),
                         ),
                       ),
@@ -103,6 +106,8 @@ class MessagesScreen extends StatelessWidget {
                             SizedBox(height: 6),
                             Text(
                               "Hi, how can I help you",
+                              maxLines: 1, 
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: Colors.grey,
                                 fontSize: 14,
