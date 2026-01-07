@@ -1,3 +1,6 @@
+import 'package:docmobi/screens/patient/profile/add_dependents_screen.dart';
+import 'package:docmobi/screens/patient/profile/edit_dependent_screen.dart'; // ✅ ADD THIS
+import 'package:docmobi/screens/patient/profile/dependents_list_screen.dart'; // ✅ ADD THIS
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart';
@@ -61,6 +64,14 @@ class _MyAppState extends State<MyApp> {
       ),
       debugShowCheckedModeBanner: false,
       home: _buildHomeScreen(),
+      
+      // ✅ UPDATED ROUTES - Added all dependent management routes
+      routes: {
+        '/dependents-list': (context) => const DependentsListScreen(),  // ✅ List screen
+        '/add-dependent': (context) => const AddDependentScreen(),      // ✅ Add screen
+        '/edit-dependent': (context) => const EditDependentScreen(),    // ✅ Edit screen
+        // Add more routes as needed
+      },
     );
   }
 

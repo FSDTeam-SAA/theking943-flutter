@@ -1,5 +1,6 @@
 import 'package:docmobi/screens/patient/appointments/patient_appointments_screen.dart';
 import 'package:docmobi/screens/patient/profile/add_dependents_screen.dart';
+import 'package:docmobi/screens/patient/profile/dependents_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/patient/profile/personal_info_screen.dart';
 import 'package:docmobi/screens/patient/profile/my_wishlist_screen.dart';
@@ -160,16 +161,27 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                   },
                 ),
 
-                _buildMenuItem(
-                  icon: Icons.favorite_outline,
-                  title: 'My Wishlist',
+                  _buildMenuItem(
+                  icon: Icons.group_add_outlined,
+                  title: 'My Dependents',
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const MyWishlistScreen()),
+                      MaterialPageRoute(builder: (context) => const DependentsListScreen()),
                     );
                   },
                 ),
+
+                // _buildMenuItem(
+                //   icon: Icons.favorite_outline,
+                //   title: 'My Wishlist',
+                //   onTap: () {
+                //     Navigator.push(
+                //       context,
+                //       MaterialPageRoute(builder: (context) => const MyWishlistScreen()),
+                //     );
+                //   },
+                // ),
 
                 _buildMenuItem(
                   icon: Icons.lock_outline,
@@ -182,64 +194,64 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                   },
                 ),
 
-                /// Language Selector
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.language, color: Color(0xFF1664CD)),
-                        const SizedBox(width: 15),
-                        const Expanded(
-                          child: Text(
-                            'Language',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Color(0xFF0B3267),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        DropdownButton<String>(
-                          value: selectedLanguage,
-                          underline: const SizedBox(),
-                          icon: const Icon(Icons.keyboard_arrow_down),
-                          items: ['English', 'French', 'Arabic']
-                              .map(
-                                (value) => DropdownMenuItem(
-                                  value: value,
-                                  child: Text(value),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              selectedLanguage = value!;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                // /// Language Selector
+                // Padding(
+                //   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                //   child: Container(
+                //     padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                //     decoration: BoxDecoration(
+                //       border: Border.all(color: Colors.grey[300]!),
+                //       borderRadius: BorderRadius.circular(10),
+                //     ),
+                //     child: Row(
+                //       children: [
+                //         const Icon(Icons.language, color: Color(0xFF1664CD)),
+                //         const SizedBox(width: 15),
+                //         const Expanded(
+                //           child: Text(
+                //             'Language',
+                //             style: TextStyle(
+                //               fontSize: 16,
+                //               color: Color(0xFF0B3267),
+                //               fontWeight: FontWeight.w500,
+                //             ),
+                //           ),
+                //         ),
+                //         DropdownButton<String>(
+                //           value: selectedLanguage,
+                //           underline: const SizedBox(),
+                //           icon: const Icon(Icons.keyboard_arrow_down),
+                //           items: ['English', 'French', 'Arabic']
+                //               .map(
+                //                 (value) => DropdownMenuItem(
+                //                   value: value,
+                //                   child: Text(value),
+                //                 ),
+                //               )
+                //               .toList(),
+                //           onChanged: (value) {
+                //             setState(() {
+                //               selectedLanguage = value!;
+                //             });
+                //           },
+                //         ),
+                //       ],
+                //     ),
+                //   ),
+                // ),
 
-                _buildMenuItem(
-                  icon: Icons.help_outline,
-                  title: 'Help & Support',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
-                    );
-                  },
-                ),
+                // _buildMenuItem(
+                //   icon: Icons.help_outline,
+                //   title: 'Help & Support',
+                //   onTap: () {
+                //     Navigator.push(
+                //       context,
+                //       MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
+                //     );
+                //   },
+                // ),
 
-                const SizedBox(height: 20),
+                // const SizedBox(height: 20),
 
                 /// Logout Button with API Integration
                 Padding(

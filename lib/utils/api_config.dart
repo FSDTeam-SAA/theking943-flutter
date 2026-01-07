@@ -112,7 +112,16 @@ class ApiConfig {
   static const String uploadImage = '/api/v1/upload/image';
   static const String uploadFile = '/api/v1/upload/file';
   static const String uploadVideo = '/api/v1/upload/video';
-  
+
+  // ========== Dependent Endpoints ==========
+
+  // সাধারণত এর মধ্যে একটা হয়:
+  // '/api/v1/dependent'   → singular
+  // '/api/v1/dependents'  → plural
+  // '/api/v1/patient/dependents'
+  //static const String dependents = '/api/v1/dependent'; 
+  static const String dependents = '/api/v1/user/me/dependents';
+
   // ========== Helper Methods ==========
   
   /// Get full URL for any endpoint
@@ -168,6 +177,11 @@ class ApiConfig {
   /// Get chat by ID URL
   static String getChatByIdUrl(String chatId) {
     return '$chats/$chatId';
+  }
+
+  /// Get dependent by ID URL
+  static String getDependentByIdUrl(String id) {
+    return '$dependents/$id';
   }
   
   /// Environment check

@@ -15,6 +15,7 @@ class AppointmentModel {
   final String? notes;
   final String? reason;
   final DateTime? createdAt;
+  final BookedForInfo? bookedFor; // ✅ NEW
 
   AppointmentModel({
     required this.id,
@@ -33,6 +34,7 @@ class AppointmentModel {
     this.notes,
     this.reason,
     this.createdAt,
+    this.bookedFor, // ✅ NEW
   });
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
@@ -118,6 +120,9 @@ class AppointmentModel {
       notes: json['notes'],
       reason: json['reason'],
       createdAt: createdAt,
+      bookedFor: json['bookedFor'] != null // ✅ NEW - Parse bookedFor
+          ? BookedForInfo.fromJson(json['bookedFor'])
+          : null,
     );
   }
 
@@ -130,6 +135,7 @@ class AppointmentModel {
       if (symptoms != null && symptoms!.isNotEmpty) 'symptoms': symptoms,
       if (notes != null && notes!.isNotEmpty) 'notes': notes,
       if (reason != null && reason!.isNotEmpty) 'reason': reason,
+      if (bookedFor != null) 'bookedFor': bookedFor!.toJson(), // ✅ NEW
     };
   }
 
@@ -177,6 +183,7 @@ class AppointmentModel {
     String? notes,
     String? reason,
     DateTime? createdAt,
+    BookedForInfo? bookedFor, // ✅ NEW
   }) {
     return AppointmentModel(
       id: id ?? this.id,
@@ -195,6 +202,68 @@ class AppointmentModel {
       notes: notes ?? this.notes,
       reason: reason ?? this.reason,
       createdAt: createdAt ?? this.createdAt,
+      bookedFor: bookedFor ?? this.bookedFor, // ✅ NEW
     );
   }
 }
+
+// ✅ FIXED BookedForInfo Class - Now shows relationship properly
+class BookedForInfo {
+  final String type; // "self" or "dependent"
+  final String? dependentId;
+  final String? dependentName;
+  final String? relationship; // Category: Son, Father, Mother, Daughter, etc.
+
+  BookedForInfo({
+    required this.type,
+    this.dependentId,
+    this.dependentName,
+    this.relationship,
+  });
+
+  // ✅ FIXED: Properly shows relationship/category in UI
+  String get bookingLabel {
+    if (type == 'dependent') {
+      // যদি name এবং relationship দুটোই থাকে: "John (Son)"
+      if (dependentName != null && 
+          dependentName!.isNotEmpty && 
+          relationship != null && 
+          relationship!.isNotEmpty) {
+        return "$dependentName ($relationship)";
+      }
+      
+      // শুধু relationship থাকলে: "Son", "Father" etc
+      if (relationship != null && relationship!.isNotEmpty) {
+        return relationship!;
+      }
+      
+      // শুধু name থাকলে
+      if (dependentName != null && dependentName!.isNotEmpty) {
+        return dependentName!;
+      }
+      
+      // কিছুই না থাকলে
+      return "Dependent";
+    }
+    return 'Self';
+  }
+
+  factory BookedForInfo.fromJson(Map<String, dynamic> json) {
+    return BookedForInfo(
+      type: json['type']?.toString() ?? 'self',
+      dependentId: json['dependentId']?.toString(),
+      dependentName: json['dependentName']?.toString(),
+      relationship: json['relationship']?.toString(), // ✅ This is your category
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'type': type,
+      if (dependentId != null) 'dependentId': dependentId,
+      if (dependentName != null) 'dependentName': dependentName,
+      if (relationship != null) 'relationship': relationship,
+    };
+  }
+}
+

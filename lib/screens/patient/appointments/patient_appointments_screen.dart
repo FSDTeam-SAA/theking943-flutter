@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:docmobi/models/appointment_model.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
 import 'package:docmobi/screens/patient/appointments/appointment_detail_screen.dart';
-import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart'; // ✅ Import করুন
+import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart';
 
 class PatientAppointmentsScreen extends StatefulWidget {
   const PatientAppointmentsScreen({super.key});
@@ -24,7 +24,6 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
     });
   }
 
-  // ✅ Back button handler
   void _handleBackPress() {
     Navigator.pushAndRemoveUntil(
       context,
@@ -38,7 +37,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false, // ✅ Device back button handle
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         _handleBackPress();
@@ -49,7 +48,6 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
           builder: (context, appointmentProvider, child) {
             return Column(
               children: [
-                // ✅ AppBar with Back Button
                 SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(10, 10, 20, 0),
@@ -76,7 +74,6 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Tab Switch
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
@@ -97,7 +94,6 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                 ),
                 const SizedBox(height: 10),
 
-                // Content
                 Expanded(
                   child: _buildContent(appointmentProvider),
                 ),
@@ -312,6 +308,38 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                         appointment.specialty ?? 'Specialist',
                         style: const TextStyle(fontSize: 14, color: Colors.grey),
                       ),
+                      
+                      // ✅ FIXED: Changed isDependent to type == 'dependent' and displayText to bookingLabel
+                      if (appointment.bookedFor != null && appointment.bookedFor!.type == 'dependent') ...[
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE3F2FD),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFF2196F3), width: 1),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.person_outline,
+                                size: 14,
+                                color: Color(0xFF1976D2),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Booked for: ${appointment.bookedFor!.bookingLabel}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1565C0),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -319,7 +347,6 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
             ),
             const SizedBox(height: 15),
 
-            // Info Strip
             Container(
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               decoration: BoxDecoration(
@@ -336,7 +363,6 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
               ),
             ),
 
-            // Action Buttons - Only show for pending/accepted appointments
             if (!isCompleted && !isCancelled) ...[
               const SizedBox(height: 15),
               Row(
@@ -437,7 +463,6 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
     );
   }
 
-  // ✅ Reschedule Dialog
   void _showRescheduleDialog(BuildContext context, AppointmentModel appointment) {
     showDialog(
       context: context,
@@ -574,7 +599,6 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
     );
   }
 
-  // ✅ Cancel Dialog
   void _showCancelDialog(BuildContext context, AppointmentModel appointment) {
     showDialog(
       context: context,

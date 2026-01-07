@@ -1,5 +1,6 @@
 import 'package:docmobi/app.dart';
 import 'package:docmobi/providers/user_provider.dart';
+import 'package:docmobi/providers/dependent_provider.dart'; // ✅ ADD THIS
 import 'package:docmobi/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
@@ -21,6 +22,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => AppointmentProvider()),
         ChangeNotifierProvider(create: (_) => DoctorProvider()),
+        ChangeNotifierProvider(create: (_) => DependentProvider()), // ✅ ADD THIS
       ],
       child: const MyApp(),
     ),

@@ -19,10 +19,9 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
   final List<Map<String, dynamic>> scheduleData = [
     {
       'day': 'Monday',
-      'enabled': true,
+      'enabled': false,  // ✅ Changed default to false
       'slots': [
         {'start': '10:00 Am', 'end': '10:30 Am'},
-        {'start': '11:00 Am', 'end': '11:30 Am'}
       ]
     },
     {
@@ -139,11 +138,18 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
     setState(() => _isSaving = true);
 
     try {
-      // ✅ ব্যাকএন্ডের জন্য স্লটগুলো ২৪ ঘণ্টা ফরম্যাটে রূপান্তর এবং 'isActive' কি সেট করা
+      print('📤 Saving doctor schedule...');
+      
+      // ✅ FIXED: Convert to lowercase day names for backend
       final List<Map<String, dynamic>> formattedSchedule = scheduleData.map((dayData) {
+        final dayName = (dayData['day'] as String).toLowerCase();
+        final isActive = dayData['enabled'] as bool;
+        
+        print('   Day: $dayName, Enabled: $isActive, Slots: ${dayData['slots'].length}');
+        
         return {
-          'day': dayData['day'],
-          'isActive': dayData['enabled'],
+          'day': dayName,  // ✅ Send lowercase to match backend enum
+          'isActive': isActive,
           'slots': (dayData['slots'] as List).map((slot) {
             return {
               'start': _convertTo24Hour(slot['start']),
@@ -155,8 +161,10 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
 
       final fees = {
         'amount': double.tryParse(_feesController.text) ?? 0,
-        'currency': 'USD', // ✅ Updated currency
+        'currency': 'USD',
       };
+
+      print('   Formatted Schedule: $formattedSchedule');
 
       final response = await _scheduleService.saveWeeklySchedule(
         weeklySchedule: formattedSchedule,
@@ -165,13 +173,15 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
 
       if (mounted) {
         if (response['success'] == true) {
+          print('✅ Schedule saved successfully!');
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Schedule saved successfully in USD! ✅'),
+              content: Text('Schedule saved successfully! ✅'),
               backgroundColor: Colors.green,
             ),
           );
         } else {
+          print('❌ Save failed: ${response['message']}');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(response['message'] ?? 'Failed to save'),
@@ -181,6 +191,7 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
         }
       }
     } catch (e) {
+      print('❌ Error saving schedule: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -196,7 +207,7 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
     }
   }
 
-  /// ✅ ১২ ঘণ্টা (Am/Pm) ফরম্যাটকে ২৪ ঘণ্টায় রূপান্তর (ব্যাকএন্ডের জন্য)
+  /// Convert 12-hour format to 24-hour format for backend
   String _convertTo24Hour(String time12) {
     try {
       final parts = time12.split(' ');
@@ -216,7 +227,7 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
     }
   }
 
-  /// Convert 24h to 12h format (UI এর জন্য)
+  /// Convert 24h to 12h format for UI
   String _convert24To12Hour(String time24) {
     try {
       final parts = time24.split(':');
@@ -503,7 +514,6 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    // ✅ স্লট রিমুভ করার বাটন যোগ করা হয়েছে (লাইন সংখ্যা না কমিয়ে ফিচার বৃদ্ধি)
                     IconButton(
                       icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
                       onPressed: () {

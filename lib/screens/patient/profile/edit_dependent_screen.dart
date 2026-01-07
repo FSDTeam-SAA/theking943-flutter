@@ -1,16 +1,21 @@
+// ============================================
+// 2️⃣ NEW: edit_dependent_screen.dart
+// ============================================
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:docmobi/providers/dependent_provider.dart';
+import 'package:docmobi/models/dependent_model.dart';
 
-class AddDependentScreen extends StatefulWidget {
-  const AddDependentScreen({super.key});
+class EditDependentScreen extends StatefulWidget {
+  const EditDependentScreen({super.key});
 
   @override
-  State<AddDependentScreen> createState() => _AddDependentScreenState();
+  State<EditDependentScreen> createState() => _EditDependentScreenState();
 }
 
-class _AddDependentScreenState extends State<AddDependentScreen> {
+class _EditDependentScreenState extends State<EditDependentScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _nameController = TextEditingController();
@@ -20,16 +25,20 @@ class _AddDependentScreenState extends State<AddDependentScreen> {
   DateTime? _selectedDate;
   String? _selectedRelationship;
   String _selectedGender = 'Male';
+  bool _isActive = true;
   bool _isSaving = false;
+  
+  DependentModel? _dependent;
 
   final List<String> _relationships = [
-    'Child',
-    'Spouse',
+    'Son',
+    'Daughter',
     'Father',
     'Mother',
     'Brother',
     'Sister',
-    'Grandparent',
+    'Spouse',
+    'Child',
     'Other'
   ];
 
@@ -48,6 +57,28 @@ class _AddDependentScreenState extends State<AddDependentScreen> {
   );
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    
+    if (_dependent == null) {
+      _dependent = ModalRoute.of(context)!.settings.arguments as DependentModel;
+      _populateFields();
+    }
+  }
+
+  void _populateFields() {
+    if (_dependent == null) return;
+
+    _nameController.text = _dependent!.fullName;
+    _selectedRelationship = _dependent!.relationship;
+    _selectedGender = _dependent!.gender ?? 'Male';
+    _selectedDate = _dependent!.dob;
+    _contactController.text = _dependent!.phone ?? '';
+    _medicalNotesController.text = _dependent!.notes ?? '';
+    _isActive = _dependent!.isActive ?? true;
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _contactController.dispose();
@@ -58,7 +89,7 @@ class _AddDependentScreenState extends State<AddDependentScreen> {
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: _selectedDate ?? DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       builder: (context, child) {
@@ -102,13 +133,15 @@ class _AddDependentScreenState extends State<AddDependentScreen> {
 
     setState(() => _isSaving = true);
 
-    final success = await context.read<DependentProvider>().createDependent(
+    final success = await context.read<DependentProvider>().updateDependent(
+          dependentId: _dependent!.id,
           fullName: _nameController.text.trim(),
           relationship: _selectedRelationship!,
           dob: _selectedDate!,
           gender: _selectedGender,
           phone: _contactController.text.trim(),
           notes: _medicalNotesController.text.trim(),
+          isActive: _isActive,
         );
 
     setState(() => _isSaving = false);
@@ -117,7 +150,7 @@ class _AddDependentScreenState extends State<AddDependentScreen> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Dependent added successfully!'),
+            content: Text('Dependent updated successfully!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -125,7 +158,7 @@ class _AddDependentScreenState extends State<AddDependentScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(context.read<DependentProvider>().error ?? 'Failed to add dependent'),
+            content: Text(context.read<DependentProvider>().error ?? 'Failed to update dependent'),
             backgroundColor: Colors.red,
           ),
         );
@@ -135,6 +168,12 @@ class _AddDependentScreenState extends State<AddDependentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_dependent == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -145,7 +184,7 @@ class _AddDependentScreenState extends State<AddDependentScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          "Add Dependent",
+          "Edit Dependent",
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -206,38 +245,12 @@ class _AddDependentScreenState extends State<AddDependentScreen> {
           _buildGenderSelector(),
           const SizedBox(height: 20),
 
+          _buildSectionTitle("Status"),
+          const SizedBox(height: 10),
+          _buildStatusSelector(),
+          const SizedBox(height: 20),
+
           _buildSectionTitle("Contact Details"),
-          const SizedBox(height: 15),
-          
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.info_outline, color: Colors.grey),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Parent/Guardian Contact (Primary)",
-                        style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-                      ),
-                      const Text(
-                        "Your user info will be used",
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
           const SizedBox(height: 15),
 
           _buildTextField(
@@ -327,7 +340,7 @@ class _AddDependentScreenState extends State<AddDependentScreen> {
         child: DropdownButton<String>(
           value: _selectedRelationship,
           hint: Text(
-            "Relationship (e.g. Child, Spouse)",
+            "Relationship",
             style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
           ),
           isExpanded: true,
@@ -377,7 +390,6 @@ class _AddDependentScreenState extends State<AddDependentScreen> {
     );
   }
 
-  // ✅ FIXED: Only Male and Female
   Widget _buildGenderSelector() {
     return Row(
       children: ['Male', 'Female'].map((gender) {
@@ -414,6 +426,68 @@ class _AddDependentScreenState extends State<AddDependentScreen> {
     );
   }
 
+  Widget _buildStatusSelector() {
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _isActive = true),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: _isActive ? Colors.white : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: _isActive ? Colors.green : Colors.grey.shade300,
+                  width: _isActive ? 1.5 : 1,
+                ),
+                boxShadow: _isActive
+                    ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)]
+                    : [],
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                'Active',
+                style: TextStyle(
+                  color: _isActive ? Colors.green : Colors.grey.shade600,
+                  fontWeight: _isActive ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _isActive = false),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: !_isActive ? Colors.white : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: !_isActive ? Colors.orange : Colors.grey.shade300,
+                  width: !_isActive ? 1.5 : 1,
+                ),
+                boxShadow: !_isActive
+                    ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)]
+                    : [],
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                'Inactive',
+                style: TextStyle(
+                  color: !_isActive ? Colors.orange : Colors.grey.shade600,
+                  fontWeight: !_isActive ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildActionButtons() {
     return Column(
       children: [
@@ -441,7 +515,7 @@ class _AddDependentScreenState extends State<AddDependentScreen> {
             child: _isSaving
                 ? const CircularProgressIndicator(color: Colors.white)
                 : const Text(
-                    "Save Dependent",
+                    "Update Dependent",
                     style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                   ),
           ),

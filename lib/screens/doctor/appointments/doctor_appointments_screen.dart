@@ -32,19 +32,18 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFFF8FAFF),
         elevation: 0,
-leading: IconButton(
-  icon: const Icon(Icons.arrow_back, color: Colors.black),
-  onPressed: () {
-    // ✅ আপনার main wrapper screen এর নাম দিন (যেখানে bottom nav আছে)
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const DoctorMainNavigation(), 
-      ),
-      (route) => false,
-    );
-  },
-),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DoctorMainNavigation(),
+              ),
+              (route) => false,
+            );
+          },
+        ),
         title: const Text(
           'Appointment Management',
           style: TextStyle(
@@ -235,23 +234,60 @@ leading: IconButton(
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        appointment.patientName ?? 'Patient',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            appointment.patientName ?? 'Patient',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        _statusBadge(
+                          "Pending",
+                          const Color(0xFFFFF7E6),
+                          const Color(0xFFFAAD14),
+                        ),
+                      ],
+                    ),
+                    
+                    // ✅ FIXED: Changed isDependent to type == 'dependent' and displayText to bookingLabel
+                    if (appointment.bookedFor != null && appointment.bookedFor!.type == 'dependent') ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFF4CAF50), width: 1),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.person_outline,
+                              size: 13,
+                              color: Color(0xFF2E7D32),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'For: ${appointment.bookedFor!.bookingLabel}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2E7D32),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    _statusBadge(
-                      "Pending",
-                      const Color(0xFFFFF7E6),
-                      const Color(0xFFFAAD14),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -347,6 +383,39 @@ leading: IconButton(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                    
+                    // ✅ FIXED: Changed isDependent to type == 'dependent' and displayText to bookingLabel
+                    if (appointment.bookedFor != null && appointment.bookedFor!.type == 'dependent') ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(color: const Color(0xFF4CAF50), width: 1),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.person_outline,
+                              size: 12,
+                              color: Color(0xFF2E7D32),
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              'For: ${appointment.bookedFor!.bookingLabel}',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2E7D32),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    
                     const SizedBox(height: 5),
                     Wrap(
                       spacing: 8,
@@ -447,6 +516,39 @@ leading: IconButton(
                     ),
                   ],
                 ),
+                
+                // ✅ FIXED: Changed isDependent to type == 'dependent' and displayText to bookingLabel
+                if (appointment.bookedFor != null && appointment.bookedFor!.type == 'dependent') ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: const Color(0xFF4CAF50), width: 0.8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.person_outline,
+                          size: 11,
+                          color: Color(0xFF2E7D32),
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          'For: ${appointment.bookedFor!.bookingLabel}',
+                          style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF2E7D32),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                
                 const SizedBox(height: 5),
                 Wrap(
                   spacing: 10,
@@ -530,7 +632,6 @@ leading: IconButton(
     );
   }
 
-  // ✅ Handle Accept
   void _handleAccept(String appointmentId, AppointmentProvider provider) async {
     showDialog(
       context: context,
@@ -541,7 +642,7 @@ leading: IconButton(
     final success = await provider.acceptAppointment(appointmentId);
 
     if (mounted) {
-      Navigator.pop(context); // Close loading
+      Navigator.pop(context);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -556,7 +657,6 @@ leading: IconButton(
     }
   }
 
-  // ✅ Handle Cancel
   void _handleCancel(String appointmentId, AppointmentProvider provider) {
     showDialog(
       context: context,
@@ -603,7 +703,6 @@ leading: IconButton(
     );
   }
 
-  // ✅ Handle Start Session and Update Earnings
   void _handleStartSession(AppointmentModel appointment) {
     Navigator.push(
       context,
@@ -613,7 +712,6 @@ leading: IconButton(
         ),
       ),
     ).then((result) {
-      // ✅ result true hole earnings ebong appointments refresh korbe
       if (result == true) {
         context.read<AppointmentProvider>().fetchAppointments();
       }

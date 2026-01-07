@@ -33,7 +33,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFF),
         appBar: AppBar(
-          backgroundColor: Colors.transparent,
+          backgroundColor: const Color.fromARGB(0, 255, 255, 255),
           elevation: 0,
           toolbarHeight: 80,
           leading: IconButton(
