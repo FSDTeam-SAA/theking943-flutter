@@ -24,9 +24,7 @@ dependencies:
   
   # HTTP & API
   http: ^1.1.0
-
  
-  
   
   # Media Handling
   image_picker: ^1.2.1
