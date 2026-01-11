@@ -7,7 +7,7 @@ class PostModel {
   final int likesCount;
   final int commentsCount;
   final int sharesCount;
-  final bool isLiked; // Current user liked or not
+  final bool isLiked;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -64,7 +64,6 @@ class PostModel {
     };
   }
 
-  // Copy with method for updating
   PostModel copyWith({
     String? id,
     String? content,
@@ -93,7 +92,6 @@ class PostModel {
     );
   }
 
-  // Time ago formatting
   String get timeAgo {
     final difference = DateTime.now().difference(createdAt);
     
@@ -113,12 +111,16 @@ class PostModel {
   }
 }
 
+// ✅ UPDATED: Added bio, experienceYears, degrees
 class PostAuthor {
   final String id;
   final String fullName;
   final String? avatar;
   final String role;
   final String? specialty;
+  final String? bio; // ✅ NEW
+  final int? experienceYears; // ✅ NEW
+  final List<Map<String, dynamic>>? degrees; // ✅ NEW
 
   PostAuthor({
     required this.id,
@@ -126,12 +128,14 @@ class PostAuthor {
     this.avatar,
     required this.role,
     this.specialty,
+    this.bio, // ✅ NEW
+    this.experienceYears, // ✅ NEW
+    this.degrees, // ✅ NEW
   });
 
   factory PostAuthor.fromJson(Map<String, dynamic> json) {
     String? avatarUrl;
     
-    // Handle different avatar formats
     if (json['avatar'] != null) {
       if (json['avatar'] is Map) {
         avatarUrl = json['avatar']['url'];
@@ -140,12 +144,23 @@ class PostAuthor {
       }
     }
 
+    // ✅ Parse degrees list
+    List<Map<String, dynamic>>? degreesList;
+    if (json['degrees'] != null && json['degrees'] is List) {
+      degreesList = (json['degrees'] as List)
+          .map((d) => Map<String, dynamic>.from(d))
+          .toList();
+    }
+
     return PostAuthor(
       id: json['_id'] ?? json['id'] ?? '',
       fullName: json['fullName'] ?? json['name'] ?? 'Unknown',
       avatar: avatarUrl,
       role: json['role'] ?? 'user',
       specialty: json['specialty'],
+      bio: json['bio'], // ✅ NEW
+      experienceYears: json['experienceYears'], // ✅ NEW
+      degrees: degreesList, // ✅ NEW
     );
   }
 
@@ -156,6 +171,9 @@ class PostAuthor {
       'avatar': avatar,
       'role': role,
       'specialty': specialty,
+      if (bio != null) 'bio': bio,
+      if (experienceYears != null) 'experienceYears': experienceYears,
+      if (degrees != null) 'degrees': degrees,
     };
   }
 }
@@ -163,7 +181,7 @@ class PostAuthor {
 class PostMedia {
   final String publicId;
   final String url;
-  final String resourceType; // image, video, raw, auto
+  final String resourceType;
   final String? format;
   final String? originalName;
   final String? mimeType;
@@ -182,8 +200,7 @@ class PostMedia {
   });
 
   factory PostMedia.fromJson(Map<String, dynamic> json) {
-
-  String? thumbnailUrl;
+    String? thumbnailUrl;
     if (json['thumbnail'] != null) {
       if (json['thumbnail'] is Map) {
         thumbnailUrl = json['thumbnail']['url'];

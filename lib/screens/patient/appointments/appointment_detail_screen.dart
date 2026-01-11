@@ -449,6 +449,7 @@ class AppointmentDetailScreen extends StatelessWidget {
               chatId: chatId,
               doctorName: appointment.doctorName ?? 'Doctor',
               doctorAvatar: appointment.doctorImage,
+              doctorId: appointment.doctorId, 
             ),
           ),
         );

@@ -2,31 +2,39 @@ import 'package:docmobi/app.dart';
 import 'package:docmobi/providers/user_provider.dart';
 import 'package:docmobi/providers/dependent_provider.dart';
 import 'package:docmobi/services/api_service.dart';
-// ✅ Import ApiConfig
+import 'package:docmobi/services/socket_service.dart'; // ✅ ADD THIS
 import 'package:flutter/material.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:docmobi/providers/doctor_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // ✅ ADD THIS
 
 void main() async {
-  // ✅ CRITICAL: Initialize Flutter bindings first
   WidgetsFlutterBinding.ensureInitialized();
   
   print('🚀 Starting app initialization...');
   
-  // // ✅ Print API configuration
-  // ApiConfig.printConfig();
-  
-  // ✅ Load token from SharedPreferences into memory BEFORE app starts
+  // ✅ Load token
   await ApiService.init();
   
-  // ✅ Debug: Check if token is loaded
   final isLoggedIn = ApiService.isLoggedIn;
   print('🔍 Token status: ${isLoggedIn ? "✅ Logged In" : "❌ Not Logged In"}');
   
-  if (isLoggedIn && ApiService.token != null) {
-    final tokenPreview = ApiService.token!.substring(0, 20);
-    print('🔑 Token preview: $tokenPreview...');
+  // ✅ Initialize Socket if logged in
+  if (isLoggedIn) {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+      
+      if (userId != null && userId.isNotEmpty) {
+        await SocketService.instance.connect(userId);
+        print('✅ Socket initialized for user: $userId');
+      } else {
+        print('⚠️ User ID not found - Socket not connected');
+      }
+    } catch (e) {
+      print('❌ Socket initialization error: $e');
+    }
   }
   
   print('✅ Initialization complete - Starting app');

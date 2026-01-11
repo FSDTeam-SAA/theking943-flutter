@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:docmobi/models/doctor_model.dart';
+import 'package:docmobi/services/api_service.dart';
+import 'package:docmobi/screens/patient/messages/chat_screen.dart';
 import 'book_appointment_screen.dart';
 
 class DoctorDetailsScreen extends StatelessWidget {
@@ -78,7 +80,6 @@ class DoctorDetailsScreen extends StatelessWidget {
                     children: [
                       const Text("Degree", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 10),
-                      // তোমার model-এ degree নেই → dummy বা skip
                       _buildBulletItem("MBBS, FCPS"),
                       _buildBulletItem("MD"),
                     ],
@@ -95,6 +96,30 @@ class DoctorDetailsScreen extends StatelessWidget {
 
               SizedBox(
                 width: double.infinity,
+                height: 55,
+                child: OutlinedButton.icon(
+                  onPressed: () => _openChatWithDoctor(context),
+                  icon: const Icon(Icons.message_outlined, color: Color(0xFF6C5CE7)),
+                  label: const Text(
+                    "Message Doctor",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF6C5CE7),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF6C5CE7), width: 2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 15),
+
+              SizedBox(
+                width: double.infinity,
                 height: 65,
                 child: ElevatedButton(
                   onPressed: () {
@@ -104,7 +129,10 @@ class DoctorDetailsScreen extends StatelessWidget {
                     }
                     Navigator.push(context, MaterialPageRoute(builder: (_) => BookAppointmentScreen(doctor: doctor)));
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D53C1), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0D53C1), 
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
+                  ),
                   child: const Text("Book Now", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
               ),
@@ -127,5 +155,103 @@ class DoctorDetailsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _openChatWithDoctor(BuildContext context) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final doctorId = doctor.id;
+      
+      if (doctorId.isEmpty) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Doctor ID not found'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      print('🔍 Creating/Getting chat with doctor ID: $doctorId');
+
+      final result = await ApiService.createOrGetChat(userId: doctorId);
+
+      Navigator.pop(context);
+
+      print('📥 Chat result: $result');
+
+      if (result['success'] == true) {
+        final chatData = result['data'];
+        final chatId = chatData['_id']?.toString();
+        
+        if (chatId == null || chatId.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to create chat'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        print('✅ Chat ID: $chatId');
+
+        // Get doctor's info from participants
+        final participants = chatData['participants'] as List?;
+        String? doctorAvatar;
+        
+        if (participants != null) {
+          final doctorParticipant = participants.firstWhere(
+            (p) => p['_id'] == doctorId,
+            orElse: () => null,
+          );
+          
+          if (doctorParticipant != null) {
+            doctorAvatar = doctorParticipant['avatar']?['url'];
+          }
+        }
+
+        // Navigate to chat screen
+        if (context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatDetailScreen(
+                chatId: chatId,
+                doctorName: doctor.fullName,
+                doctorAvatar: doctorAvatar ?? (doctor.image.startsWith('http') ? doctor.image : null),
+                doctorId: doctorId,
+              ),
+            ),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Failed to open chat'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      print('❌ Error opening chat: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

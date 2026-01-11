@@ -1,317 +1,403 @@
-import 'package:docmobi/screens/patient/doctor/book_appointment_screen.dart';
+import 'package:docmobi/screens/doctor/messages/messages_list_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:docmobi/services/api_service.dart';
 
-class DoctorListScreen extends StatelessWidget {
-  const DoctorListScreen({super.key});
+
+class SeeAllDoctorsScreen extends StatefulWidget {
+  const SeeAllDoctorsScreen({super.key});
+
+  @override
+  State<SeeAllDoctorsScreen> createState() => _SeeAllDoctorsScreenState();
+}
+
+class _SeeAllDoctorsScreenState extends State<SeeAllDoctorsScreen> {
+  List<Map<String, dynamic>> _doctors = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDoctors();
+  }
+
+  Future<void> _loadDoctors() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // ✅ Use correct endpoint
+      final result = await ApiService.get(
+        '/api/v1/user/role/doctor',
+        requiresAuth: true,
+      );
+
+      print('📥 Doctors API Response: $result');
+
+      if (result['success'] == true) {
+        final doctorsData = result['data'] as List? ?? [];
+        
+        setState(() {
+          _doctors = List<Map<String, dynamic>>.from(doctorsData);
+          _isLoading = false;
+        });
+        
+        print('✅ Loaded ${_doctors.length} doctors');
+      } else {
+        setState(() {
+          _errorMessage = result['message'] ?? 'Failed to load doctors';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading doctors: $e');
+      setState(() {
+        _errorMessage = 'Failed to load doctors: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _showDoctorInfo(Map<String, dynamic> doctor) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _DoctorInfoBottomSheet(doctor: doctor),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F8FF),
+      backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          "All Doctors",
+          'All Doctors',
           style: TextStyle(
-            color: Colors.black,
+            color: Color(0xFF1B2C49),
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: 6,
-        itemBuilder: (context, index) {
-          final Map<String, dynamic> mockDoctor = {
-            "fullName": index % 2 == 0 ? "Dr. Joynal Abedin" : "Dr. Jaynor Abedin",
-            "specialty": "Podiatric Surgery",
-            "email": "joynal@example.com",
-            "fees": "10.50\$",
-            "image": "assets/doctor.jpg",
-          };
-          return _DoctorCard(doctor: mockDoctor);
-        },
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _loadDoctors,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1664CD),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_doctors.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.medical_services_outlined, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              'No doctors available',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _doctors.length,
+      itemBuilder: (context, index) {
+        final doctor = _doctors[index];
+        return _buildDoctorCard(doctor);
+      },
+    );
+  }
+
+  Widget _buildDoctorCard(Map<String, dynamic> doctor) {
+    final String doctorName = doctor['fullName'] ?? 'Doctor';
+    final String? doctorImage = doctor['avatar']?['url'];
+    final String specialty = doctor['specialty'] ?? 'General Physician';
+    final int experienceYears = doctor['experienceYears'] ?? 0;
+    final String doctorId = doctor['_id'] ?? '';
+
+    return InkWell(
+      onTap: () => _showDoctorInfo(doctor),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 30,
+              backgroundImage: doctorImage != null
+                  ? NetworkImage(doctorImage)
+                  : const AssetImage('assets/images/doctor.png') as ImageProvider,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    doctorName,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1B2C49),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    specialty,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  if (experienceYears > 0) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '$experienceYears years experience',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF1664CD),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.message_outlined,
+                color: Color(0xFF1664CD),
+              ),
+              onPressed: () {
+                // Navigate to message
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DoctorMessagesScreen(
+                      initialDoctorId: doctorId,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _DoctorCard extends StatelessWidget {
-  final dynamic doctor;
+class _DoctorInfoBottomSheet extends StatelessWidget {
+  final Map<String, dynamic> doctor;
 
-  const _DoctorCard({required this.doctor});
+  const _DoctorInfoBottomSheet({required this.doctor});
 
   @override
   Widget build(BuildContext context) {
+    final String doctorName = doctor['fullName'] ?? 'Doctor';
+    final String? doctorImage = doctor['avatar']?['url'];
+    final String doctorId = doctor['_id'] ?? '';
+    final String specialty = doctor['specialty'] ?? 'General Physician';
+    final String bio = doctor['bio'] ?? 'No bio available';
+    final int experienceYears = doctor['experienceYears'] ?? 0;
+    final List degrees = doctor['degrees'] ?? [];
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ✅ Fixed Image Loading
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: _buildDoctorImage(),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      doctor["fullName"] ?? "No Name",
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      doctor["specialty"] ?? "General",
-                      style: const TextStyle(color: Colors.black54),
-                    ),
-                    const SizedBox(height: 8),
-                    const Row(
-                      children: [
-                        Icon(Icons.star, color: Colors.amber, size: 18),
-                        SizedBox(width: 4),
-                        Text(
-                          "4.9",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(width: 12),
-                        Icon(Icons.location_on, size: 16, color: Colors.grey),
-                        SizedBox(width: 2),
-                        Text(
-                          "2.5km",
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          CircleAvatar(
+            radius: 50,
+            backgroundImage: doctorImage != null
+                ? NetworkImage(doctorImage)
+                : const AssetImage('assets/images/doctor.png') as ImageProvider,
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 52,
+
+          Text(
+            doctorName,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1B2C49),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+
+          Text(
+            specialty,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          if (experienceYears > 0)
+            Text(
+              '$experienceYears years of experience',
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF1664CD),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          const SizedBox(height: 16),
+
+          if (bio != 'No bio available')
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F8FF),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                bio,
+                style: const TextStyle(fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          const SizedBox(height: 16),
+
+          if (degrees.isNotEmpty)
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: degrees.map<Widget>((degree) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF0D53C1), Color(0xFF1976D2)],
+                    color: const Color(0xFFE8F1FF),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    degree['title'] ?? '',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF1664CD),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => BookAppointmentScreen(doctor: doctor),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      "Book Now",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+                );
+              }).toList(),
+            ),
+          const SizedBox(height: 24),
+
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DoctorMessagesScreen(
+                      initialDoctorId: doctorId,
                     ),
                   ),
+                );
+              },
+              icon: const Icon(Icons.message_outlined),
+              label: const Text(
+                'Message',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () => _showDoctorDetails(context),
-                child: Container(
-                  height: 52,
-                  width: 52,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0xFFF1F5FF),
-                  ),
-                  child: const Icon(
-                    Icons.info_outline,
-                    color: Color(0xFF0D53C1),
-                  ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1664CD),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-            ],
+            ),
           ),
+          const SizedBox(height: 16),
         ],
-      ),
-    );
-  }
-
-  // ✅ Safe Image Builder
-  Widget _buildDoctorImage() {
-    final imageUrl = doctor["image"] as String?;
-    
-    // Try to load as asset first
-    if (imageUrl != null && imageUrl.isNotEmpty) {
-      // If it's a network URL
-      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        return Image.network(
-          imageUrl,
-          height: 80,
-          width: 80,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return _buildPlaceholder();
-          },
-        );
-      }
-      
-      // If it's an asset path
-      return Image.asset(
-        imageUrl,
-        height: 80,
-        width: 80,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return _buildPlaceholder();
-        },
-      );
-    }
-    
-    return _buildPlaceholder();
-  }
-
-  Widget _buildPlaceholder() {
-    return Image.asset(
-      "assets/images/doctor.png",
-      height: 80,
-      width: 80,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          height: 80,
-          width: 80,
-          color: Colors.grey[300],
-          child: const Icon(Icons.person, size: 40, color: Colors.grey),
-        );
-      },
-    );
-  }
-
-  void _showDoctorDetails(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.75,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-        ),
-        padding: const EdgeInsets.all(24),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Align(
-                alignment: Alignment.topRight,
-                child: IconButton(
-                  icon: const Icon(Icons.close, size: 30),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ),
-              Row(
-                children: [
-                  // ✅ Fixed Image in Modal
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: _buildDoctorImage(),
-                  ),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        doctor["fullName"],
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        doctor["specialty"],
-                        style: const TextStyle(
-                          color: Colors.black54,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                "Bio",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const Text(
-                "Senior specialist at xyz Hospital with extensive experience in modern medicine.",
-                style: TextStyle(color: Colors.grey, height: 1.5),
-              ),
-              const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => BookAppointmentScreen(doctor: doctor),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0D53C1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    "Confirm Booking",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:docmobi/screens/profile/select_profile_screen.dart';
+import 'package:docmobi/services/socket_service.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart';
 import 'package:docmobi/screens/doctor/navigation/doctor_main_navigation.dart';
@@ -6,7 +7,8 @@ import 'package:docmobi/screens/auth/sign_up_screen.dart';
 import 'package:docmobi/screens/auth/forgot_password_screen.dart';
 import 'package:docmobi/widgets/custom_button.dart';
 import 'package:docmobi/widgets/custom_text_field.dart';
-import 'package:docmobi/services/api_service.dart'; // ✅ Changed from auth_service to api_service
+import 'package:docmobi/services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // ✅ Changed from auth_service to api_service
 
 class SignInScreen extends StatefulWidget {
   final String userType;
@@ -59,6 +61,22 @@ class _SignInScreenState extends State<SignInScreen> {
         final userName = userData?['user']?['fullName'] ?? 
                         userData?['fullName'] ?? 
                         'User';
+
+
+                        // ✅ ADD THIS SECTION:
+               final userId = userData?['user']?['_id']?.toString() ?? 
+                userData?['_id']?.toString();
+
+
+                if (userId != null) {
+    // Save user ID
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_id', userId);
+    
+    // ✅ Connect socket
+    await SocketService.instance.connect(userId);
+    print('✅ Socket connected after login');
+  }
 
         print('✅ Login successful - Role: $userRole');
         print('   Expected role: ${widget.userType.toLowerCase()}');

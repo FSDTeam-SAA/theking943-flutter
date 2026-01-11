@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:docmobi/services/api_service.dart';
+import 'package:docmobi/services/socket_service.dart';
+import 'package:docmobi/screens/common/calls/video_call_screen.dart';
+import 'package:docmobi/screens/common/calls/incoming_call_screen.dart';
 import 'dart:io';
-import 'dart:async'; // ✅ Timer এর জন্য
+import 'dart:async';
 import 'package:image_picker/image_picker.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String chatId;
   final String doctorName;
   final String? doctorAvatar;
+  final String? doctorId;
 
   const ChatDetailScreen({
     super.key,
     required this.chatId,
     required this.doctorName,
     this.doctorAvatar,
+    this.doctorId,
   });
 
   @override
@@ -30,29 +35,71 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   bool _isSending = false;
   List<File> _selectedFiles = [];
   String? _currentUserId;
+  String? _otherUserId;
+  String? _actualDoctorAvatar; // ✅ Real avatar from API
   
-  // ✅ Auto-refresh এর জন্য Timer
   Timer? _refreshTimer;
-  int _lastMessageCount = 0;
+  Set<String> _messageIds = {};
 
   @override
   void initState() {
     super.initState();
+    _loadCurrentUserId();
     _loadMessages();
-    _startAutoRefresh(); // ✅ Auto-refresh চালু করো
+    _startAutoRefresh();
+    _setupSocketListeners();
   }
 
-  // ✅ Auto-refresh timer - প্রতি 3 সেকেন্ডে নতুন message check করবে
+  void _setupSocketListeners() {
+    final socket = SocketService.instance.socket;
+    if (socket != null) {
+      socket.on('call:incoming', (data) {
+        if (data['chatId'] == widget.chatId) {
+          _showIncomingCall(
+            callerId: data['fromUserId'],
+            callerName: widget.doctorName,
+            callerAvatar: _actualDoctorAvatar ?? widget.doctorAvatar,
+            isVideoCall: data['isVideo'] ?? true,
+          );
+        }
+      });
+
+      socket.on('message:new', (data) {
+        if (data['chatId'] == widget.chatId) {
+          _loadMessagesQuietly();
+        }
+      });
+    }
+  }
+
+  void _showIncomingCall({
+    required String callerId,
+    required String callerName,
+    String? callerAvatar,
+    required bool isVideoCall,
+  }) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => IncomingCallScreen(
+          chatId: widget.chatId,
+          callerName: callerName,
+          callerAvatar: callerAvatar,
+          callerId: callerId,
+          isVideoCall: isVideoCall,
+        ),
+      ),
+    );
+  }
+
   void _startAutoRefresh() {
-    _refreshTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
       if (mounted) {
-        _loadMessagesQuietly(); // ✅ Loading indicator ছাড়া refresh
+        _loadMessagesQuietly();
       }
     });
-    print('✅ Auto-refresh started (every 3 seconds)');
   }
 
-  // ✅ Quietly load messages - loading indicator ছাড়া
   Future<void> _loadMessagesQuietly() async {
     try {
       final result = await ApiService.getChatMessages(
@@ -61,19 +108,24 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         limit: 50,
       );
 
-      if (result['success'] == true) {
+      if (result['success'] == true && mounted) {
         final newMessages = result['data']?['items'] ?? [];
         
-        // ✅ শুধুমাত্র নতুন message থাকলেই update করো
-        if (newMessages.length != _lastMessageCount) {
+        Set<String> newMessageIds = {};
+        for (var msg in newMessages) {
+          final msgId = msg['_id']?.toString();
+          if (msgId != null) {
+            newMessageIds.add(msgId);
+          }
+        }
+
+        if (newMessageIds.length != _messageIds.length || 
+            !newMessageIds.containsAll(_messageIds)) {
           setState(() {
             _messages = newMessages;
-            _lastMessageCount = newMessages.length;
+            _messageIds = newMessageIds;
           });
           
-          print('🔄 New message detected! Total: ${_messages.length}');
-          
-          // ✅ নতুন message এলে bottom এ scroll করো
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_scrollController.hasClients) {
               _scrollController.animateTo(
@@ -90,6 +142,19 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
+  Future<void> _loadCurrentUserId() async {
+    try {
+      final profileResult = await ApiService.getUserProfile();
+      if (profileResult['success'] == true) {
+        setState(() {
+          _currentUserId = profileResult['data']['_id']?.toString();
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading current user ID: $e');
+    }
+  }
+
   Future<void> _loadMessages() async {
     setState(() {
       _isLoading = true;
@@ -103,17 +168,42 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       );
 
       if (result['success'] == true) {
-        setState(() {
-          _messages = result['data']?['items'] ?? [];
-          _lastMessageCount = _messages.length; // ✅ Count save করো
-          _isLoading = false;
-        });
+        final messages = result['data']?['items'] ?? [];
         
-        if (_messages.isNotEmpty && _currentUserId == null) {
-          _currentUserId = _messages.first['sender']?['_id'];
+        Set<String> ids = {};
+        for (var msg in messages) {
+          final msgId = msg['_id']?.toString();
+          if (msgId != null) {
+            ids.add(msgId);
+          }
         }
         
-        print('✅ Loaded ${_messages.length} messages');
+        setState(() {
+          _messages = messages;
+          _messageIds = ids;
+          _isLoading = false;
+        });
+
+        // ✅ Get actual doctor avatar from messages
+        if (_messages.isNotEmpty && _currentUserId != null) {
+          for (var msg in _messages) {
+            final senderId = msg['sender']?['_id']?.toString();
+            if (senderId != null && senderId != _currentUserId) {
+              setState(() {
+                _otherUserId = senderId;
+                // Get real avatar from message sender
+                _actualDoctorAvatar = msg['sender']?['avatar']?['url']?.toString();
+              });
+              break;
+            }
+          }
+        }
+
+        if (_otherUserId == null && widget.doctorId != null) {
+          setState(() {
+            _otherUserId = widget.doctorId;
+          });
+        }
         
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (_scrollController.hasClients) {
@@ -121,7 +211,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           }
         });
       } else {
-        print('⚠️ Failed to load messages: ${result['message']}');
         setState(() {
           _isLoading = false;
         });
@@ -160,15 +249,19 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         
         await _loadMessages();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send: ${result['message']}')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed: ${result['message']}')),
+          );
+        }
       }
     } catch (e) {
       print('❌ Error sending message: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to send message')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to send message')),
+        );
+      }
     } finally {
       setState(() {
         _isSending = false;
@@ -195,18 +288,77 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     });
   }
 
+  void _startVideoCall() async {
+    if (_otherUserId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cannot start call - user ID not found'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    final socket = SocketService.instance.socket;
+    if (socket == null || !socket.connected) {
+      if (_currentUserId != null) {
+        await SocketService.instance.connect(_currentUserId!);
+        await Future.delayed(const Duration(seconds: 1));
+      }
+      
+      if (SocketService.instance.socket == null || 
+          !SocketService.instance.socket!.connected) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Cannot connect to call server'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    SocketService.instance.emit('call:request', {
+      'fromUserId': _currentUserId,
+      'toUserId': _otherUserId,
+      'chatId': widget.chatId,
+      'isVideo': true,
+    });
+
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => VideoCallScreen(
+            chatId: widget.chatId,
+            userName: widget.doctorName,
+            userAvatar: _actualDoctorAvatar ?? widget.doctorAvatar,
+            otherUserId: _otherUserId!,
+            isInitiator: true,
+          ),
+        ),
+      );
+    }
+  }
+
   Widget _getAvatarWidget(String? avatarUrl, {bool isDoctor = false}) {
-    if (avatarUrl != null && 
-        avatarUrl.isNotEmpty && 
-        avatarUrl != 'file:///' &&
-        (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://'))) {
+    // ✅ Use actual avatar from API first, then fallback to widget avatar
+    final displayAvatar = isDoctor 
+        ? (_actualDoctorAvatar ?? widget.doctorAvatar)
+        : avatarUrl;
+    
+    if (displayAvatar != null && 
+        displayAvatar.isNotEmpty && 
+        displayAvatar != 'file:///' &&
+        (displayAvatar.startsWith('http://') || displayAvatar.startsWith('https://'))) {
       return CircleAvatar(
         radius: 20,
-        backgroundImage: NetworkImage(avatarUrl),
-        onBackgroundImageError: (exception, stackTrace) {
-          print('⚠️ Failed to load avatar: $avatarUrl');
-        },
-        child: Container(),
+        backgroundImage: NetworkImage(displayAvatar),
+        onBackgroundImageError: (exception, stackTrace) {},
       );
     }
     
@@ -231,7 +383,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ),
         title: Row(
           children: [
-            _getAvatarWidget(widget.doctorAvatar, isDoctor: true),
+            _getAvatarWidget(null, isDoctor: true),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -247,35 +399,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  Row(
-                    children: [
-                      const Text(
-                        'Doctor',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
-                      ),
-                      // ✅ Live indicator
-                      const SizedBox(width: 5),
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          color: Colors.green,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 3),
-                      const Text(
-                        'Live',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                  // ✅ Removed "Live" status - just showing role
+                  const Text(
+                    'Doctor',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                 ],
               ),
@@ -283,27 +410,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           ],
         ),
         actions: [
-          // ✅ Manual refresh button
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.black54, size: 22),
-            onPressed: _loadMessages,
-            tooltip: 'Refresh messages',
-          ),
-          IconButton(
-            icon: const Icon(Icons.phone_outlined, color: Colors.black, size: 24),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Voice call coming soon')),
-              );
-            },
-          ),
+          // ✅ Only Video icon for Patient-Doctor chat
           IconButton(
             icon: const Icon(Icons.videocam_outlined, color: Colors.black, size: 28),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Video call coming soon')),
-              );
-            },
+            onPressed: _startVideoCall,
           ),
           const SizedBox(width: 10),
         ],
@@ -312,10 +422,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         children: [
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 20),
-            child: Text(
-              "Today",
-              style: TextStyle(color: Colors.grey, fontSize: 14),
-            ),
+            child: Text("Today", style: TextStyle(color: Colors.grey, fontSize: 14)),
           ),
           Expanded(
             child: _isLoading
@@ -325,23 +432,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.chat_bubble_outline,
-                                size: 64, color: Colors.grey[400]),
+                            Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey[400]),
                             const SizedBox(height: 16),
                             Text(
                               'No messages yet',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 16,
-                              ),
+                              style: TextStyle(color: Colors.grey[600], fontSize: 16),
                             ),
                             const SizedBox(height: 8),
                             Text(
                               'Start a conversation with ${widget.doctorName}',
-                              style: TextStyle(
-                                color: Colors.grey[500],
-                                fontSize: 14,
-                              ),
+                              style: TextStyle(color: Colors.grey[500], fontSize: 14),
                             ),
                           ],
                         ),
@@ -351,7 +451,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         itemCount: _messages.length,
                         itemBuilder: (context, index) {
-                          return _buildBubble(_messages[index], index);
+                          return _buildBubble(_messages[index]);
                         },
                       ),
           ),
@@ -389,11 +489,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                               shape: BoxShape.circle,
                             ),
                             padding: const EdgeInsets.all(4),
-                            child: const Icon(
-                              Icons.close,
-                              color: Colors.white,
-                              size: 16,
-                            ),
+                            child: const Icon(Icons.close, color: Colors.white, size: 16),
                           ),
                         ),
                       ),
@@ -458,10 +554,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  Widget _buildBubble(Map<String, dynamic> message, int index) {
+  Widget _buildBubble(Map<String, dynamic> message) {
     final String text = message['content']?.toString() ?? '';
     final String senderId = message['sender']?['_id']?.toString() ?? '';
-    final String senderName = message['sender']?['fullName']?.toString() ?? 'Unknown';
     final String? senderAvatar = message['sender']?['avatar']?['url']?.toString();
     
     final bool isMe = message['sender']?['role'] == 'patient';
@@ -477,9 +572,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              if (!isMe)
-                _getAvatarWidget(senderAvatar, isDoctor: true),
-              const SizedBox(width: 8),
+              if (!isMe) _getAvatarWidget(senderAvatar, isDoctor: true),
+              if (!isMe) const SizedBox(width: 8),
               Container(
                 constraints: BoxConstraints(
                   maxWidth: MediaQuery.of(context).size.width * 0.7,
@@ -508,7 +602,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     if (attachments.isNotEmpty)
                       ...attachments.map((att) {
                         final String? url = att['url']?.toString();
-                        if (url != null && url.isNotEmpty && url != 'file:///') {
+                        if (url != null && url.isNotEmpty && url != 'file:///' &&
+                            (url.startsWith('http://') || url.startsWith('https://'))) {
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: ClipRRect(
@@ -518,6 +613,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                 width: 200,
                                 height: 200,
                                 fit: BoxFit.cover,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    width: 200,
+                                    height: 200,
+                                    color: Colors.grey[300],
+                                    child: const Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+                                },
                                 errorBuilder: (context, error, stackTrace) {
                                   return Container(
                                     width: 200,
@@ -544,9 +650,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              if (isMe)
-                _getAvatarWidget(null, isDoctor: false),
+              if (isMe) const SizedBox(width: 8),
+              if (isMe) _getAvatarWidget(null, isDoctor: false),
             ],
           ),
           
@@ -589,10 +694,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   @override
   void dispose() {
-    _refreshTimer?.cancel(); // ✅ Timer বন্ধ করো
+    _refreshTimer?.cancel();
     _controller.dispose();
     _scrollController.dispose();
-    print('✅ Auto-refresh stopped');
+    SocketService.instance.off('call:incoming');
+    SocketService.instance.off('message:new');
     super.dispose();
   }
 }

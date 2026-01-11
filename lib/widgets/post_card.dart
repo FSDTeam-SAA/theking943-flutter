@@ -9,11 +9,13 @@ import 'package:share_plus/share_plus.dart';
 class PostCard extends StatefulWidget {
   final PostModel post;
   final VoidCallback onPostUpdated;
+  final Function(Map<String, dynamic>)? onAuthorTap;
 
   const PostCard({
     super.key,
     required this.post,
     required this.onPostUpdated,
+    this.onAuthorTap,
   });
 
   @override
@@ -25,7 +27,7 @@ class _PostCardState extends State<PostCard> {
   VideoPlayerController? _videoController;
   bool _isVideoInitialized = false;
   bool _isLiking = false;
-  bool _isMuted = true; // ✅ Start muted by default
+  bool _isMuted = true;
   
   @override
   void initState() {
@@ -44,19 +46,17 @@ class _PostCardState extends State<PostCard> {
     final videoMedia = _currentPost.media.where((m) => m.isVideo).firstOrNull;
     if (videoMedia != null) {
       _videoController = VideoPlayerController.network(videoMedia.url)
-        ..setVolume(1) // ✅ Start UNMUTED
+        ..setVolume(0)
         ..initialize().then((_) {
           if (mounted) {
             setState(() {
               _isVideoInitialized = true;
-              _isMuted = false; // ✅ Set unmuted
             });
           }
         });
     }
   }
 
-  // ✅ NEW: Toggle mute/unmute
   void _toggleMute() {
     if (_videoController != null) {
       setState(() {
@@ -298,7 +298,6 @@ class _PostCardState extends State<PostCard> {
       builder: (context) => CommentsBottomSheet(
         postId: _currentPost.id,
         onCommentAdded: () {
-          // ✅ Update comment count instantly
           setState(() {
             _currentPost = _currentPost.copyWith(
               commentsCount: _currentPost.commentsCount + 1,
@@ -331,46 +330,52 @@ class _PostCardState extends State<PostCard> {
             padding: const EdgeInsets.all(15),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundImage: _currentPost.author.avatar != null
-                      ? NetworkImage(_currentPost.author.avatar!)
-                      : const AssetImage('assets/images/doctor_booking.png')
-                          as ImageProvider,
+                GestureDetector(
+                  onTap: () => _handleAuthorTap(),
+                  child: CircleAvatar(
+                    radius: 20,
+                    backgroundImage: _currentPost.author.avatar != null
+                        ? NetworkImage(_currentPost.author.avatar!)
+                        : const AssetImage('assets/images/doctor_booking.png')
+                            as ImageProvider,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            _currentPost.author.fullName,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          if (_currentPost.author.role == 'doctor')
-                            const Padding(
-                              padding: EdgeInsets.only(left: 4),
-                              child: Icon(
-                                Icons.verified,
-                                color: Colors.blue,
-                                size: 16,
+                  child: GestureDetector(
+                    onTap: () => _handleAuthorTap(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              _currentPost.author.fullName,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                        ],
-                      ),
-                      Text(
-                        '${_currentPost.author.specialty ?? "Doctor"} • ${_currentPost.timeAgo}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
+                            if (_currentPost.author.role == 'doctor')
+                              const Padding(
+                                padding: EdgeInsets.only(left: 4),
+                                child: Icon(
+                                  Icons.verified,
+                                  color: Colors.blue,
+                                  size: 16,
+                                ),
+                              ),
+                          ],
                         ),
-                      ),
-                    ],
+                        Text(
+                          '${_currentPost.author.specialty ?? "Doctor"} • ${_currentPost.timeAgo}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 IconButton(
@@ -458,6 +463,23 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
+  void _handleAuthorTap() {
+    if (widget.onAuthorTap != null) {
+      widget.onAuthorTap!({
+        '_id': _currentPost.author.id,
+        'fullName': _currentPost.author.fullName,
+        'avatar': _currentPost.author.avatar != null
+            ? {'url': _currentPost.author.avatar}
+            : null,
+        'specialty': _currentPost.author.specialty,
+        'bio': _currentPost.author.bio,
+        'experienceYears': _currentPost.author.experienceYears,
+        'degrees': _currentPost.author.degrees,
+        'role': _currentPost.author.role,
+      });
+    }
+  }
+
   Widget _buildMediaSection() {
     final images = _currentPost.media.where((m) => m.isImage).toList();
     final videos = _currentPost.media.where((m) => m.isVideo).toList();
@@ -473,18 +495,25 @@ class _PostCardState extends State<PostCard> {
     return _buildMultipleImages(images);
   }
 
-  // ✅ UPDATED: Video player with thumbnail and mute button
   Widget _buildVideoPlayerWithThumbnail(PostMedia video) {
     if (!_isVideoInitialized || _videoController == null) {
       return Stack(
         children: [
-          // Show thumbnail while loading
           if (video.thumbnail != null)
             Image.network(
               video.thumbnail!,
               width: double.infinity,
               height: 250,
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  height: 250,
+                  color: Colors.grey[300],
+                  child: const Center(
+                    child: Icon(Icons.error, size: 50),
+                  ),
+                );
+              },
             )
           else
             Container(
@@ -517,7 +546,6 @@ class _PostCardState extends State<PostCard> {
           child: VideoPlayer(_videoController!),
         ),
         
-        // Play/Pause button
         Positioned.fill(
           child: GestureDetector(
             onTap: () {
@@ -551,7 +579,6 @@ class _PostCardState extends State<PostCard> {
           ),
         ),
         
-        // ✅ Mute/Unmute button (top right)
         Positioned(
           top: 10,
           right: 10,
@@ -685,7 +712,7 @@ class _PostCardState extends State<PostCard> {
 
 class CommentsBottomSheet extends StatefulWidget {
   final String postId;
-  final VoidCallback? onCommentAdded; // ✅ Added callback
+  final VoidCallback? onCommentAdded;
 
   const CommentsBottomSheet({
     super.key,
@@ -748,10 +775,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
       if (result['success'] == true) {
         _commentController.clear();
-        
-        // ✅ Notify parent to update count
         widget.onCommentAdded?.call();
-        
         await _loadComments();
       }
     } catch (e) {
@@ -842,7 +866,6 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                         ),
             ),
 
-            // ✅ FIXED: Input box with proper padding and rounded button
             Container(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
               decoration: BoxDecoration(
@@ -872,7 +895,6 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    // ✅ FIXED: Round send button
                     Container(
                       decoration: BoxDecoration(
                         color: Theme.of(context).primaryColor,

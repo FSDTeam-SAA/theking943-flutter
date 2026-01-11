@@ -18,10 +18,19 @@ class _DoctorMainNavigationState extends State<DoctorMainNavigation> {
   final List<Widget> _screens = const [
     DoctorHomeScreen(),
     DoctorAppointmentsScreen(),
-    DoctorReelsScreen(), // এখানে আপনার Reels এর স্ক্রিনটি বসিয়ে দিবেন
+    DoctorReelsScreen(),
     DoctorMessagesScreen(),
     DoctorProfileScreen(),
   ];
+
+  // ✅ Public method to navigate to specific tab
+  void navigateToTab(int index) {
+    if (index >= 0 && index < _screens.length) {
+      setState(() {
+        _currentIndex = index;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +40,7 @@ class _DoctorMainNavigationState extends State<DoctorMainNavigation> {
         children: _screens,
       ),
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.only(top: 10, bottom: 10), // স্ক্রিনশটের মতো গ্যাপের জন্য
+        padding: const EdgeInsets.only(top: 10, bottom: 10),
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
@@ -51,9 +60,9 @@ class _DoctorMainNavigationState extends State<DoctorMainNavigation> {
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
-          elevation: 0, // কন্টেইনারে শ্যাডো দিয়েছি তাই এখানে ০
+          elevation: 0,
           selectedItemColor: const Color(0xFF1664CD),
-          unselectedItemColor: const Color(0xFF4B5563), // হালকা কালচে গ্রে
+          unselectedItemColor: const Color(0xFF4B5563),
           selectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
           items: [
@@ -79,7 +88,6 @@ class _DoctorMainNavigationState extends State<DoctorMainNavigation> {
               ),
               label: 'Appointments',
             ),
-            // --- Create Post এর বদলে Reels যুক্ত করা হয়েছে ---
             const BottomNavigationBarItem(
               icon: Padding(
                 padding: EdgeInsets.only(bottom: 5),

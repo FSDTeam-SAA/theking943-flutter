@@ -1,3 +1,4 @@
+import 'package:docmobi/screens/doctor/messages/messages_list_screen.dart';
 import 'package:docmobi/screens/doctor/posts/doctor_create_post_screen.dart';
 import 'package:docmobi/screens/doctor/profile/doctor_profile_screen.dart';
 import 'package:docmobi/screens/patient/notification/notification_screen.dart';
@@ -51,21 +52,16 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   }
 
   Future<void> _initializeScreen() async {
-    print('🔄 Initializing Doctor Home Screen...');
-    
     if (!ApiService.isLoggedIn) {
-      print('❌ No token found - redirecting to login');
       _handleTokenMissing();
       return;
     }
-
     await _loadUserData();
     await _loadPosts();
   }
 
   void _handleTokenMissing() {
     if (!mounted) return;
-    
     setState(() {
       _isLoading = false;
       _errorMessage = 'Session expired. Please login again.';
@@ -113,22 +109,16 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
     });
 
     try {
-      print('📤 Loading ALL doctor posts...');
-      
       final result = await ApiService.get(
         '/api/v1/posts/all-posts?page=$_currentPage&limit=20',
         requiresAuth: true,
       );
-      
-      print('📥 Full Response: $result');
       
       if (!mounted) return;
 
       if (result['success'] == true) {
         final postsData = result['data']?['items'] ?? [];
         final pagination = result['data']?['pagination'] ?? {};
-        
-        print('✅ Loaded ${postsData.length} posts from ALL doctors');
         
         setState(() {
           _posts = postsData
@@ -140,20 +130,15 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
           _errorMessage = null;
         });
       } else if (result['requiresLogin'] == true) {
-        print('❌ Token not found or expired');
         _handleTokenMissing();
       } else {
-        print('⚠️ Failed to load posts: ${result['message']}');
         setState(() {
           _isLoading = false;
           _errorMessage = result['message'] ?? 'Failed to load posts';
         });
       }
     } catch (e) {
-      print('❌ Error loading posts: $e');
-      
       if (!mounted) return;
-      
       setState(() {
         _isLoading = false;
         _errorMessage = 'Connection error. Please try again.';
@@ -164,9 +149,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   Future<void> _loadMorePosts() async {
     if (_isLoading || !_hasMore) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final result = await ApiService.get(
@@ -188,10 +171,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
         });
       }
     } catch (e) {
-      print('❌ Error loading more posts: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
@@ -210,25 +190,20 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
     );
     
     if (result == true) {
-      print('🔄 Post created successfully, reloading...');
       await _refreshData();
     }
   }
 
-  // ✅ FIXED: Navigate to profile WITHOUT hiding bottom nav
-  void _navigateToProfile() {
-    // Don't use Navigator.push - instead tell parent to switch tab
-    // This requires using a callback or state management
-    // For now, we'll keep the simple navigation but the parent will handle it
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const DoctorProfileScreen(),
-      ),
-    ).then((_) {
-      context.read<UserProvider>().fetchUserProfile();
-    });
-  }
+void _navigateToProfile() {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const DoctorProfileScreen(),
+    ),
+  ).then((_) {
+    context.read<UserProvider>().fetchUserProfile();
+  });
+}
 
   void _toggleSearch() {
     setState(() {
@@ -237,6 +212,16 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
         _searchController.clear();
       }
     });
+  }
+
+  // ✅ NEW: Show Doctor Info Modal
+  void _showDoctorInfo(Map<String, dynamic> doctor) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DoctorInfoBottomSheet(doctor: doctor),
+    );
   }
 
   @override
@@ -352,9 +337,6 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                                 vertical: 12,
                               ),
                             ),
-                            onChanged: (value) {
-                              // TODO: Implement search
-                            },
                           ),
                         ],
                       ],
@@ -445,9 +427,14 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                   ),
                 );
               }
+              // ✅ NEW: Wrap PostCard to detect author clicks
               return PostCard(
                 post: _posts[index],
                 onPostUpdated: _refreshData,
+                onAuthorTap: (authorData) {
+                  // Show doctor info modal when author is clicked
+                  _showDoctorInfo(authorData);
+                },
               );
             },
           ),
@@ -580,6 +567,170 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
             label, 
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ✅ NEW: Doctor Info Bottom Sheet
+class DoctorInfoBottomSheet extends StatelessWidget {
+  final Map<String, dynamic> doctor;
+
+  const DoctorInfoBottomSheet({super.key, required this.doctor});
+
+  @override
+  Widget build(BuildContext context) {
+    final String doctorName = doctor['fullName'] ?? 'Doctor';
+    final String? doctorImage = doctor['avatar']?['url'];
+    final String doctorId = doctor['_id'] ?? '';
+    final String specialty = doctor['specialty'] ?? 'General Physician';
+    final String bio = doctor['bio'] ?? 'No bio available';
+    final int experienceYears = doctor['experienceYears'] ?? 0;
+    final List degrees = doctor['degrees'] ?? [];
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle bar
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Doctor Avatar
+          CircleAvatar(
+            radius: 50,
+            backgroundImage: doctorImage != null
+                ? NetworkImage(doctorImage)
+                : const AssetImage('assets/images/doctor.png') as ImageProvider,
+          ),
+          const SizedBox(height: 16),
+
+          // Doctor Name
+          Text(
+            doctorName,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1B2C49),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+
+          // Specialty
+          Text(
+            specialty,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Experience
+          if (experienceYears > 0)
+            Text(
+              '$experienceYears years of experience',
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF1664CD),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          const SizedBox(height: 16),
+
+          // Bio
+          if (bio != 'No bio available')
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F8FF),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                bio,
+                style: const TextStyle(fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          const SizedBox(height: 16),
+
+          // Degrees
+          if (degrees.isNotEmpty)
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: degrees.map<Widget>((degree) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F1FF),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    degree['title'] ?? '',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF1664CD),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          const SizedBox(height: 24),
+
+          // ✅ Message Button
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context); // Close modal
+                // Navigate to messages with this doctor
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DoctorMessagesScreen(
+                      initialDoctorId: doctorId,
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.message_outlined),
+              label: const Text(
+                'Message',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1664CD),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
         ],
       ),
     );

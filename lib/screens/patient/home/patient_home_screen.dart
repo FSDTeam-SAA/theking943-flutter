@@ -230,7 +230,7 @@ Row(
                           TextButton(
                             onPressed: () => Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const DoctorListScreen()),
+                              MaterialPageRoute(builder: (_) => const SeeAllDoctorsScreen()),
                             ),
                             child: const Text(
                               'See All',
