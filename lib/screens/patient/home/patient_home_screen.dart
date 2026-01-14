@@ -1,5 +1,6 @@
 import 'package:docmobi/screens/patient/home/dialog/location_permission_dialog.dart';
 import 'package:docmobi/screens/patient/home/upcoming_appointment_card.dart';
+import 'package:docmobi/screens/patient/profile/patient_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:docmobi/models/doctor_model.dart';
@@ -76,67 +77,73 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
-                         // Line 85-118 replace করো এই code দিয়ে
-
-Row(
-  children: [
-    _buildProfileAvatar(userProvider.user?.profileImage),
-    const SizedBox(width: 12),
-    Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            userProvider.user?.fullName ?? 'The King',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1B2C49),
-            ),
-          ),
-          Row(
-            children: [
-              const Icon(Icons.location_on, size: 16, color: Colors.grey),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  userProvider.user?.address ?? 'Location not set',
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
-    GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const NotificationScreen()),
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-            ),
-          ],
-        ),
-        child: const Icon(
-          Icons.notifications_none_rounded,
-          size: 28,
-          color: Colors.black87,
-        ),
-      ),
-    ),
-  ],
-),
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const PatientProfileScreen(),
+                                  ),
+                                ),
+                                child: _buildProfileAvatar(userProvider.user?.profileImage),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      userProvider.user?.fullName ?? 'The King',
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF1B2C49),
+                                      ),
+                                    ),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            userProvider.user?.address ?? 'Location not set',
+                                            style: const TextStyle(fontSize: 14, color: Colors.grey),
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const NotificationScreen()),
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 10,
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.notifications_none_rounded,
+                                    size: 28,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 20),
                           Container(
                             decoration: BoxDecoration(
