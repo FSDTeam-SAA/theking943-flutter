@@ -11,6 +11,7 @@ import 'package:docmobi/models/dependent_model.dart';
 import 'package:docmobi/models/appointment_model.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
 import 'package:docmobi/providers/dependent_provider.dart';
+import 'package:docmobi/providers/notification_provider.dart';
 import 'package:docmobi/utils/api_config.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
@@ -78,12 +79,12 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     // ✅ Pre-fill data if reschedule mode
     if (widget.isReschedule && widget.existingAppointment != null) {
       _prefillDataForReschedule();
     }
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DependentProvider>().fetchDependents();
     });
@@ -92,25 +93,25 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   // ✅ NEW: Pre-fill existing appointment data
   void _prefillDataForReschedule() {
     final appt = widget.existingAppointment!;
-    
+
     // Set appointment type
     if (appt.appointmentType?.toLowerCase() == 'video') {
       selectedType = "Video Call";
     } else {
       selectedType = "Physical Visit";
     }
-    
+
     // Set symptoms
     if (appt.symptoms != null && appt.symptoms!.isNotEmpty) {
       _symptomsController.text = appt.symptoms!;
     }
-    
+
     // Set date and fetch slots
     selectedDate = appt.appointmentDate;
     if (selectedDate != null) {
       _fetchAvailableSlots(selectedDate!);
     }
-    
+
     print('📝 Pre-filled data for reschedule:');
     print('   Type: $selectedType');
     print('   Date: $selectedDate');
@@ -152,14 +153,14 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
     try {
       final response = await _fetchFromBackend(date);
-      
+
       if (response != null && response['success'] == true) {
         final slotsData = response['data']['slots'] as List;
         final unbookedSlots = slotsData
             .map((slot) => TimeSlot.fromJson(slot))
             .where((slot) => slot.isBooked != true)
             .toList();
-        
+
         setState(() {
           availableSlots = unbookedSlots;
         });
@@ -178,17 +179,21 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
 
-      final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.appointments}/available'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-        body: json.encode({
-          'doctorId': doctorId,
-          'date': DateFormat('yyyy-MM-dd').format(date),
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse(
+              '${ApiConfig.baseUrl}${ApiConfig.appointments}/available',
+            ),
+            headers: {
+              'Content-Type': 'application/json',
+              if (token != null) 'Authorization': 'Bearer $token',
+            },
+            body: json.encode({
+              'doctorId': doctorId,
+              'date': DateFormat('yyyy-MM-dd').format(date),
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -201,17 +206,20 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
   void _loadFromWeeklySchedule(DateTime date) {
     final doctor = doctorObject;
-    
-    if (doctor == null || doctor.weeklySchedule == null || doctor.weeklySchedule!.isEmpty) {
+
+    if (doctor == null ||
+        doctor.weeklySchedule == null ||
+        doctor.weeklySchedule!.isEmpty) {
       setState(() => availableSlots = []);
       return;
     }
 
     final dayName = _getDayName(date);
     WeeklySchedule? daySchedule;
-    
+
     for (var schedule in doctor.weeklySchedule!) {
-      if (schedule.day.toLowerCase() == dayName.toLowerCase() && schedule.isActive) {
+      if (schedule.day.toLowerCase() == dayName.toLowerCase() &&
+          schedule.isActive) {
         daySchedule = schedule;
         break;
       }
@@ -229,8 +237,13 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
   String _getDayName(DateTime date) {
     const dayNames = [
-      'monday', 'tuesday', 'wednesday', 'thursday',
-      'friday', 'saturday', 'sunday',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+      'sunday',
     ];
     return dayNames[date.weekday - 1];
   }
@@ -285,7 +298,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
       // Cancel old appointment
       final cancelResponse = await http.patch(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.appointments}/${widget.existingAppointment!.id}/status'),
+        Uri.parse(
+          '${ApiConfig.baseUrl}${ApiConfig.appointments}/${widget.existingAppointment!.id}/status',
+        ),
         headers: {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
@@ -299,7 +314,6 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
       // Create new appointment
       await _handleNewAppointment();
-
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -328,7 +342,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         request.headers['Authorization'] = 'Bearer $token';
       }
 
-      String backendType = selectedType == "Physical Visit" ? "physical" : "video";
+      String backendType = selectedType == "Physical Visit"
+          ? "physical"
+          : "video";
 
       Map<String, dynamic> bookedForPayload;
       if (selectedDependent == null) {
@@ -390,7 +406,25 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           final message = widget.isReschedule
               ? 'Appointment rescheduled successfully!'
               : 'Appointment booked with Dr. $doctorName!';
-          
+
+          // Trigger local notification
+          final notifProvider = context.read<NotificationProvider>();
+          if (widget.isReschedule) {
+            notifProvider.addNotification(
+              title: 'Appointment Rescheduled',
+              message:
+                  'Your appointment with Dr. $doctorName has been rescheduled to ${DateFormat('MMM dd, yyyy').format(selectedDate!)} at ${selectedTimeSlot!.start}.',
+              type: 'appointment_rescheduled',
+            );
+          } else {
+            notifProvider.addNotification(
+              title: 'Appointment Booked',
+              message:
+                  'You have successfully booked an appointment with Dr. $doctorName for ${DateFormat('MMM dd, yyyy').format(selectedDate!)} at ${selectedTimeSlot!.start}.',
+              type: 'appointment_created',
+            );
+          }
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
@@ -407,7 +441,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               ),
             ),
           );
-          
+
           context.read<AppointmentProvider>().fetchAppointments();
           Navigator.pop(context);
         }
@@ -496,7 +530,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                           ),
                         ),
                         const TextSpan(
-                          text: " Video appointments- patient must\nupload BaridiMob payment screenshot ",
+                          text:
+                              " Video appointments- patient must\nupload BaridiMob payment screenshot ",
                           style: TextStyle(
                             color: Colors.red,
                             fontWeight: FontWeight.bold,
@@ -551,7 +586,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               child: Consumer<DependentProvider>(
                 builder: (context, provider, child) {
                   final dependents = provider.activeDependents;
-                  
+
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -563,14 +598,14 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      
+
                       _buildSelectForOption(
                         icon: Icons.person,
                         label: "Myself",
                         isSelected: selectedDependent == null,
                         onTap: () => setState(() => selectedDependent = null),
                       ),
-                      
+
                       if (dependents.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         const Text(
@@ -586,21 +621,19 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                             label: dep.displayName,
                             subtitle: dep.age,
                             isSelected: selectedDependent?.id == dep.id,
-                            onTap: () => setState(
-                              () => selectedDependent = dep,
-                            ),
+                            onTap: () =>
+                                setState(() => selectedDependent = dep),
                           ),
                         ),
                       ],
-                      
+
                       const SizedBox(height: 12),
                       TextButton.icon(
                         onPressed: () {
-                          Navigator.pushNamed(context, '/add-dependent')
-                              .then((_) {
-                            context
-                                .read<DependentProvider>()
-                                .fetchDependents();
+                          Navigator.pushNamed(context, '/add-dependent').then((
+                            _,
+                          ) {
+                            context.read<DependentProvider>().fetchDependents();
                           });
                         },
                         icon: const Icon(
@@ -648,7 +681,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                           Text(
                             selectedDate == null
                                 ? "dd/mm/yyyy"
-                                : DateFormat('dd/MM/yyyy').format(selectedDate!),
+                                : DateFormat(
+                                    'dd/MM/yyyy',
+                                  ).format(selectedDate!),
                             style: TextStyle(
                               color: selectedDate == null
                                   ? Colors.grey
@@ -798,21 +833,21 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   }
 
   Widget _buildWhiteCard({required Widget child}) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ],
+    width: double.infinity,
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
         ),
-        child: child,
-      );
+      ],
+    ),
+    child: child,
+  );
 
   Widget _buildTypeOption(String image, String title, String subtitle) {
     bool isSelected = selectedType == title;
@@ -844,9 +879,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                 title,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: isSelected
-                      ? const Color(0xFF0D53C1)
-                      : Colors.black87,
+                  color: isSelected ? const Color(0xFF0D53C1) : Colors.black87,
                 ),
               ),
               Text(
@@ -878,9 +911,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               : Colors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected
-                ? const Color(0xFF0D53C1)
-                : Colors.grey.shade300,
+            color: isSelected ? const Color(0xFF0D53C1) : Colors.grey.shade300,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -898,8 +929,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                   Text(
                     label,
                     style: TextStyle(
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                   if (subtitle != null)
@@ -970,9 +1002,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           border: Border.all(
             color: isDisabled
                 ? Colors.grey[300]!
-                : (isSelected
-                    ? const Color(0xFF0D53C1)
-                    : Colors.grey[300]!),
+                : (isSelected ? const Color(0xFF0D53C1) : Colors.grey[300]!),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -997,9 +1027,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                   fontWeight: FontWeight.w600,
                   color: isDisabled
                       ? Colors.grey
-                      : (isSelected
-                          ? const Color(0xFF0D53C1)
-                          : Colors.black),
+                      : (isSelected ? const Color(0xFF0D53C1) : Colors.black),
                 ),
               ),
             ),
@@ -1033,9 +1061,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                   fontWeight: FontWeight.w600,
                   color: isDisabled
                       ? Colors.grey
-                      : (isSelected
-                          ? const Color(0xFF0D53C1)
-                          : Colors.black),
+                      : (isSelected ? const Color(0xFF0D53C1) : Colors.black),
                 ),
               ),
             ),
@@ -1077,42 +1103,39 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   }
 
   Widget _buildDashedInput(TextEditingController controller) => Container(
-        width: double.infinity,
-        height: 100,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF9FBFF),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.blue.shade200),
-        ),
-        child: TextField(
-          controller: controller,
-          maxLines: null,
-          decoration: const InputDecoration(
-            hintText: "Please describe your symptoms in detail....",
-            hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
-            border: InputBorder.none,
-          ),
-        ),
-      );
+    width: double.infinity,
+    height: 100,
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF9FBFF),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.blue.shade200),
+    ),
+    child: TextField(
+      controller: controller,
+      maxLines: null,
+      decoration: const InputDecoration(
+        hintText: "Please describe your symptoms in detail....",
+        hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
+        border: InputBorder.none,
+      ),
+    ),
+  );
 
   Widget _buildUploadBox(IconData icon, String label) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 25),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF9FBFF),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.blue.shade200),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: Colors.black, size: 30),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ],
-        ),
-      );
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(vertical: 25),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF9FBFF),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.blue.shade200),
+    ),
+    child: Column(
+      children: [
+        Icon(icon, color: Colors.black, size: 30),
+        const SizedBox(height: 10),
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+      ],
+    ),
+  );
 }

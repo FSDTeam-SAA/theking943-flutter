@@ -20,6 +20,11 @@
     <!-- Microphone Permission (video recording audio er jonno) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     
+    <!-- Notification Permissions -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    
     <application
         android:label="docmobi"
         android:name="${applicationName}"

@@ -12,14 +12,21 @@ class UpcomingAppointmentCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => AppointmentDetailScreen(appointment: appointment)),
+        MaterialPageRoute(
+          builder: (_) => AppointmentDetailScreen(appointment: appointment),
+        ),
       ),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -35,7 +42,10 @@ class UpcomingAppointmentCard extends StatelessWidget {
                 children: [
                   Text(
                     appointment.doctorName ?? 'Doctor',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                   Text(
                     appointment.specialty ?? '',
@@ -59,10 +69,10 @@ class UpcomingAppointmentCard extends StatelessWidget {
   // ✅ Safe image builder
   Widget _buildDoctorImage() {
     final imageUrl = appointment.doctorImage;
-    
+
     // Check if URL is valid
-    if (imageUrl != null && 
-        imageUrl.isNotEmpty && 
+    if (imageUrl != null &&
+        imageUrl.isNotEmpty &&
         (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
       return Image.network(
         imageUrl,
@@ -78,7 +88,7 @@ class UpcomingAppointmentCard extends StatelessWidget {
         },
       );
     }
-    
+
     // Fallback to placeholder
     return _buildPlaceholder();
   }
@@ -100,9 +110,7 @@ class UpcomingAppointmentCard extends StatelessWidget {
       width: 80,
       height: 80,
       color: Colors.grey[200],
-      child: const Center(
-        child: CircularProgressIndicator(strokeWidth: 2),
-      ),
+      child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
     );
   }
 

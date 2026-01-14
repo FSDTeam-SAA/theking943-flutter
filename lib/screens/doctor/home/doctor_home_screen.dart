@@ -1,3 +1,4 @@
+import 'package:docmobi/screens/doctor/home/notifications/notifications.dart';
 import 'package:docmobi/screens/doctor/messages/messages_list_screen.dart';
 import 'package:docmobi/screens/doctor/posts/doctor_create_post_screen.dart';
 import 'package:docmobi/screens/doctor/profile/doctor_profile_screen.dart';
@@ -9,6 +10,7 @@ import 'package:docmobi/screens/auth/sign_in_screen.dart';
 import 'package:docmobi/models/post_model.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/user_provider.dart';
+import '../../../providers/notification_provider.dart';
 
 class DoctorHomeScreen extends StatefulWidget {
   const DoctorHomeScreen({super.key});
@@ -21,7 +23,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  
+
   List<PostModel> _posts = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -79,7 +81,8 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
               onPressed: () {
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(
-                    builder: (context) => const SignInScreen(userType: 'doctor'),
+                    builder: (context) =>
+                        const SignInScreen(userType: 'doctor'),
                   ),
                   (route) => false,
                 );
@@ -102,7 +105,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
 
   Future<void> _loadPosts() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -113,19 +116,20 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
         '/api/v1/posts/all-posts?page=$_currentPage&limit=20',
         requiresAuth: true,
       );
-      
+
       if (!mounted) return;
 
       if (result['success'] == true) {
         final postsData = result['data']?['items'] ?? [];
         final pagination = result['data']?['pagination'] ?? {};
-        
+
         setState(() {
           _posts = postsData
               .map<PostModel>((p) => PostModel.fromJson(p))
               .toList();
           _currentPage = 1;
-          _hasMore = (pagination['page'] * pagination['limit']) < pagination['total'];
+          _hasMore =
+              (pagination['page'] * pagination['limit']) < pagination['total'];
           _isLoading = false;
           _errorMessage = null;
         });
@@ -166,7 +170,8 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
             postsData.map<PostModel>((p) => PostModel.fromJson(p)).toList(),
           );
           _currentPage++;
-          _hasMore = (pagination['page'] * pagination['limit']) < pagination['total'];
+          _hasMore =
+              (pagination['page'] * pagination['limit']) < pagination['total'];
           _isLoading = false;
         });
       }
@@ -184,26 +189,22 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   void _navigateToCreatePost() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const DoctorCreatePostScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const DoctorCreatePostScreen()),
     );
-    
+
     if (result == true) {
       await _refreshData();
     }
   }
 
-void _navigateToProfile() {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => const DoctorProfileScreen(),
-    ),
-  ).then((_) {
-    context.read<UserProvider>().fetchUserProfile();
-  });
-}
+  void _navigateToProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const DoctorProfileScreen()),
+    ).then((_) {
+      context.read<UserProvider>().fetchUserProfile();
+    });
+  }
 
   void _toggleSearch() {
     setState(() {
@@ -237,7 +238,7 @@ void _navigateToProfile() {
               child: Consumer<UserProvider>(
                 builder: (context, userProvider, child) {
                   final user = userProvider.user;
-                  
+
                   return Container(
                     padding: const EdgeInsets.fromLTRB(20, 50, 20, 16),
                     decoration: BoxDecoration(
@@ -259,15 +260,18 @@ void _navigateToProfile() {
                               child: CircleAvatar(
                                 radius: 28,
                                 backgroundColor: Colors.white,
-                                backgroundImage: user?.profileImage != null && 
-                                                user!.profileImage!.isNotEmpty
+                                backgroundImage:
+                                    user?.profileImage != null &&
+                                        user!.profileImage!.isNotEmpty
                                     ? NetworkImage(user.profileImage!)
-                                    : const AssetImage('assets/images/doctor_booking.png') 
-                                        as ImageProvider,
+                                    : const AssetImage(
+                                            'assets/images/doctor_booking.png',
+                                          )
+                                          as ImageProvider,
                               ),
                             ),
                             const SizedBox(width: 15),
-                            
+
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,33 +295,65 @@ void _navigateToProfile() {
                                 ],
                               ),
                             ),
-                            
+
                             IconButton(
                               icon: Icon(
                                 _isSearching ? Icons.close : Icons.search,
-                                color: const Color(0xFF1B2C49), 
+                                color: const Color(0xFF1B2C49),
                                 size: 24,
                               ),
                               onPressed: _toggleSearch,
                             ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.notifications_outlined, 
-                                color: Color(0xFF1B2C49), 
-                                size: 24,
-                              ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const NotificationScreen(),
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.notifications_outlined,
+                                    color: Color(0xFF1B2C49),
+                                    size: 24,
                                   ),
-                                );
-                              },
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const DoctorNotificationScreen(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                ValueListenableBuilder<int>(
+                                  valueListenable: context
+                                      .read<NotificationProvider>()
+                                      .generalUnreadCount,
+                                  builder: (context, count, child) {
+                                    if (count == 0) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: Colors.white,
+                                            width: 2,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                        
+
                         if (_isSearching) ...[
                           const SizedBox(height: 15),
                           TextField(
@@ -346,9 +382,7 @@ void _navigateToProfile() {
               ),
             ),
 
-            SliverToBoxAdapter(
-              child: _buildContent(),
-            ),
+            SliverToBoxAdapter(child: _buildContent()),
           ],
         ),
       ),
@@ -397,7 +431,7 @@ void _navigateToProfile() {
     return Column(
       children: [
         _buildCreatePostBox(),
-        
+
         if (_posts.isEmpty)
           const Padding(
             padding: EdgeInsets.all(32.0),
@@ -446,20 +480,20 @@ void _navigateToProfile() {
     return Consumer<UserProvider>(
       builder: (context, userProvider, child) {
         final user = userProvider.user;
-        
+
         return Container(
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: Colors.blue.withOpacity(0.1)),
+            border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
+                color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
-              )
+              ),
             ],
           ),
           child: Column(
@@ -468,11 +502,12 @@ void _navigateToProfile() {
                 children: [
                   CircleAvatar(
                     radius: 20,
-                    backgroundImage: user?.profileImage != null && 
-                                   user!.profileImage!.isNotEmpty
+                    backgroundImage:
+                        user?.profileImage != null &&
+                            user!.profileImage!.isNotEmpty
                         ? NetworkImage(user.profileImage!)
-                        : const AssetImage('assets/images/doctor_booking.png') 
-                            as ImageProvider,
+                        : const AssetImage('assets/images/doctor_booking.png')
+                              as ImageProvider,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -480,7 +515,7 @@ void _navigateToProfile() {
                       onTap: _navigateToCreatePost,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 15, 
+                          horizontal: 15,
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
@@ -503,29 +538,29 @@ void _navigateToProfile() {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _buildPostAction(
-                    Icons.image_outlined, 
-                    'Photo', 
-                    Colors.brown, 
+                    Icons.image_outlined,
+                    'Photo',
+                    Colors.brown,
                     _navigateToCreatePost,
                   ),
                   _buildPostAction(
-                    Icons.videocam_outlined, 
-                    'Video', 
-                    Colors.redAccent, 
+                    Icons.videocam_outlined,
+                    'Video',
+                    Colors.redAccent,
                     _navigateToCreatePost,
                   ),
                   _buildPostAction(
-                    Icons.play_circle_outline, 
-                    'Reels', 
-                    Colors.blueAccent, 
+                    Icons.play_circle_outline,
+                    'Reels',
+                    Colors.blueAccent,
                     _navigateToCreatePost,
                   ),
-                  
+
                   InkWell(
                     onTap: _navigateToCreatePost,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12, 
+                        horizontal: 12,
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
@@ -552,9 +587,9 @@ void _navigateToProfile() {
   }
 
   Widget _buildPostAction(
-    IconData icon, 
-    String label, 
-    Color color, 
+    IconData icon,
+    String label,
+    Color color,
     VoidCallback onTap,
   ) {
     return GestureDetector(
@@ -564,7 +599,7 @@ void _navigateToProfile() {
           Icon(icon, color: color, size: 20),
           const SizedBox(width: 4),
           Text(
-            label, 
+            label,
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
           ),
         ],
@@ -633,10 +668,7 @@ class DoctorInfoBottomSheet extends StatelessWidget {
           // Specialty
           Text(
             specialty,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
           const SizedBox(height: 8),
 
@@ -707,19 +739,15 @@ class DoctorInfoBottomSheet extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => DoctorMessagesScreen(
-                      initialDoctorId: doctorId,
-                    ),
+                    builder: (context) =>
+                        DoctorMessagesScreen(initialDoctorId: doctorId),
                   ),
                 );
               },
               icon: const Icon(Icons.message_outlined),
               label: const Text(
                 'Message',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1664CD),

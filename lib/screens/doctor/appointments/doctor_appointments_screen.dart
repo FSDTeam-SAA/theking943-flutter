@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:docmobi/models/appointment_model.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
+import 'package:docmobi/providers/notification_provider.dart';
 import 'package:docmobi/screens/doctor/appointments/session_holder_screen.dart';
 
 class DoctorAppointmentsScreen extends StatefulWidget {
@@ -70,31 +71,31 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
               ),
               const SizedBox(height: 20),
 
-             // Tab Buttons - FIX OVERFLOW
-Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 15),
-  child: SingleChildScrollView(
-    scrollDirection: Axis.horizontal, 
-    child: Row(
-      children: [
-        _buildTabButton(
-          "Pending",
-          provider.pendingAppointments.length,
-        ),
-        const SizedBox(width: 5), 
-        _buildTabButton(
-          "Confirmed",
-          provider.acceptedAppointments.length,
-        ),
-        const SizedBox(width: 5), 
-        _buildTabButton(
-          "Completed",
-          provider.completedAppointments.length,
-        ),
-      ],
-    ),
-  ),
-),
+              // Tab Buttons - FIX OVERFLOW
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildTabButton(
+                        "Pending",
+                        provider.pendingAppointments.length,
+                      ),
+                      const SizedBox(width: 5),
+                      _buildTabButton(
+                        "Confirmed",
+                        provider.acceptedAppointments.length,
+                      ),
+                      const SizedBox(width: 5),
+                      _buildTabButton(
+                        "Completed",
+                        provider.completedAppointments.length,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: 10),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20),
@@ -102,9 +103,7 @@ Padding(
               ),
 
               // Content
-              Expanded(
-                child: _buildContent(provider),
-              ),
+              Expanded(child: _buildContent(provider)),
             ],
           );
         },
@@ -217,10 +216,7 @@ Padding(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-          )
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -229,11 +225,12 @@ Padding(
             children: [
               CircleAvatar(
                 radius: 30,
-                backgroundImage: appointment.patientImage != null &&
+                backgroundImage:
+                    appointment.patientImage != null &&
                         appointment.patientImage!.isNotEmpty
                     ? NetworkImage(appointment.patientImage!)
                     : const AssetImage('assets/images/doctor_booking.png')
-                        as ImageProvider,
+                          as ImageProvider,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -259,16 +256,23 @@ Padding(
                         ),
                       ],
                     ),
-                    
+
                     // ✅ FIXED: Changed isDependent to type == 'dependent' and displayText to bookingLabel
-                    if (appointment.bookedFor != null && appointment.bookedFor!.type == 'dependent') ...[
+                    if (appointment.bookedFor != null &&
+                        appointment.bookedFor!.type == 'dependent') ...[
                       const SizedBox(height: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFE8F5E9),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFF4CAF50), width: 1),
+                          border: Border.all(
+                            color: const Color(0xFF4CAF50),
+                            width: 1,
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -359,7 +363,7 @@ Padding(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -368,11 +372,12 @@ Padding(
             children: [
               CircleAvatar(
                 radius: 30,
-                backgroundImage: appointment.patientImage != null &&
+                backgroundImage:
+                    appointment.patientImage != null &&
                         appointment.patientImage!.isNotEmpty
                     ? NetworkImage(appointment.patientImage!)
                     : const AssetImage('assets/images/doctor_booking.png')
-                        as ImageProvider,
+                          as ImageProvider,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -386,16 +391,23 @@ Padding(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    
+
                     // ✅ FIXED: Changed isDependent to type == 'dependent' and displayText to bookingLabel
-                    if (appointment.bookedFor != null && appointment.bookedFor!.type == 'dependent') ...[
+                    if (appointment.bookedFor != null &&
+                        appointment.bookedFor!.type == 'dependent') ...[
                       const SizedBox(height: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFE8F5E9),
                           borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: const Color(0xFF4CAF50), width: 1),
+                          border: Border.all(
+                            color: const Color(0xFF4CAF50),
+                            width: 1,
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -418,7 +430,7 @@ Padding(
                         ),
                       ),
                     ],
-                    
+
                     const SizedBox(height: 5),
                     Wrap(
                       spacing: 8,
@@ -482,18 +494,19 @@ Padding(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
         ],
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 30,
-            backgroundImage: appointment.patientImage != null &&
+            backgroundImage:
+                appointment.patientImage != null &&
                     appointment.patientImage!.isNotEmpty
                 ? NetworkImage(appointment.patientImage!)
                 : const AssetImage('assets/images/doctor_booking.png')
-                    as ImageProvider,
+                      as ImageProvider,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -519,16 +532,23 @@ Padding(
                     ),
                   ],
                 ),
-                
+
                 // ✅ FIXED: Changed isDependent to type == 'dependent' and displayText to bookingLabel
-                if (appointment.bookedFor != null && appointment.bookedFor!.type == 'dependent') ...[
+                if (appointment.bookedFor != null &&
+                    appointment.bookedFor!.type == 'dependent') ...[
                   const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFE8F5E9),
                       borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFF4CAF50), width: 0.8),
+                      border: Border.all(
+                        color: const Color(0xFF4CAF50),
+                        width: 0.8,
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -551,7 +571,7 @@ Padding(
                     ),
                   ),
                 ],
-                
+
                 const SizedBox(height: 5),
                 Wrap(
                   spacing: 10,
@@ -590,11 +610,7 @@ Padding(
       ),
       child: Text(
         text,
-        style: TextStyle(
-          color: txt,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(color: txt, fontSize: 10, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -605,10 +621,7 @@ Padding(
       children: [
         Icon(icon, size: 14, color: Colors.grey[600]),
         const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(fontSize: 11, color: Colors.grey[700]),
-        ),
+        Text(text, style: TextStyle(fontSize: 11, color: Colors.grey[700])),
       ],
     );
   }
@@ -619,18 +632,12 @@ Padding(
       style: ElevatedButton.styleFrom(
         backgroundColor: bg,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         padding: const EdgeInsets.symmetric(vertical: 12),
       ),
       child: Text(
         label,
-        style: TextStyle(
-          color: txt,
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
-        ),
+        style: TextStyle(color: txt, fontWeight: FontWeight.bold, fontSize: 14),
       ),
     );
   }
@@ -642,21 +649,38 @@ Padding(
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
-    final success = await provider.acceptAppointment(appointmentId);
+    try {
+      final success = await provider.acceptAppointment(appointmentId);
 
-    if (mounted) {
-      Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context); // Dismiss loading
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success
-                ? 'Appointment accepted successfully'
-                : 'Failed to accept appointment',
+        if (success) {
+          context.read<NotificationProvider>().addNotification(
+            title: 'Appointment Accepted',
+            message: 'You have accepted the appointment request.',
+            type: 'appointment_accepted',
+          );
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Appointment accepted successfully'
+                  : 'Failed to accept appointment',
+            ),
+            backgroundColor: success ? Colors.green : Colors.red,
           ),
-          backgroundColor: success ? Colors.green : Colors.red,
-        ),
-      );
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Ensure loading is dismissed on error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -665,7 +689,9 @@ Padding(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cancel Appointment'),
-        content: const Text('Are you sure you want to cancel this appointment?'),
+        content: const Text(
+          'Are you sure you want to cancel this appointment?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -682,21 +708,43 @@ Padding(
                     const Center(child: CircularProgressIndicator()),
               );
 
-              final success = await provider.cancelAppointment(appointmentId);
+              try {
+                final success = await provider.cancelAppointment(appointmentId);
 
-              if (mounted) {
-                Navigator.pop(context);
+                if (mounted) {
+                  Navigator.pop(context); // Dismiss loading
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success
-                          ? 'Appointment cancelled'
-                          : 'Failed to cancel appointment',
+                  if (success) {
+                    context.read<NotificationProvider>().addNotification(
+                      title: 'Appointment Cancelled',
+                      message: 'You have cancelled the appointment.',
+                      type: 'appointment_cancel',
+                    );
+                  }
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        success
+                            ? 'Appointment cancelled'
+                            : 'Failed to cancel appointment',
+                      ),
+                      backgroundColor: success ? Colors.orange : Colors.red,
                     ),
-                    backgroundColor: success ? Colors.orange : Colors.red,
-                  ),
-                );
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  Navigator.pop(
+                    context,
+                  ); // Ensure loading is dismissed on error
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               }
             },
             child: const Text('Yes', style: TextStyle(color: Colors.red)),
@@ -710,9 +758,7 @@ Padding(
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SessionHolderScreen(
-          appointment: appointment,
-        ),
+        builder: (context) => SessionHolderScreen(appointment: appointment),
       ),
     ).then((result) {
       if (result == true) {

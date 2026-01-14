@@ -103,5 +103,9 @@
 		<string>remote-notification</string>
 	</array>
 	
+	<!-- Notification Permissions (Required for local notifications) -->
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>We need to send you notifications about appointments and messages</string>
+	
 </dict>
 </plist>

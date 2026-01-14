@@ -42,6 +42,9 @@ dependencies:
   share_plus: ^7.2.1
   # JSON Serialization (optional)
   json_annotation: ^4.8.1
+  
+  # Local Notifications
+  flutter_local_notifications: ^16.3.2
 
 dev_dependencies:
   flutter_test:

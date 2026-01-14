@@ -1,25 +1,26 @@
+import 'package:docmobi/models/notification_model.dart';
+import 'package:docmobi/providers/appointment_provider.dart';
+import 'package:docmobi/providers/notification_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../providers/notification_provider.dart';
-import '../../../providers/appointment_provider.dart';
-import '../../../models/notification_model.dart';
-import '../../patient/home/upcoming_appointment_card.dart';
+import '../widgets/upcoming_patient_card.dart';
 
-class NotificationScreen extends StatefulWidget {
-  const NotificationScreen({super.key});
+class DoctorNotificationScreen extends StatefulWidget {
+  const DoctorNotificationScreen({super.key});
 
   @override
-  State<NotificationScreen> createState() => _NotificationScreenState();
+  State<DoctorNotificationScreen> createState() =>
+      _DoctorNotificationScreenState();
 }
 
-class _NotificationScreenState extends State<NotificationScreen> {
+class _DoctorNotificationScreenState extends State<DoctorNotificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
-          'Notification',
+          'Notifications',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w600,
@@ -56,7 +57,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             },
             child: CustomScrollView(
               slivers: [
-                // Upcoming Appointment Section
+                // Upcoming Appointment Section for Doctor
                 _buildUpcomingSection(apptProvider),
 
                 // New Section
@@ -139,7 +140,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Upcoming Appointment",
+              "Upcoming Patient",
               style: TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
@@ -147,7 +148,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
               ),
             ),
             const SizedBox(height: 15),
-            UpcomingAppointmentCard(appointment: upcoming.first),
+            UpcomingPatientCard(appointment: upcoming.first),
           ],
         ),
       ),
@@ -166,12 +167,18 @@ class _NotificationScreenState extends State<NotificationScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No notifications',
+            'No notifications yet',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
               color: Colors.grey[600],
             ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'We\'ll notify you when a patient books or updates an appointment.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
         ],
       ),
@@ -253,7 +260,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      notification.message,
+                      _personalizeMessage(notification),
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey.shade700,
@@ -276,6 +283,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
         ),
       ),
     );
+  }
+
+  String _personalizeMessage(NotificationModel notification) {
+    // Here we can further personalize the message if needed.
+    // For now, we'll return the original message.
+    return notification.message;
   }
 
   IconData _getNotificationIcon(String type) {
