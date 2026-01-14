@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:docmobi/services/api_service.dart';
 import 'package:docmobi/services/socket_service.dart';
 import 'package:docmobi/screens/common/calls/video_call_screen.dart';
-import 'package:docmobi/screens/common/calls/incoming_call_screen.dart';
+import 'package:docmobi/screens/common/calls/audio_call_screen.dart';
 import 'dart:io';
 import 'dart:async';
 import 'package:image_picker/image_picker.dart';
@@ -35,61 +35,70 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   bool _isSending = false;
   List<File> _selectedFiles = [];
   String? _currentUserId;
+  String? _currentUserAvatar;
+  String? _currentUserName;
   String? _otherUserId;
-  String? _actualDoctorAvatar; // ✅ Real avatar from API
+  String? _actualDoctorAvatar;
+  String? _actualDoctorName;
   
   Timer? _refreshTimer;
   Set<String> _messageIds = {};
+  bool _isAutoScrollEnabled = true;
 
   @override
   void initState() {
     super.initState();
-    _loadCurrentUserId();
+    _actualDoctorAvatar = widget.doctorAvatar;
+    _actualDoctorName = widget.doctorName;
+    _loadCurrentUserProfile();
     _loadMessages();
     _startAutoRefresh();
-    _setupSocketListeners();
+    _setupSocketListeners(); // ✅ UNCOMMENT THIS - IT'S NEEDED!
+    
+    _scrollController.addListener(() {
+      if (_scrollController.hasClients) {
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        final currentScroll = _scrollController.position.pixels;
+        _isAutoScrollEnabled = (maxScroll - currentScroll) < 100;
+      }
+    });
   }
 
+  Future<void> _loadCurrentUserProfile() async {
+  try {
+    final profileResult = await ApiService.getUserProfile();
+    if (profileResult['success'] == true) {
+      setState(() {
+        _currentUserId = profileResult['data']['_id']?.toString();
+        _currentUserAvatar = profileResult['data']['avatar']?['url']?.toString();
+        _currentUserName = profileResult['data']['fullName']?.toString();  // <-- এই line যোগ করুন
+      });
+      print('✅ Current user profile loaded:');
+      print('   ID: $_currentUserId');
+      print('   Avatar: $_currentUserAvatar');
+      print('   Name: $_currentUserName');
+    }
+  } catch (e) {
+    print('❌ Error loading user profile: $e');
+  }
+}
+
+  // ✅ KEEP THIS - Only listen for new messages, NOT calls (CallManager handles calls)
   void _setupSocketListeners() {
     final socket = SocketService.instance.socket;
     if (socket != null) {
-      socket.on('call:incoming', (data) {
-        if (data['chatId'] == widget.chatId) {
-          _showIncomingCall(
-            callerId: data['fromUserId'],
-            callerName: widget.doctorName,
-            callerAvatar: _actualDoctorAvatar ?? widget.doctorAvatar,
-            isVideoCall: data['isVideo'] ?? true,
-          );
-        }
-      });
-
+      // ✅ Only listen for new messages
       socket.on('message:new', (data) {
+        print('📨 New message received: $data');
         if (data['chatId'] == widget.chatId) {
           _loadMessagesQuietly();
         }
       });
+      
+      print('✅ Socket listeners setup (message:new only)');
+    } else {
+      print('⚠️ Socket not available');
     }
-  }
-
-  void _showIncomingCall({
-    required String callerId,
-    required String callerName,
-    String? callerAvatar,
-    required bool isVideoCall,
-  }) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => IncomingCallScreen(
-          chatId: widget.chatId,
-          callerName: callerName,
-          callerAvatar: callerAvatar,
-          callerId: callerId,
-          isVideoCall: isVideoCall,
-        ),
-      ),
-    );
   }
 
   void _startAutoRefresh() {
@@ -126,32 +135,21 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             _messageIds = newMessageIds;
           });
           
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_scrollController.hasClients) {
-              _scrollController.animateTo(
-                _scrollController.position.maxScrollExtent,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOut,
-              );
-            }
-          });
+          if (_isAutoScrollEnabled) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (_scrollController.hasClients) {
+                _scrollController.animateTo(
+                  _scrollController.position.maxScrollExtent,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOut,
+                );
+              }
+            });
+          }
         }
       }
     } catch (e) {
       print('❌ Quiet refresh error: $e');
-    }
-  }
-
-  Future<void> _loadCurrentUserId() async {
-    try {
-      final profileResult = await ApiService.getUserProfile();
-      if (profileResult['success'] == true) {
-        setState(() {
-          _currentUserId = profileResult['data']['_id']?.toString();
-        });
-      }
-    } catch (e) {
-      print('❌ Error loading current user ID: $e');
     }
   }
 
@@ -184,16 +182,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           _isLoading = false;
         });
 
-        // ✅ Get actual doctor avatar from messages
         if (_messages.isNotEmpty && _currentUserId != null) {
           for (var msg in _messages) {
             final senderId = msg['sender']?['_id']?.toString();
             if (senderId != null && senderId != _currentUserId) {
               setState(() {
                 _otherUserId = senderId;
-                // Get real avatar from message sender
                 _actualDoctorAvatar = msg['sender']?['avatar']?['url']?.toString();
+                _actualDoctorName = msg['sender']?['fullName']?.toString();
               });
+              print('✅ Loaded real doctor data:');
+              print('   Name: $_actualDoctorName');
+              print('   Avatar: $_actualDoctorAvatar');
               break;
             }
           }
@@ -245,6 +245,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         _controller.clear();
         setState(() {
           _selectedFiles = [];
+          _isAutoScrollEnabled = true;
         });
         
         await _loadMessages();
@@ -288,6 +289,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     });
   }
 
+<<<<<<< HEAD
   // Video Call শুরু করতে
 void _startVideoCall() async {
   SocketService.instance.emit('call:request', {
@@ -310,74 +312,223 @@ void _startVideoCall() async {
     ),
   );
 
+=======
+  // ✅ Replace _startAudioCall() and _startVideoCall() in BOTH chat screens with these:
 
-    final socket = SocketService.instance.socket;
-    if (socket == null || !socket.connected) {
-      if (_currentUserId != null) {
-        await SocketService.instance.connect(_currentUserId!);
-        await Future.delayed(const Duration(seconds: 1));
-      }
-      
-      if (SocketService.instance.socket == null || 
-          !SocketService.instance.socket!.connected) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Cannot connect to call server'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-    }
+// ✅ Line 204 থেকে এই দুইটা function replace করুন
 
-    SocketService.instance.emit('call:request', {
-      'fromUserId': _currentUserId,
-      'toUserId': _otherUserId,
-      'chatId': widget.chatId,
-      'isVideo': true,
-    });
-
+void _startAudioCall() async {
+  print('');
+  print('╔══════════════════════════════════════════════════════════════╗');
+  print('║                  📞 STARTING AUDIO CALL                      ║');
+  print('╚══════════════════════════════════════════════════════════════╝');
+  
+  if (_currentUserId == null || _otherUserId == null) {
+    print('❌ Missing user IDs');
+    print('   • Current: $_currentUserId');
+    print('   • Other: $_otherUserId');
     if (mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => VideoCallScreen(
-            chatId: widget.chatId,
-            userName: widget.doctorName,
-            userAvatar: _actualDoctorAvatar ?? widget.doctorAvatar,
-            otherUserId: _otherUserId!,
-            isInitiator: true,
-          ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot start call - user ID not found'),
+          backgroundColor: Colors.red,
         ),
       );
     }
+    return;
   }
 
-  Widget _getAvatarWidget(String? avatarUrl, {bool isDoctor = false}) {
-    // ✅ Use actual avatar from API first, then fallback to widget avatar
-    final displayAvatar = isDoctor 
-        ? (_actualDoctorAvatar ?? widget.doctorAvatar)
-        : avatarUrl;
-    
-    if (displayAvatar != null && 
-        displayAvatar.isNotEmpty && 
-        displayAvatar != 'file:///' &&
-        (displayAvatar.startsWith('http://') || displayAvatar.startsWith('https://'))) {
-      return CircleAvatar(
-        radius: 20,
-        backgroundImage: NetworkImage(displayAvatar),
-        onBackgroundImageError: (exception, stackTrace) {},
+  final socket = SocketService.instance.socket;
+  if (socket == null || !socket.connected) {
+    print('⚠️ Socket not connected, attempting reconnect...');
+    try {
+      await SocketService.instance.connect(_currentUserId!);
+      await Future.delayed(const Duration(milliseconds: 1500));
+      
+      if (!SocketService.instance.isConnected) {
+        throw Exception('Failed to connect');
+      }
+    } catch (e) {
+      print('❌ Socket connection failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cannot connect to server'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+  }
+>>>>>>> 410893a (calling)
+
+  final eventData = {
+    'fromUserId': _currentUserId,
+    'toUserId': _otherUserId,
+    'chatId': widget.chatId,
+    'isVideo': false,
+    'callerName': _currentUserName, // আপনার current user এর name
+  'callerAvatar': _currentUserAvatar,
+  };
+
+  print('📤 Emitting call:request');
+  print('   • Data: $eventData');
+  print('   • Socket connected: ${socket?.connected}');
+  print('   • Socket ID: ${socket?.id}');
+
+  try {
+    SocketService.instance.emit('call:request', eventData);
+    print('✅ Event emitted successfully');
+  } catch (e) {
+    print('❌ Error emitting event: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to initiate call'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
-    
-    return CircleAvatar(
-      radius: 20,
-      backgroundImage: AssetImage(
-        isDoctor ? 'assets/images/doctor1.png' : 'assets/images/profile.png'
+    return;
+  }
+
+  print('╚══════════════════════════════════════════════════════════════╝');
+  print('');
+
+  await Future.delayed(const Duration(milliseconds: 300));
+
+  if (mounted) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AudioCallScreen(
+          chatId: widget.chatId,
+          userName: _actualDoctorName ?? widget.doctorName,
+          userAvatar: _actualDoctorAvatar,
+          otherUserId: _otherUserId!,
+          isInitiator: true,
+        ),
       ),
     );
+  }
+}
+
+void _startVideoCall() async {
+  print('');
+  print('╔══════════════════════════════════════════════════════════════╗');
+  print('║                  📹 STARTING VIDEO CALL                      ║');
+  print('╚══════════════════════════════════════════════════════════════╝');
+  
+  if (_currentUserId == null || _otherUserId == null) {
+    print('❌ Missing user IDs');
+    print('   • Current: $_currentUserId');
+    print('   • Other: $_otherUserId');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot start call - user ID not found'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+    return;
+  }
+
+  final socket = SocketService.instance.socket;
+  if (socket == null || !socket.connected) {
+    print('⚠️ Socket not connected, attempting reconnect...');
+    try {
+      await SocketService.instance.connect(_currentUserId!);
+      await Future.delayed(const Duration(milliseconds: 1500));
+      
+      if (!SocketService.instance.isConnected) {
+        throw Exception('Failed to connect');
+      }
+    } catch (e) {
+      print('❌ Socket connection failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cannot connect to server'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+  }
+
+  final eventData = {
+    'fromUserId': _currentUserId,
+    'toUserId': _otherUserId,
+    'chatId': widget.chatId,
+    'isVideo': true,
+    'callerName': _currentUserName, // আপনার current user এর name
+  'callerAvatar': _currentUserAvatar,
+  };
+
+  print('📤 Emitting call:request');
+  print('   • Data: $eventData');
+  print('   • Socket connected: ${socket?.connected}');
+  print('   • Socket ID: ${socket?.id}');
+
+  try {
+    SocketService.instance.emit('call:request', eventData);
+    print('✅ Event emitted successfully');
+  } catch (e) {
+    print('❌ Error emitting event: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to initiate call'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+    return;
+  }
+
+  print('╚══════════════════════════════════════════════════════════════╝');
+  print('');
+
+  await Future.delayed(const Duration(milliseconds: 300));
+
+  if (mounted) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VideoCallScreen(
+          chatId: widget.chatId,
+          userName: _actualDoctorName ?? widget.doctorName,
+          userAvatar: _actualDoctorAvatar,
+          otherUserId: _otherUserId!,
+          isInitiator: true,
+        ),
+      ),
+    );
+  }
+}
+
+  ImageProvider _getAvatarImage(String? avatarUrl) {
+    if (avatarUrl != null &&
+        avatarUrl.isNotEmpty &&
+        avatarUrl != 'file:///' &&
+        (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://'))) {
+      return NetworkImage(avatarUrl);
+    }
+    return const AssetImage('assets/images/doctor1.png');
+  }
+
+  ImageProvider _getCurrentUserAvatar() {
+    if (_currentUserAvatar != null &&
+        _currentUserAvatar!.isNotEmpty &&
+        _currentUserAvatar != 'file:///' &&
+        (_currentUserAvatar!.startsWith('http://') || 
+         _currentUserAvatar!.startsWith('https://'))) {
+      return NetworkImage(_currentUserAvatar!);
+    }
+    return const AssetImage('assets/images/profile.png');
   }
 
   @override
@@ -393,14 +544,17 @@ void _startVideoCall() async {
         ),
         title: Row(
           children: [
-            _getAvatarWidget(null, isDoctor: true),
+            CircleAvatar(
+              radius: 20,
+              backgroundImage: _getAvatarImage(_actualDoctorAvatar),
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.doctorName,
+                    _actualDoctorName ?? widget.doctorName,
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -409,7 +563,6 @@ void _startVideoCall() async {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  // ✅ Removed "Live" status - just showing role
                   const Text(
                     'Doctor',
                     style: TextStyle(color: Colors.grey, fontSize: 12),
@@ -420,7 +573,10 @@ void _startVideoCall() async {
           ],
         ),
         actions: [
-          // ✅ Only Video icon for Patient-Doctor chat
+          IconButton(
+            icon: const Icon(Icons.phone_outlined, color: Colors.black, size: 24),
+            onPressed: _startAudioCall,
+          ),
           IconButton(
             icon: const Icon(Icons.videocam_outlined, color: Colors.black, size: 28),
             onPressed: _startVideoCall,
@@ -450,7 +606,7 @@ void _startVideoCall() async {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Start a conversation with ${widget.doctorName}',
+                              'Start a conversation with ${_actualDoctorName ?? widget.doctorName}',
                               style: TextStyle(color: Colors.grey[500], fontSize: 14),
                             ),
                           ],
@@ -569,7 +725,7 @@ void _startVideoCall() async {
     final String senderId = message['sender']?['_id']?.toString() ?? '';
     final String? senderAvatar = message['sender']?['avatar']?['url']?.toString();
     
-    final bool isMe = message['sender']?['role'] == 'patient';
+    final bool isMe = _currentUserId != null && senderId == _currentUserId;
     
     final List<dynamic> attachments = message['fileUrl'] ?? [];
 
@@ -582,7 +738,11 @@ void _startVideoCall() async {
             mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              if (!isMe) _getAvatarWidget(senderAvatar, isDoctor: true),
+              if (!isMe)
+                CircleAvatar(
+                  radius: 20,
+                  backgroundImage: _getAvatarImage(senderAvatar),
+                ),
               if (!isMe) const SizedBox(width: 8),
               Container(
                 constraints: BoxConstraints(
@@ -661,7 +821,11 @@ void _startVideoCall() async {
                 ),
               ),
               if (isMe) const SizedBox(width: 8),
-              if (isMe) _getAvatarWidget(null, isDoctor: false),
+              if (isMe)
+                CircleAvatar(
+                  radius: 20,
+                  backgroundImage: _getCurrentUserAvatar(),
+                ),
             ],
           ),
           
@@ -707,7 +871,7 @@ void _startVideoCall() async {
     _refreshTimer?.cancel();
     _controller.dispose();
     _scrollController.dispose();
-    SocketService.instance.off('call:incoming');
+    // ✅ Only remove message listener
     SocketService.instance.off('message:new');
     super.dispose();
   }

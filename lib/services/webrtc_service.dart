@@ -1,7 +1,8 @@
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:docmobi/services/socket_service.dart';
 
 class WebRTCService {
+<<<<<<< HEAD
   final IO.Socket socket;
   final String chatId;
   final bool isVideo;
@@ -18,11 +19,29 @@ class WebRTCService {
   final List<RTCIceCandidate> _pendingCandidates = [];
   bool _isOfferAnswerSet = false;
   bool _isDisposed = false;
+=======
+  RTCPeerConnection? _peerConnection;
+  MediaStream? _localStream;
+  MediaStream? _remoteStream;
+
+  final String chatId;
+  final bool isVideo;
+
+  Function(MediaStream)? onRemoteStream;
+  Function()? onCallEnded;
+  Function(String)? onError;
+
+  bool _isDisposed = false;
+  bool _hasSetRemoteDescription = false;
+  final List<RTCIceCandidate> _pendingCandidates = [];
+
+  String? _otherUserId;
+>>>>>>> 410893a (calling)
 
   WebRTCService({
-    required this.socket,
     required this.chatId,
     required this.isVideo,
+<<<<<<< HEAD
     required this.onRemoteStream,
     required this.onCallEnded,
   });
@@ -79,10 +98,67 @@ class WebRTCService {
               'stun:stun3.l.google.com:19302',
               'stun:stun4.l.google.com:19302',
             ]
+=======
+    this.onRemoteStream,
+    this.onCallEnded,
+    this.onError,
+  });
+
+  // ================= GETTERS =================
+  MediaStream? get localStream => _localStream;
+  MediaStream? get remoteStream => _remoteStream;
+
+  void setOtherUserId(String userId) {
+    _otherUserId = userId;
+  }
+
+  // ================= INITIALIZE =================
+  Future<void> initialize() async {
+    try {
+      print('');
+      print('╔═══════════════════════════════════════════╗');
+      print('║     🎬 INITIALIZING WEBRTC SERVICE        ║');
+      print('╚═══════════════════════════════════════════╝');
+      print('   • Chat ID: $chatId');
+      print('   • Type: ${isVideo ? "VIDEO 📹" : "AUDIO 📞"}');
+      print('');
+
+      // ✅ Multiple STUN/TURN servers for better connectivity
+      final Map<String, dynamic> configuration = {
+        'iceServers': [
+          // ✅ Google STUN servers (multiple for redundancy)
+          {'urls': 'stun:stun.l.google.com:19302'},
+          {'urls': 'stun:stun1.l.google.com:19302'},
+          {'urls': 'stun:stun2.l.google.com:19302'},
+          
+          // ✅ Free TURN servers with credentials
+          {
+            'urls': 'turn:openrelay.metered.ca:80',
+            'username': 'openrelayproject',
+            'credential': 'openrelayproject',
+          },
+          {
+            'urls': 'turn:openrelay.metered.ca:443',
+            'username': 'openrelayproject',
+            'credential': 'openrelayproject',
+          },
+          {
+            'urls': 'turn:openrelay.metered.ca:443?transport=tcp',
+            'username': 'openrelayproject',
+            'credential': 'openrelayproject',
+          },
+          
+          // ✅ Backup TURN server
+          {
+            'urls': 'turn:numb.viagenie.ca',
+            'username': 'webrtc@live.com',
+            'credential': 'muazkh',
+>>>>>>> 410893a (calling)
           },
         ],
         'sdpSemantics': 'unified-plan',
         'iceCandidatePoolSize': 10,
+<<<<<<< HEAD
       };
 
       _peerConnection = await createPeerConnection(configuration);
@@ -197,6 +273,76 @@ class WebRTCService {
       print('📋 Offer SDP type: ${offer.type}');
 
       socket.emit('call:offer', {
+=======
+        
+        // ✅ Better connectivity settings
+        'iceTransportPolicy': 'all', // Use all available methods
+        'bundlePolicy': 'max-bundle',
+        'rtcpMuxPolicy': 'require',
+      };
+
+      print('   • ICE Servers: ${configuration['iceServers'].length} configured');
+
+      _peerConnection = await createPeerConnection(configuration);
+      _setupPeerConnectionCallbacks();
+
+      // ✅ Optimized media constraints
+      final mediaConstraints = {
+        'audio': {
+          'echoCancellation': true,
+          'noiseSuppression': true,
+          'autoGainControl': true,
+          'googEchoCancellation': true,
+          'googNoiseSuppression': true,
+          'googAutoGainControl': true,
+        },
+        'video': isVideo
+            ? {
+                'facingMode': 'user',
+                'width': {'ideal': 1280, 'max': 1920},
+                'height': {'ideal': 720, 'max': 1080},
+                'frameRate': {'ideal': 30, 'max': 30},
+              }
+            : false,
+      };
+
+      print('   • Requesting media access...');
+      _localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+      print('   • Media stream obtained ✅');
+
+      for (var track in _localStream!.getTracks()) {
+        await _peerConnection!.addTrack(track, _localStream!);
+      }
+
+      print('   • ${_localStream!.getTracks().length} tracks added to peer connection');
+      print('');
+      print('✅ WebRTC initialized successfully');
+      print('╚═══════════════════════════════════════════╝');
+      print('');
+    } catch (e) {
+      print('❌ WebRTC init failed: $e');
+      onError?.call('Failed to initialize: $e');
+      rethrow;
+    }
+  }
+
+  // ================= CALLBACKS =================
+  void _setupPeerConnectionCallbacks() {
+    _peerConnection!.onTrack = (event) {
+      if (event.streams.isNotEmpty) {
+        _remoteStream = event.streams.first;
+        onRemoteStream?.call(_remoteStream!);
+        print('✅ Remote stream received (${event.streams.first.getTracks().length} tracks)');
+      }
+    };
+
+    _peerConnection!.onIceCandidate = (candidate) {
+      if (_otherUserId == null || candidate.candidate == null) return;
+
+      print('📤 Sending ICE candidate to $_otherUserId');
+      SocketService.instance.emit('call:iceCandidate', {
+        'toUserId': _otherUserId,
+>>>>>>> 410893a (calling)
         'chatId': chatId,
         'toUserId': toUserId,
         'fromUserId': _currentUserId, // ✅ Include sender
@@ -205,6 +351,7 @@ class WebRTCService {
           'sdp': offer.sdp,
         },
       });
+<<<<<<< HEAD
       print('📤 Offer sent to $toUserId');
 
       // Add pending candidates after a small delay
@@ -348,10 +495,190 @@ class WebRTCService {
       }
     } catch (e) {
       print('❌ Error toggling audio: $e');
+=======
+    };
+
+    // ✅ ICE connection state monitoring
+    _peerConnection!.onIceConnectionState = (state) {
+      print('🔌 ICE Connection State: $state');
+      
+      if (state == RTCIceConnectionState.RTCIceConnectionStateFailed) {
+        print('❌ ICE connection failed - attempting restart');
+        _restartIce();
+      } else if (state == RTCIceConnectionState.RTCIceConnectionStateDisconnected) {
+        print('⚠️ ICE disconnected');
+      } else if (state == RTCIceConnectionState.RTCIceConnectionStateConnected) {
+        print('✅ ICE connected successfully');
+      } else if (state == RTCIceConnectionState.RTCIceConnectionStateCompleted) {
+        print('✅ ICE connection completed');
+      }
+    };
+
+    _peerConnection!.onConnectionState = (state) {
+      print('🔌 Peer Connection State: $state');
+      
+      if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
+        print('❌ Peer connection failed');
+        onError?.call('Connection failed');
+      } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateClosed) {
+        print('🔚 Peer connection closed');
+        onCallEnded?.call();
+      } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+        print('✅ Peer connection established');
+      }
+    };
+
+    // ✅ ICE gathering state
+    _peerConnection!.onIceGatheringState = (state) {
+      print('🧊 ICE Gathering State: $state');
+    };
+  }
+
+  // ✅ ICE restart mechanism for failed connections
+  Future<void> _restartIce() async {
+    try {
+      print('🔄 Attempting ICE restart...');
+      final offer = await _peerConnection!.createOffer({
+        'iceRestart': true,
+      });
+      await _peerConnection!.setLocalDescription(offer);
+      
+      if (_otherUserId != null) {
+        await SocketService.instance.emit('call:offer', {
+          'toUserId': _otherUserId,
+          'chatId': chatId,
+          'offer': {'type': offer.type, 'sdp': offer.sdp},
+          'isVideo': isVideo,
+        });
+        print('✅ ICE restart offer sent');
+      }
+    } catch (e) {
+      print('❌ ICE restart failed: $e');
+    }
+  }
+
+  // ================= OFFER / ANSWER =================
+  Future<void> createOffer(String toUserId) async {
+    _otherUserId = toUserId;
+
+    try {
+      print('📤 Creating offer for: $toUserId');
+      final offer = await _peerConnection!.createOffer();
+      await _peerConnection!.setLocalDescription(offer);
+      _hasSetRemoteDescription = false;
+
+      await SocketService.instance.emit('call:offer', {
+        'toUserId': toUserId,
+        'chatId': chatId,
+        'offer': {'type': offer.type, 'sdp': offer.sdp},
+        'isVideo': isVideo,
+      });
+
+      print('✅ Offer created and sent');
+    } catch (e) {
+      print('❌ Error creating offer: $e');
+      onError?.call('Failed to create offer');
+      rethrow;
+    }
+  }
+
+  Future<void> handleOffer(Map<String, dynamic> offer) async {
+    try {
+      print('📥 Handling incoming offer');
+      await _peerConnection!.setRemoteDescription(
+        RTCSessionDescription(offer['sdp'], offer['type']),
+      );
+
+      _hasSetRemoteDescription = true;
+      await _processPendingCandidates();
+
+      print('📤 Creating answer');
+      final answer = await _peerConnection!.createAnswer();
+      await _peerConnection!.setLocalDescription(answer);
+
+      if (_otherUserId != null) {
+        await SocketService.instance.emit('call:answer', {
+          'toUserId': _otherUserId,
+          'chatId': chatId,
+          'answer': {'type': answer.type, 'sdp': answer.sdp},
+        });
+      }
+
+      print('✅ Offer handled, answer sent');
+    } catch (e) {
+      print('❌ Error handling offer: $e');
+      onError?.call('Failed to process offer');
+      rethrow;
+    }
+  }
+
+  Future<void> handleAnswer(Map<String, dynamic> answer) async {
+    try {
+      print('📥 Handling answer');
+      await _peerConnection!.setRemoteDescription(
+        RTCSessionDescription(answer['sdp'], answer['type']),
+      );
+
+      _hasSetRemoteDescription = true;
+      await _processPendingCandidates();
+      
+      print('✅ Answer handled successfully');
+    } catch (e) {
+      print('❌ Error handling answer: $e');
+      onError?.call('Failed to process answer');
+      rethrow;
+    }
+  }
+
+  // ================= ICE =================
+  Future<void> addIceCandidate(Map<String, dynamic> data) async {
+    try {
+      final candidate = RTCIceCandidate(
+        data['candidate'],
+        data['sdpMid'],
+        data['sdpMLineIndex'],
+      );
+
+      if (!_hasSetRemoteDescription) {
+        _pendingCandidates.add(candidate);
+        print('📥 ICE candidate queued (remote description not set yet)');
+        return;
+      }
+
+      await _peerConnection!.addCandidate(candidate);
+      print('✅ ICE candidate added');
+    } catch (e) {
+      print('⚠️ Error adding ICE candidate: $e');
+    }
+  }
+
+  Future<void> _processPendingCandidates() async {
+    if (_pendingCandidates.isEmpty) return;
+    
+    print('📥 Processing ${_pendingCandidates.length} pending ICE candidates');
+    for (var c in _pendingCandidates) {
+      try {
+        await _peerConnection!.addCandidate(c);
+      } catch (e) {
+        print('⚠️ Error processing pending candidate: $e');
+      }
+    }
+    _pendingCandidates.clear();
+    print('✅ All pending candidates processed');
+  }
+
+  // ================= CONTROLS =================
+  void toggleAudio() {
+    final tracks = _localStream?.getAudioTracks();
+    if (tracks != null && tracks.isNotEmpty) {
+      tracks.first.enabled = !tracks.first.enabled;
+      print('🎤 Audio ${tracks.first.enabled ? "enabled" : "muted"}');
+>>>>>>> 410893a (calling)
     }
   }
 
   void toggleVideo() {
+<<<<<<< HEAD
     if (_isDisposed) return;
     
     try {
@@ -397,5 +724,48 @@ class WebRTCService {
     } catch (e) {
       print('❌ Error disposing WebRTC: $e');
     }
+=======
+    if (!isVideo) return;
+    final tracks = _localStream?.getVideoTracks();
+    if (tracks != null && tracks.isNotEmpty) {
+      tracks.first.enabled = !tracks.first.enabled;
+      print('📹 Video ${tracks.first.enabled ? "enabled" : "disabled"}');
+    }
+  }
+
+  void switchCamera() {
+    final tracks = _localStream?.getVideoTracks();
+    if (tracks != null && tracks.isNotEmpty) {
+      Helper.switchCamera(tracks.first);
+      print('🔄 Camera switched');
+    }
+  }
+
+  // ================= DISPOSE =================
+  Future<void> dispose() async {
+    if (_isDisposed) return;
+    _isDisposed = true;
+
+    print('');
+    print('🧹 Disposing WebRTC resources');
+
+    for (var t in _localStream?.getTracks() ?? []) {
+      t.stop();
+    }
+    for (var t in _remoteStream?.getTracks() ?? []) {
+      t.stop();
+    }
+
+    await _peerConnection?.close();
+    await _peerConnection?.dispose();
+
+    _localStream = null;
+    _remoteStream = null;
+    _peerConnection = null;
+    _pendingCandidates.clear();
+    
+    print('✅ WebRTC disposed successfully');
+    print('');
+>>>>>>> 410893a (calling)
   }
 }

@@ -1,22 +1,28 @@
 import 'package:socket_io_client/socket_io_client.dart' as IO;
-import 'package:docmobi/utils/api_config.dart';
+import 'dart:async';
+import '../utils/api_config.dart';
 
 class SocketService {
   static SocketService? _instance;
   IO.Socket? _socket;
   String? _currentUserId;
+
   bool _isConnecting = false;
   
+
+
+
   static SocketService get instance {
     _instance ??= SocketService._();
     return _instance!;
   }
-  
+
   SocketService._();
-  
+
   IO.Socket? get socket => _socket;
   bool get isConnected => _socket?.connected ?? false;
   String? get currentUserId => _currentUserId;
+
   
   Future<void> connect(String userId) async {
     // If already connecting, wait
@@ -30,10 +36,14 @@ class SocketService {
     }
     
     // If already connected with same user, don't reconnect
+
+
+  Future<bool> connect(String userId) async {
     if (_socket != null && _socket!.connected && _currentUserId == userId) {
-      print('✅ Socket already connected for user: $userId');
-      return;
+      print('✅ Socket already connected');
+      return true;
     }
+
     
     // If connected with different user, disconnect first
     if (_socket != null && _socket!.connected && _currentUserId != userId) {
@@ -126,16 +136,160 @@ class SocketService {
       print('❌ Socket connection error: $e');
       _isConnecting = false;
       rethrow;
+    disconnect();
+    _currentUserId = userId;
+    final completer = Completer<bool>();
+    final String serverUrl = ApiConfig.baseUrl;
+
+    print('');
+    print('╔══════════════════════════════════════════╗');
+    print('║        🔌 CONNECTING SOCKET              ║');
+    print('╚══════════════════════════════════════════╝');
+    print('   • User ID : $userId');
+    print('   • Server  : $serverUrl');
+    print('');
+
+    _socket = IO.io(
+      serverUrl,
+      IO.OptionBuilder()
+          .setTransports(['websocket', 'polling'])
+          .enableReconnection()
+          .setReconnectionAttempts(10)
+          .setReconnectionDelay(1000)
+          .setTimeout(20000)
+          .setExtraHeaders({'userId': userId})
+          .build(),
+    );
+
+    _setupListeners(userId, completer);
+    _socket!.connect();
+
+    return await completer.future.timeout(
+      const Duration(seconds: 20),
+      onTimeout: () {
+        print('⏱️ Socket connection timeout');
+        return false;
+      },
+    );
+  }
+
+  void _setupListeners(String userId, Completer<bool> completer) {
+    _socket!.onConnect((_) {
+      print('');
+      print('✅ SOCKET CONNECTED');
+      print('   • Socket ID: ${_socket!.id}');
+      print('   • User ID  : $userId');
+
+      _socket!.emit('joinChatRoom', userId);
+      print('📡 Emitted: joinChatRoom with userId: $userId');
+      
+      Future.delayed(const Duration(milliseconds: 800), () {
+        print('✅ Waiting for room join confirmation...');
+        if (!completer.isCompleted) {
+          completer.complete(true);
+        }
+      });
+    });
+
+    _socket!.onDisconnect((reason) {
+      print('❌ Socket disconnected: $reason');
+    });
+
+    _socket!.onConnectError((error) {
+      print('❌ Socket connect error: $error');
+      if (!completer.isCompleted) {
+        completer.complete(false);
+      }
+    });
+
+    _socket!.onError((error) {
+      print('❌ Socket error: $error');
+    });
+
+    _socket!.onReconnect((attempt) {
+      print('🔄 Socket reconnected (attempt $attempt)');
+      if (_currentUserId != null) {
+        _socket!.emit('joinChatRoom', _currentUserId);
+        print('📡 Re-joined room after reconnect');
+      }
+    });
+
+    _socket!.onReconnectFailed((_) {
+      print('❌ Socket reconnection failed');
+    });
+    
+    _socket!.on('socket:connected', (data) {
+      print('✅ Backend confirmed connection:');
+      print('   • Data: $data');
+      print('');
+    });
+  }
+
+  Future<bool> emit(String event, dynamic data) async {
+    if (_socket == null || !_socket!.connected) {
+      print('⚠️ Socket not connected, attempting reconnect...');
+      if (_currentUserId != null) {
+        final ok = await connect(_currentUserId!);
+        if (!ok) {
+          print('❌ Reconnection failed');
+          return false;
+        }
+        await Future.delayed(const Duration(milliseconds: 800));
+      } else {
+        print('❌ No user ID for reconnection');
+        return false;
+      }
+    }
+
+    print('');
+    print('📤 Emitting event: $event');
+    print('   Data: $data');
+    print('   Socket ID: ${_socket!.id}');
+    print('   Connected: ${_socket!.connected}');
+    print('   User ID: $_currentUserId');
+
+    try {
+      _socket!.emit(event, data);
+      print('✅ Event emitted successfully');
+      print('');
+      return true;
+    } catch (e) {
+      print('❌ Error emitting event: $e');
+      print('');
+      return false;
+
     }
   }
-  
+
+  void on(String event, Function(dynamic) callback) {
+    if (_socket != null) {
+      _socket!.on(event, callback);
+      print('👂 Listening to: $event');
+    }
+  }
+
+  void off(String event) {
+    if (_socket != null) {
+      _socket!.off(event);
+      print('🔇 Stopped listening to: $event');
+    }
+  }
+
   void disconnect() {
     if (_socket != null) {
       print('🔌 Disconnecting socket');
+
+      if (_currentUserId != null && _socket!.connected) {
+        _socket!.emit('user:offline', {'userId': _currentUserId});
+      }
+
+      _socket!.clearListeners();
       _socket!.disconnect();
       _socket!.dispose();
+
       _socket = null;
       _currentUserId = null;
+
       _isConnecting = false;
       print('✅ Socket disconnected and disposed');
     }
@@ -165,5 +319,20 @@ class SocketService {
   void clearListeners() {
     _socket?.clearListeners();
     print('🔇 All listeners cleared');
+
+
+      print('✅ Socket disposed');
+    }
+  }
+
+  Future<bool> ensureConnected() async {
+    if (_socket == null || !_socket!.connected) {
+      if (_currentUserId != null) {
+        return await connect(_currentUserId!);
+      }
+      return false;
+    }
+    return true;
+
   }
 }

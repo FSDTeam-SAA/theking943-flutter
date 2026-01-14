@@ -73,6 +73,7 @@ flutter:
     - assets/images/doctor5.png
     - assets/images/reelsviewdoctor.png
     - assets/images/news.png
+    - assets/images/algerian.png
     
     # Icons (all files in icons folder)
     - assets/icons/

@@ -1,12 +1,15 @@
 import 'package:docmobi/screens/patient/profile/add_dependents_screen.dart';
 import 'package:docmobi/screens/patient/profile/edit_dependent_screen.dart';
 import 'package:docmobi/screens/patient/profile/dependents_list_screen.dart';
+import 'package:docmobi/services/call_manager_service.dart';
+import 'package:docmobi/services/socket_service.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart';
 import 'package:docmobi/screens/doctor/navigation/doctor_main_navigation.dart';
 import 'package:docmobi/screens/splash/splash_screen.dart';
 import 'package:docmobi/services/api_service.dart';
+import 'package:docmobi/services/call_manager_service.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -19,6 +22,7 @@ class _MyAppState extends State<MyApp> {
   bool _isLoggedIn = false;
   bool _isLoading = true;
   String? _userRole;
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>(); // ✅ ADDED
 
   @override
   void initState() {
@@ -26,7 +30,6 @@ class _MyAppState extends State<MyApp> {
     _checkLoginStatus();
   }
 
-  /// ✅ Check login status from SharedPreferences
   Future<void> _checkLoginStatus() async {
     try {
       print('');
@@ -37,25 +40,46 @@ class _MyAppState extends State<MyApp> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
       final role = prefs.getString('user_role');
+      final userId = prefs.getString('user_id');
 
-      // ✅ Also check if ApiService has the token loaded
       final apiServiceLoggedIn = ApiService.isLoggedIn;
       
       print('📦 SharedPreferences Check:');
-      print('   • Token: ${token != null ? "✅ Found (${token.substring(0, 20)}...)" : "❌ Not found"}');
+      print('   • Token: ${token != null ? "✅ Found" : "❌ Not found"}');
       print('   • Role: ${role ?? "❌ Not found"}');
+      print('   • User ID: ${userId ?? "❌ Not found"}');
       print('');
       print('🔧 ApiService Check:');
       print('   • Status: ${apiServiceLoggedIn ? "✅ Logged In" : "❌ Not Logged In"}');
-      print('   • Token in memory: ${ApiService.token != null ? "✅ Loaded" : "❌ Not loaded"}');
       print('');
 
-      // ✅ If token exists but ApiService doesn't have it, reinitialize
       if (token != null && !apiServiceLoggedIn) {
         print('⚠️ Token exists but ApiService not initialized properly');
         print('🔄 Reinitializing ApiService...');
         await ApiService.init();
         print('✅ ApiService reinitialized');
+      }
+
+      // ✅ Initialize socket if logged in
+      if (token != null && userId != null && userId.isNotEmpty) {
+        if (!SocketService.instance.isConnected) {
+          print('🔌 Initializing Socket Service...');
+          try {
+            await SocketService.instance.connect(userId);
+            print('✅ Socket connected for user: $userId');
+            
+            // ✅ Initialize CallManager after socket connection
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (_navigatorKey.currentContext != null) {
+                CallManager.instance.initialize(_navigatorKey.currentContext!);
+              }
+            });
+          } catch (e) {
+            print('⚠️ Socket connection failed: $e');
+          }
+        } else {
+          print('✅ Socket already connected');
+        }
       }
 
       setState(() {
@@ -88,11 +112,11 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: _navigatorKey, // ✅ ADDED for CallManager
       title: 'Docmobi',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: true,
-        // ✅ Add app-wide text theme
         textTheme: const TextTheme(
           bodyLarge: TextStyle(fontSize: 16),
           bodyMedium: TextStyle(fontSize: 14),
@@ -100,10 +124,8 @@ class _MyAppState extends State<MyApp> {
       ),
       debugShowCheckedModeBanner: false,
       
-      // ✅ Home screen based on login status
       home: _buildHomeScreen(),
       
-      // ✅ Named routes for navigation
       routes: {
         '/splash': (context) => const SplashScreen(),
         '/patient-home': (context) => const PatientMainNavigation(),
@@ -111,16 +133,12 @@ class _MyAppState extends State<MyApp> {
         '/dependents-list': (context) => const DependentsListScreen(),
         '/add-dependent': (context) => const AddDependentScreen(),
         '/edit-dependent': (context) => const EditDependentScreen(),
-        // Add more routes as needed
       },
       
-      // ✅ Route generator for dynamic routes
       onGenerateRoute: (settings) {
         print('🔗 Navigating to: ${settings.name}');
         
-        // Handle routes that need arguments
         if (settings.name == '/edit-dependent') {
-          // Extract arguments if passed
           final args = settings.arguments as Map<String, dynamic>?;
           return MaterialPageRoute(
             builder: (context) => const EditDependentScreen(),
@@ -128,10 +146,9 @@ class _MyAppState extends State<MyApp> {
           );
         }
         
-        return null; // Let the routes table handle it
+        return null;
       },
       
-      // ✅ Handle unknown routes
       onUnknownRoute: (settings) {
         print('⚠️ Unknown route: ${settings.name}');
         return MaterialPageRoute(
@@ -141,9 +158,7 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  /// ✅ Build home screen based on login status
   Widget _buildHomeScreen() {
-    // 1. Loading state
     if (_isLoading) {
       return Scaffold(
         backgroundColor: Colors.white,
@@ -177,13 +192,11 @@ class _MyAppState extends State<MyApp> {
       );
     }
 
-    // 2. Not logged in - Show splash/welcome screen
     if (!_isLoggedIn) {
       print('📱 Rendering: SplashScreen (Not logged in)');
       return const SplashScreen();
     }
 
-    // 3. Logged in - Route based on user role
     print('📱 Rendering: ${_userRole?.toUpperCase()} Dashboard');
     
     switch (_userRole) {
@@ -197,15 +210,12 @@ class _MyAppState extends State<MyApp> {
       
       case 'admin':
         print('   → AdminMainNavigation (Fallback to Patient)');
-        // TODO: Create AdminMainNavigation when needed
         return const PatientMainNavigation();
       
       default:
-        // Unknown or invalid role - Logout and show splash
         print('⚠️ Unknown role detected: $_userRole');
         print('🔄 Logging out and redirecting to splash...');
         
-        // Logout in background
         _logout();
         
         return Scaffold(
@@ -271,21 +281,24 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
-  /// ✅ Logout function - Clear all stored data
   Future<void> _logout() async {
     try {
       print('🔄 Logging out user...');
       
-      // Clear SharedPreferences
+      // ✅ Dispose CallManager
+      CallManager.instance.dispose();
+      
+      // ✅ Disconnect socket
+      SocketService.instance.disconnect();
+      print('✅ Socket disconnected');
+      
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
       
-      // Clear ApiService token
       await ApiService.clearToken();
       
       print('✅ Logout successful - All data cleared');
       
-      // Update state to show splash screen
       if (mounted) {
         setState(() {
           _isLoggedIn = false;
@@ -297,72 +310,3 @@ class _MyAppState extends State<MyApp> {
     }
   }
 }
-
-// ═══════════════════════════════════════════════════════════════
-// 🔧 DEBUGGING HELPER WIDGET (Remove in production)
-// ═══════════════════════════════════════════════════════════════
-
-/// ✅ Optional: Debug overlay to check token status
-class DebugTokenOverlay extends StatelessWidget {
-  final Widget child;
-
-  const DebugTokenOverlay({super.key, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        child,
-        
-        // Debug info in bottom-right corner
-        Positioned(
-          bottom: 16,
-          right: 16,
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.black87,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      ApiService.isLoggedIn ? Icons.check_circle : Icons.cancel,
-                      color: ApiService.isLoggedIn ? Colors.green : Colors.red,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      ApiService.isLoggedIn ? 'Logged In' : 'Not Logged In',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                if (ApiService.token != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'Token: ${ApiService.token!.substring(0, 10)}...',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 8,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-

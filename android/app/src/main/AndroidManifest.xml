@@ -1,31 +1,30 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     
-    <!-- Internet Permission (API calls er jonno) -->
+    <!-- ==================== NETWORK & INTERNET ==================== -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     
-    <!-- Camera Permission (video record er jonno) -->
+    <!-- ==================== AUDIO/VIDEO CALL PERMISSIONS ==================== -->
     <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
     
-    <!-- Storage Permissions (Android 12 er age) -->
+    <!-- ==================== STORAGE PERMISSIONS ==================== -->
+    <!-- Android 12 and below -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"/>
     
-    <!-- Media Permissions (Android 13+) -->
+    <!-- Android 13+ (Tiramisu) -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/>
-    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+    
     <!-- Microphone Permission (video recording audio er jonno) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
-
     
     <application
-        android:label="docmobi"
+        android:label="Docmobi"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
@@ -40,10 +39,7 @@
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
             
-            <!-- Specifies an Android theme to apply to this Activity as soon as
-                 the Android process has started. This theme is visible to the user
-                 while the Flutter UI initializes. After that, this theme continues
-                 to determine the Window background behind the Flutter UI. -->
+            <!-- Theme for splash screen -->
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"/>
@@ -54,33 +50,34 @@
             </intent-filter>
         </activity>
         
-        <!-- Don't delete the meta-data below.
-             This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <!-- Flutter plugin registration -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2"/>
             
     </application>
     
-    <!-- Required to query activities that can process text, see:
-         https://developer.android.com/training/package-visibility and
-         https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
-
-         In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
+    <!-- ==================== QUERIES (Android 11+) ==================== -->
     <queries>
+        <!-- Process text -->
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
         
-        <!-- Camera intent query -->
+        <!-- Camera intent -->
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE"/>
         </intent>
         
-        <!-- Video capture intent query -->
+        <!-- Video capture intent -->
         <intent>
             <action android:name="android.media.action.VIDEO_CAPTURE"/>
+        </intent>
+        
+        <!-- Gallery/File picker -->
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT"/>
         </intent>
     </queries>
     

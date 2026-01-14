@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:docmobi/services/webrtc_service.dart';
 import 'package:docmobi/services/socket_service.dart';
 import 'package:docmobi/services/api_service.dart';
@@ -30,10 +29,11 @@ class AudioCallScreen extends StatefulWidget {
 class _AudioCallScreenState extends State<AudioCallScreen> {
   WebRTCService? _webrtcService;
   bool _isMuted = false;
-  bool _isSpeakerOn = false;
   bool _callConnected = false;
   String _callDuration = '00:00';
+  String _callStatus = 'Calling...';
   Timer? _timer;
+  Timer? _timeoutTimer;
   int _seconds = 0;
   String? _currentUserId;
 
@@ -41,172 +41,74 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
   void initState() {
     super.initState();
     WakelockPlus.enable();
-    _loadCurrentUserIdAndInitialize();
-  }
-
-  // ✅ Load current user ID first
-  Future<void> _loadCurrentUserIdAndInitialize() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final userDataString = prefs.getString('user_data');
-      
-      // Try to get from API
-      final profileResult = await ApiService.getUserProfile();
-      if (profileResult['success'] == true) {
-        _currentUserId = profileResult['data']['_id']?.toString();
-        print('✅ Current user ID loaded: $_currentUserId');
-        
-        // Now initialize the call
-        await _initializeCall();
-      } else {
-        throw Exception('Failed to load user profile');
-      }
-    } catch (e) {
-      print('❌ Error loading user ID: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to initialize: $e')),
-        );
-        Navigator.pop(context);
-      }
-    }
+    _initializeCall();
   }
 
   Future<void> _initializeCall() async {
     try {
-      print('🎤 Initializing audio call...');
-      print('💬 Chat ID: ${widget.chatId}');
-      print('👤 Other user: ${widget.otherUserId}');
-      print('👤 Current user: $_currentUserId');
-      print('🎬 Is Initiator: ${widget.isInitiator}');
-      
       final socket = SocketService.instance.socket;
-      if (socket == null) {
+      if (socket == null || !socket.connected) {
         throw Exception('Socket not connected');
       }
 
+      setState(() {
+        _callStatus = 'Setting up...';
+      });
+
+      // ✅ Create WebRTC service (audio only)
       _webrtcService = WebRTCService(
-        socket: socket,
         chatId: widget.chatId,
         isVideo: false,
         onRemoteStream: (stream) {
-          print('🎵 Remote audio stream received!');
-          if (mounted) {
-            setState(() {
-              _callConnected = true;
-            });
-            
-            // ✅ Start timer when remote stream received
-            if (!_isTimerRunning()) {
-              _startTimer();
-            }
-          }
+          setState(() {
+            _callConnected = true;
+          });
+          _startTimer();
         },
         onCallEnded: () {
-          print('📴 Call ended callback triggered');
           _endCall();
         },
       );
 
-      // ✅ Set current user ID
-      _webrtcService!.setCurrentUserId(_currentUserId!);
-
       await _webrtcService!.initialize();
-      print('✅ WebRTC service initialized');
 
-      _setupSocketListeners();
+      // Setup socket listeners
+      socket.on('call:offer', (data) async {
+        if (data['chatId'] == widget.chatId) {
+          await _webrtcService!.handleOffer(data['offer']);
+        }
+      });
 
+      socket.on('call:answer', (data) async {
+        if (data['chatId'] == widget.chatId) {
+          await _webrtcService!.handleAnswer(data['answer']);
+          setState(() {
+            _callConnected = true;
+          });
+          _startTimer();
+        }
+      });
+
+      socket.on('call:iceCandidate', (data) async {
+        if (data['chatId'] == widget.chatId) {
+          await _webrtcService!.addIceCandidate(data['candidate']);
+        }
+      });
+
+      socket.on('call:end', (data) {
+        if (data['chatId'] == widget.chatId) {
+          _endCall();
+        }
+      });
+
+      // If initiator, create offer
       if (widget.isInitiator) {
-        print('📤 Creating offer as initiator...');
-        await Future.delayed(const Duration(milliseconds: 500));
         await _webrtcService!.createOffer(widget.otherUserId);
-      } else {
-        print('📥 Waiting for offer as receiver...');
       }
     } catch (e) {
       print('❌ Error initializing call: $e');
       _showError('Failed to start call: $e');
     }
-  }
-
-  void _setupSocketListeners() {
-    final socket = SocketService.instance.socket;
-    if (socket == null) {
-      print('⚠️ Socket is null in _setupSocketListeners');
-      return;
-    }
-
-    print('👂 Setting up socket listeners for chat: ${widget.chatId}');
-
-    socket.on('call:offer', (data) async {
-      print('📥 Received call:offer event');
-      if (data['chatId'] == widget.chatId) {
-        print('✅ Offer is for this chat, handling...');
-        final fromUserId = data['fromUserId'] ?? widget.otherUserId;
-        await _webrtcService?.handleOffer(data['offer'], fromUserId);
-      }
-    });
-
-    socket.on('call:answer', (data) async {
-      print('📥 Received call:answer event');
-      if (data['chatId'] == widget.chatId) {
-        print('✅ Answer is for this chat, handling...');
-        await _webrtcService?.handleAnswer(data['answer']);
-        
-        if (mounted) {
-          setState(() {
-            _callConnected = true;
-          });
-          
-          // ✅ Start timer when answer received (for initiator)
-          if (!_isTimerRunning()) {
-            _startTimer();
-          }
-        }
-      }
-    });
-
-    socket.on('call:iceCandidate', (data) async {
-      print('📥 Received ICE candidate');
-      if (data['chatId'] == widget.chatId) {
-        await _webrtcService?.addIceCandidate(data['candidate']);
-      }
-    });
-
-    socket.on('call:ended', (data) {
-      print('📥 Received call:ended event');
-      if (data['chatId'] == widget.chatId) {
-        print('📴 Call ended by remote user');
-        _endCall();
-      }
-    });
-    
-    socket.on('call:rejected', (data) {
-      print('📥 Received call:rejected event');
-      if (data['chatId'] == widget.chatId) {
-        print('❌ Call was rejected');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Call was rejected')),
-          );
-          Navigator.pop(context);
-        }
-      }
-    });
-    
-    socket.on('call:accepted', (data) {
-      print('📥 Received call:accepted event');
-      if (data['chatId'] == widget.chatId) {
-        print('✅ Call was accepted by receiver');
-      }
-    });
-    
-    print('✅ All socket listeners set up');
-  }
-
-  // ✅ Check if timer is running
-  bool _isTimerRunning() {
-    return _timer != null && _timer!.isActive;
   }
 
   void _startTimer() {
@@ -220,17 +122,12 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
     _seconds = 0; // Reset to 0
     
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        setState(() {
-          _seconds++;
-          final minutes = (_seconds ~/ 60).toString().padLeft(2, '0');
-          final secs = (_seconds % 60).toString().padLeft(2, '0');
-          _callDuration = '$minutes:$secs';
-        });
-        print('⏱️ Call duration: $_callDuration');
-      } else {
-        timer.cancel();
-      }
+      setState(() {
+        _seconds++;
+        final minutes = (_seconds ~/ 60).toString().padLeft(2, '0');
+        final secs = (_seconds % 60).toString().padLeft(2, '0');
+        _callDuration = '$minutes:$secs';
+      });
     });
     
     print('✅ Call timer started');
@@ -241,64 +138,45 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
       _isMuted = !_isMuted;
       _webrtcService?.toggleAudio();
     });
-    print('🎤 Audio ${_isMuted ? "muted" : "unmuted"}');
   }
 
   void _toggleSpeaker() {
     setState(() {
       _isSpeakerOn = !_isSpeakerOn;
+      // TODO: Implement speaker toggle
     });
-    print('🔊 Speaker ${_isSpeakerOn ? "on" : "off"}');
   }
 
   void _endCall() {
-    print('📴 Ending call...');
-    
-    _timer?.cancel();
-    _timer = null;
-    
     SocketService.instance.emit('call:end', {
       'chatId': widget.chatId,
       'toUserId': widget.otherUserId,
-      'fromUserId': _currentUserId,
     });
     
-    print('✅ Call ended, navigating back');
-    
-    if (mounted) {
-      Navigator.pop(context);
-    }
+    Navigator.pop(context);
   }
 
   void _showError(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.red,
-        ),
-      );
-      Navigator.pop(context);
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+    Navigator.pop(context);
   }
 
   @override
   void dispose() {
-    print('🧹 Disposing AudioCallScreen');
-    
     WakelockPlus.disable();
     _timer?.cancel();
-    _timer = null;
     _webrtcService?.dispose();
     
+    // Remove socket listeners
     SocketService.instance.off('call:offer');
     SocketService.instance.off('call:answer');
     SocketService.instance.off('call:iceCandidate');
-    SocketService.instance.off('call:ended');
-    SocketService.instance.off('call:rejected');
-    SocketService.instance.off('call:accepted');
-    
-    print('✅ AudioCallScreen disposed');
+    SocketService.instance.off('call:end');
     
     super.dispose();
   }
@@ -322,19 +200,17 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
             children: [
               const SizedBox(height: 60),
               
+              // User Avatar
               CircleAvatar(
                 radius: 80,
-                backgroundImage: widget.userAvatar != null &&
-                        widget.userAvatar!.isNotEmpty &&
-                        widget.userAvatar != 'file:///' &&
-                        (widget.userAvatar!.startsWith('http://') ||
-                            widget.userAvatar!.startsWith('https://'))
+                backgroundImage: widget.userAvatar != null
                     ? NetworkImage(widget.userAvatar!)
                     : const AssetImage('assets/images/doctor.png') as ImageProvider,
               ),
               
               const SizedBox(height: 30),
               
+              // User Name
               Text(
                 widget.userName,
                 style: const TextStyle(
@@ -346,6 +222,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
               
               const SizedBox(height: 10),
               
+              // Call Status
               Text(
                 _callConnected ? _callDuration : 'Calling...',
                 style: TextStyle(
@@ -356,6 +233,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
               
               const Spacer(),
               
+              // Controls
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Row(
@@ -379,6 +257,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
               
               const SizedBox(height: 40),
               
+              // End Call Button
               GestureDetector(
                 onTap: _endCall,
                 child: Container(

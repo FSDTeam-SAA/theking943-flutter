@@ -192,11 +192,17 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
           ),
           child: Row(
             children: [
-              const CircleAvatar(
-                backgroundColor: Color(0xFF2D5AF0),
-                radius: 25,
-                child: Icon(Icons.attach_money, color: Colors.white, size: 30),
-              ),
+             CircleAvatar(
+  backgroundColor: const Color(0xFF2D5AF0),
+  radius: 25,
+  child: Image.asset(
+    'assets/images/algerian.png',
+    width: 30,
+    height: 30,
+    color: Colors.white,
+    fit: BoxFit.contain,
+  ),
+),
               const SizedBox(width: 15),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
