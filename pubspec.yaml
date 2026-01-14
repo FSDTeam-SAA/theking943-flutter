@@ -24,9 +24,8 @@ dependencies:
   
   # HTTP & API
   http: ^1.1.0
-
- 
-
+  
+  # WebRTC & Socket
   flutter_webrtc: ^1.2.1
   socket_io_client: ^2.0.3+1
   permission_handler: ^11.3.1
@@ -37,10 +36,14 @@ dependencies:
   image_picker: ^1.2.1
   video_player: ^2.8.1
   
+  # Google Maps
+  google_maps_flutter: ^2.5.0
+  geolocator: ^10.1.0
+  geocoding: ^2.1.1
+  
   # Utilities
   intl: ^0.20.2
   share_plus: ^7.2.1
-  # JSON Serialization (optional)
   json_annotation: ^4.8.1
   
   # Local Notifications
@@ -58,7 +61,6 @@ flutter:
   uses-material-design: true
 
   assets:
-    # Images
     - assets/images/icon.png
     - assets/images/onboarding1.png
     - assets/images/onboarding2.png
@@ -76,6 +78,5 @@ flutter:
     - assets/images/doctor5.png
     - assets/images/reelsviewdoctor.png
     - assets/images/news.png
-    
-    # Icons (all files in icons folder)
+    - assets/images/algerian.png
     - assets/icons/

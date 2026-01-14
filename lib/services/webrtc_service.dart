@@ -1,27 +1,25 @@
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'socket_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class WebRTCService {
-  final IO.Socket socket;
   final String chatId;
   final bool isVideo;
   final Function(MediaStream) onRemoteStream;
   final Function() onCallEnded;
 
   String? _remoteUserId;
-  String? _currentUserId; // ✅ Store current user ID
+  String? _currentUserId;
 
   RTCPeerConnection? _peerConnection;
   MediaStream? localStream;
   MediaStream? remoteStream;
 
   final List<RTCIceCandidate> _pendingCandidates = [];
-  bool _isOfferAnswerSet = false;
+  bool _isRemoteDescriptionSet = false;
   bool _isDisposed = false;
 
   WebRTCService({
-    required this.socket,
     required this.chatId,
     required this.isVideo,
     required this.onRemoteStream,
@@ -78,8 +76,9 @@ class WebRTCService {
       final devices = await navigator.mediaDevices.enumerateDevices();
       bool hasCamera = devices.any((device) => device.kind == 'videoinput');
       print('🔦 Hardware check - Has Camera: $hasCamera');
+      print('   • isVideo: $isVideo');
+      print('   • chatId: $chatId');
 
-      // Get user media
       Map<String, dynamic> mediaConstraints = {
         'audio': {
           'echoCancellation': true,
@@ -115,46 +114,52 @@ class WebRTCService {
 
       print('✅ Got local stream: ${localStream!.id}');
 
-      // Create peer connection
       await _createPeerConnection();
 
       print('✅ WebRTC initialized successfully');
     } catch (e) {
       print('❌ Error initializing WebRTC: $e');
-      throw Exception('Failed to initialize WebRTC: $e');
+      rethrow;
     }
   }
 
   Future<void> _createPeerConnection() async {
     if (_isDisposed) return;
 
-    try {
-      final Map<String, dynamic> configuration = {
-        'iceServers': [
-          {
-            'urls': [
-              'stun:stun.l.google.com:19302',
-              'stun:stun1.l.google.com:19302',
-              'stun:stun2.l.google.com:19302',
-              'stun:stun3.l.google.com:19302',
-              'stun:stun4.l.google.com:19302',
-            ],
-          },
-        ],
-        'sdpSemantics': 'unified-plan',
-        'iceCandidatePoolSize': 10,
-      };
+    final Map<String, dynamic> configuration = {
+      'iceServers': [
+        {
+          'urls': [
+            'stun:stun.l.google.com:19302',
+            'stun:stun1.l.google.com:19302',
+            'stun:stun2.l.google.com:19302',
+            'stun:stun3.l.google.com:19302',
+            'stun:stun4.l.google.com:19302',
+          ],
+        },
+        {
+          'urls': 'turn:openrelay.metered.ca:80',
+          'username': 'openrelayproject',
+          'credential': 'openrelayproject',
+        },
+        {
+          'urls': 'turn:openrelay.metered.ca:443',
+          'username': 'openrelayproject',
+          'credential': 'openrelayproject',
+        },
+      ],
+      'sdpSemantics': 'unified-plan',
+      'iceCandidatePoolSize': 10,
+    };
 
-      _peerConnection = await createPeerConnection(configuration);
-      print('✅ Peer connection created');
+    _peerConnection = await createPeerConnection(configuration);
+    print('✅ Peer connection created');
 
-      // Add local stream tracks
-      if (localStream != null) {
-        localStream!.getTracks().forEach((track) {
-          _peerConnection!.addTrack(track, localStream!);
-          print('✅ Added track to peer connection: ${track.kind}');
-        });
-      }
+    // Add local tracks
+    localStream!.getTracks().forEach((track) {
+      _peerConnection!.addTrack(track, localStream!);
+      print('📤 Added track to peer connection: ${track.kind}');
+    });
 
       // ✅ Listen for remote stream
       _peerConnection!.onTrack = (RTCTrackEvent event) {
@@ -254,25 +259,22 @@ class WebRTCService {
       });
 
       await _peerConnection!.setLocalDescription(offer);
-      _isOfferAnswerSet = true;
-      print('✅ Local description set (offer)');
-      print('📋 Offer SDP type: ${offer.type}');
+      
+      print('✅ Offer created and local description set');
+      print('   • Type: ${offer.type}');
+      print('   • SDP length: ${offer.sdp?.length}');
 
-      socket.emit('call:offer', {
+      final emitResult = await SocketService.instance.emit('call:offer', {
         'chatId': chatId,
         'toUserId': toUserId,
         'fromUserId': _currentUserId, // ✅ Include sender
         'offer': {'type': offer.type, 'sdp': offer.sdp},
       });
-      print('📤 Offer sent to $toUserId');
-
-      // Add pending candidates after a small delay
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _processPendingCandidates();
-      });
+      
+      print('📤 Offer emit result: $emitResult');
     } catch (e) {
       print('❌ Error creating offer: $e');
-      throw Exception('Failed to create offer: $e');
+      rethrow;
     }
   }
 
@@ -289,6 +291,12 @@ class WebRTCService {
   ) async {
     if (_isDisposed) return;
 
+  Future<void> handleOffer(Map<String, dynamic> offerData, String fromUserId) async {
+    if (_isDisposed || _peerConnection == null) {
+      print('❌ Cannot handle offer - disposed or no peer connection');
+      return;
+    }
+    
     _remoteUserId = fromUserId;
 
     try {
@@ -298,33 +306,30 @@ class WebRTCService {
       final offer = RTCSessionDescription(offerData['sdp'], offerData['type']);
 
       await _peerConnection!.setRemoteDescription(offer);
-      _isOfferAnswerSet = true;
+      _isRemoteDescriptionSet = true;
       print('✅ Remote description set (offer)');
 
-      // Create answer
+      await _processPendingCandidates();
+
       RTCSessionDescription answer = await _peerConnection!.createAnswer({
         'offerToReceiveAudio': true,
         'offerToReceiveVideo': isVideo,
       });
 
       await _peerConnection!.setLocalDescription(answer);
-      print('✅ Local description set (answer)');
-      print('📋 Answer SDP type: ${answer.type}');
+      print('✅ Answer created and local description set');
 
-      socket.emit('call:answer', {
+      final emitResult = await SocketService.instance.emit('call:answer', {
         'chatId': chatId,
         'toUserId': fromUserId,
         'fromUserId': _currentUserId, // ✅ Include sender
         'answer': {'type': answer.type, 'sdp': answer.sdp},
       });
-      print('📤 Answer sent to $fromUserId');
-
-      // Add pending candidates after a small delay
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _processPendingCandidates();
-      });
+      
+      print('📤 Answer emit result: $emitResult');
     } catch (e) {
       print('❌ Error handling offer: $e');
+      rethrow;
     }
   }
 
@@ -341,15 +346,13 @@ class WebRTCService {
       );
 
       await _peerConnection!.setRemoteDescription(answer);
-      _isOfferAnswerSet = true;
+      _isRemoteDescriptionSet = true;
       print('✅ Remote description set (answer)');
 
-      // Add pending candidates after a small delay
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _processPendingCandidates();
-      });
+      await _processPendingCandidates();
     } catch (e) {
       print('❌ Error handling answer: $e');
+      rethrow;
     }
   }
 
@@ -363,7 +366,7 @@ class WebRTCService {
         candidateData['sdpMLineIndex'],
       );
 
-      if (_isOfferAnswerSet && _peerConnection != null) {
+      if (_isRemoteDescriptionSet && _peerConnection != null) {
         await _peerConnection!.addCandidate(candidate);
         print('✅ ICE candidate added immediately');
       } else {
@@ -529,3 +532,4 @@ class WebRTCService {
     }
   }
 }
+

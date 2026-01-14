@@ -36,68 +36,69 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   bool _isSending = false;
   List<File> _selectedFiles = [];
   String? _currentUserId;
+  String? _currentUserAvatar;
+  String? _currentUserName;
   String? _otherUserId;
   String? _actualDoctorAvatar; // ✅ Real avatar from API
 
   Timer? _refreshTimer;
   Set<String> _messageIds = {};
+  bool _isAutoScrollEnabled = true;
 
   @override
   void initState() {
     super.initState();
-    _loadCurrentUserId();
+    _actualDoctorAvatar = widget.doctorAvatar;
+    _actualDoctorName = widget.doctorName;
+    _loadCurrentUserProfile();
     _loadMessages();
     _startAutoRefresh();
     _setupSocketListeners();
+
+    _scrollController.addListener(() {
+      if (_scrollController.hasClients) {
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        final currentScroll = _scrollController.position.pixels;
+        _isAutoScrollEnabled = (maxScroll - currentScroll) < 100;
+      }
+    });
+  }
+
+  Future<void> _loadCurrentUserProfile() async {
+    try {
+      final profileResult = await ApiService.getUserProfile();
+      if (profileResult['success'] == true) {
+        setState(() {
+          _currentUserId = profileResult['data']['_id']?.toString();
+          _currentUserAvatar = profileResult['data']['avatar']?['url']
+              ?.toString();
+          _currentUserName = profileResult['data']['fullName']?.toString();
+        });
+        print('✅ Current user profile loaded');
+        print('   ID: $_currentUserId');
+        print('   Name: $_currentUserName');
+      }
+    } catch (e) {
+      print('❌ Error loading user profile: $e');
+    }
   }
 
   void _setupSocketListeners() {
     final socket = SocketService.instance.socket;
     if (socket != null) {
-      socket.on('call:incoming', (data) {
-        if (data['chatId'] == widget.chatId) {
-          _showIncomingCall(
-            callerId: data['fromUserId'],
-            callerName: widget.doctorName,
-            callerAvatar: _actualDoctorAvatar ?? widget.doctorAvatar,
-            isVideoCall: data['isVideo'] ?? true,
-          );
-        }
-      });
-
       socket.on('message:new', (data) {
+        print('📨 New message received: $data');
         if (data['chatId'] == widget.chatId) {
           _loadMessagesQuietly();
         }
       });
+      print('✅ Socket listeners setup');
     }
-  }
-
-  void _showIncomingCall({
-    required String callerId,
-    required String callerName,
-    String? callerAvatar,
-    required bool isVideoCall,
-  }) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => IncomingCallScreen(
-          chatId: widget.chatId,
-          callerName: callerName,
-          callerAvatar: callerAvatar,
-          callerId: callerId,
-          isVideoCall: isVideoCall,
-        ),
-      ),
-    );
   }
 
   void _startAutoRefresh() {
     _refreshTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
-      if (mounted) {
-        _loadMessagesQuietly();
-      }
+      if (mounted) _loadMessagesQuietly();
     });
   }
 
@@ -115,9 +116,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         Set<String> newMessageIds = {};
         for (var msg in newMessages) {
           final msgId = msg['_id']?.toString();
-          if (msgId != null) {
-            newMessageIds.add(msgId);
-          }
+          if (msgId != null) newMessageIds.add(msgId);
         }
 
         if (newMessageIds.length != _messageIds.length ||
@@ -143,23 +142,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
-  Future<void> _loadCurrentUserId() async {
-    try {
-      final profileResult = await ApiService.getUserProfile();
-      if (profileResult['success'] == true) {
-        setState(() {
-          _currentUserId = profileResult['data']['_id']?.toString();
-        });
-      }
-    } catch (e) {
-      print('❌ Error loading current user ID: $e');
-    }
-  }
-
   Future<void> _loadMessages() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final result = await ApiService.getChatMessages(
@@ -174,9 +158,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         Set<String> ids = {};
         for (var msg in messages) {
           final msgId = msg['_id']?.toString();
-          if (msgId != null) {
-            ids.add(msgId);
-          }
+          if (msgId != null) ids.add(msgId);
         }
 
         setState(() {
@@ -185,7 +167,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           _isLoading = false;
         });
 
-        // ✅ Get actual doctor avatar from messages
         if (_messages.isNotEmpty && _currentUserId != null) {
           for (var msg in _messages) {
             final senderId = msg['sender']?['_id']?.toString();
@@ -202,9 +183,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         }
 
         if (_otherUserId == null && widget.doctorId != null) {
-          setState(() {
-            _otherUserId = widget.doctorId;
-          });
+          setState(() => _otherUserId = widget.doctorId);
         }
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -215,15 +194,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           }
         });
       } else {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     } catch (e) {
       print('❌ Error loading messages: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
@@ -233,9 +208,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     if (content.isEmpty && _selectedFiles.isEmpty) return;
     if (_isSending) return;
 
-    setState(() {
-      _isSending = true;
-    });
+    setState(() => _isSending = true);
 
     try {
       final result = await ApiService.sendMessage(
@@ -249,6 +222,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         _controller.clear();
         setState(() {
           _selectedFiles = [];
+          _isAutoScrollEnabled = true;
         });
 
         await _loadMessages();
@@ -267,9 +241,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ).showSnackBar(const SnackBar(content: Text('Failed to send message')));
       }
     } finally {
-      setState(() {
-        _isSending = false;
-      });
+      setState(() => _isSending = false);
     }
   }
 
@@ -277,9 +249,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
-        setState(() {
-          _selectedFiles.add(File(image.path));
-        });
+        setState(() => _selectedFiles.add(File(image.path)));
       }
     } catch (e) {
       print('Error picking image: $e');
@@ -401,14 +371,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ),
         title: Row(
           children: [
-            _getAvatarWidget(null, isDoctor: true),
+            CircleAvatar(
+              radius: 20,
+              backgroundImage: _getAvatarImage(_actualDoctorAvatar),
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.doctorName,
+                    _actualDoctorName ?? widget.doctorName,
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -417,7 +390,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  // ✅ Removed "Live" status - just showing role
                   const Text(
                     'Doctor',
                     style: TextStyle(color: Colors.grey, fontSize: 12),
@@ -584,7 +556,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     ),
                     onPressed: _pickImage,
                   ),
-                  const SizedBox(width: 5),
                   IconButton(
                     icon: _isSending
                         ? const SizedBox(
@@ -599,7 +570,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 10),
         ],
       ),
     );
@@ -739,32 +709,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  String _formatTime(dynamic timestamp) {
-    try {
-      final DateTime dateTime = DateTime.parse(timestamp.toString());
-      final now = DateTime.now();
-      final difference = now.difference(dateTime);
-
-      if (difference.inMinutes < 1) {
-        return 'Just now';
-      } else if (difference.inHours < 1) {
-        return '${difference.inMinutes}m ago';
-      } else if (difference.inDays < 1) {
-        return '${difference.inHours}h ago';
-      } else {
-        return '${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
-      }
-    } catch (e) {
-      return '';
-    }
-  }
-
   @override
   void dispose() {
     _refreshTimer?.cancel();
     _controller.dispose();
     _scrollController.dispose();
-    SocketService.instance.off('call:incoming');
     SocketService.instance.off('message:new');
     super.dispose();
   }

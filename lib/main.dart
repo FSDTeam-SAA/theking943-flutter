@@ -3,12 +3,12 @@ import 'package:docmobi/providers/user_provider.dart';
 import 'package:docmobi/providers/dependent_provider.dart';
 import 'package:docmobi/providers/notification_provider.dart';
 import 'package:docmobi/services/api_service.dart';
-import 'package:docmobi/services/socket_service.dart'; // ✅ ADD THIS
+import 'package:docmobi/services/socket_service.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:docmobi/providers/doctor_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // ✅ ADD THIS
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

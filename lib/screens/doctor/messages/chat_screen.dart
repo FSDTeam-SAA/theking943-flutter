@@ -40,6 +40,8 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
   List<File> _selectedFiles = [];
   String? _currentUserId;
   String? _currentUserRole;
+  String? _currentUserAvatar;
+  String? _currentUserName;
   String? _resolvedOtherUserId;
   String? _otherUserRole;
   String? _actualUserAvatar;
@@ -52,10 +54,45 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     super.initState();
     _resolvedOtherUserId = widget.otherUserId;
     _otherUserRole = widget.userRole;
-    _loadCurrentUserId();
+    _actualUserAvatar = widget.userAvatar;
+    _actualUserName = widget.userName;
+    _loadCurrentUserProfile();
     _loadMessages();
     _startAutoRefresh();
     _setupSocketListeners();
+
+    _scrollController.addListener(() {
+      if (_scrollController.hasClients) {
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        final currentScroll = _scrollController.position.pixels;
+        _isAutoScrollEnabled = (maxScroll - currentScroll) < 100;
+      }
+    });
+  }
+
+  Future<void> _loadCurrentUserProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userDataString = prefs.getString('user_data');
+
+      final profileResult = await ApiService.getUserProfile();
+      if (profileResult['success'] == true) {
+        setState(() {
+          _currentUserId = profileResult['data']['_id']?.toString();
+          _currentUserRole = profileResult['data']['role']?.toString();
+          _currentUserAvatar = profileResult['data']['avatar']?['url']
+              ?.toString();
+          _currentUserName = profileResult['data']['fullName']?.toString();
+        });
+        print('✅ Current user profile loaded:');
+        print('   ID: $_currentUserId');
+        print('   Role: $_currentUserRole');
+        print('   Avatar: $_currentUserAvatar');
+        print('   Name: $_currentUserName');
+      }
+    } catch (e) {
+      print('❌ Error loading user profile: $e');
+    }
   }
 
   void _setupSocketListeners() {
@@ -63,18 +100,18 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     if (socket != null) {
       socket.on('call:incoming', (data) {
         print('📞 Incoming call event received: $data');
-        if (data['chatId'] == widget.chatId) {
+        if (data['chatId'] == widget.chatId && mounted) {
           _showIncomingCall(
             callerId: data['fromUserId'],
-            callerName: widget.userName,
-            callerAvatar: _actualUserAvatar ?? widget.userAvatar,
+            callerName: data['callerName'] ?? widget.userName,
+            callerAvatar: data['callerAvatar'] ?? _actualUserAvatar,
             isVideoCall: data['isVideo'] ?? true,
           );
         }
       });
 
       socket.on('message:new', (data) {
-        if (data['chatId'] == widget.chatId) {
+        if (data['chatId'] == widget.chatId && mounted) {
           _loadMessagesQuietly();
         }
       });
@@ -87,6 +124,8 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     String? callerAvatar,
     required bool isVideoCall,
   }) {
+    if (!mounted) return;
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -211,6 +250,10 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
                 _actualUserAvatar = msg['sender']?['avatar']?['url']
                     ?.toString();
               });
+              print('✅ Loaded real user data:');
+              print('   Name: $_actualUserName');
+              print('   Avatar: $_actualUserAvatar');
+              print('   Role: $_otherUserRole');
               break;
             }
           }
@@ -263,6 +306,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
         _controller.clear();
         setState(() {
           _selectedFiles = [];
+          _isAutoScrollEnabled = true;
         });
 
         await _loadMessages();
@@ -424,7 +468,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.userName,
+                    _actualUserName ?? widget.userName,
                     style: const TextStyle(
                       color: Color(0xFF1B2C49),
                       fontSize: 18,
@@ -759,8 +803,8 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
             ],
           ),
           if (isMe)
-            const Padding(
-              padding: EdgeInsets.only(left: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
               child: CircleAvatar(
                 radius: 16,
                 backgroundImage: AssetImage("assets/images/profile.png"),
@@ -793,7 +837,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     _scrollController.dispose();
     SocketService.instance.off('call:incoming');
     SocketService.instance.off('message:new');
-    print('✅ Auto-refresh stopped');
+    print('Auto-refresh stopped');
     super.dispose();
   }
 }

@@ -6,38 +6,57 @@
 	<string>We need access to your microphone for audio calls.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>We need access to your camera for video calls.</string>
+
+	<!-- ================= BASIC APP INFO ================= -->
+
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+
 	<key>CFBundleDisplayName</key>
 	<string>Docmobi</string>
+
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+
 	<key>CFBundleName</key>
 	<string>docmobi</string>
+
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
+
 	<key>CFBundleSignature</key>
 	<string>????</string>
+
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+
+	<!-- ================= UI SETTINGS ================= -->
+
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -45,100 +64,83 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	
-	<!-- ==================== PERMISSIONS FOR REELS FEATURE ==================== -->
-	
-	<!-- Photo Library Access (Gallery theke video select korar jonno) -->
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We need access to your photo library to select and upload medical reels and share images in chat</string>
-	
-	<!-- Photo Library Add Only (iOS 14+) -->
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>We need access to save videos and images to your photo library</string>
-	
-	<!-- ==================== VIDEO/AUDIO CALL PERMISSIONS ==================== -->
-	
-	<!-- Camera Access (Video call and reel recording er jonno) -->
+
+	<!-- ================= GOOGLE MAPS API KEY ================= -->
+	<key>GMSApiKey</key>
+	<string>AIzaSyDwpV4RKu-t9aThomHv7SPcbY0uAj80dek</string>
+
+	<!-- ================= LOCATION PERMISSIONS ================= -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to show nearby doctors and provide location-based services.</string>
+
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>We need your location to show nearby doctors and provide location-based services.</string>
+
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>We need your location to show nearby doctors even when the app is in background.</string>
+
+	<!-- ================= CALL PERMISSIONS ================= -->
 	<key>NSCameraUsageDescription</key>
-	<string>We need camera access for video calls with doctors and to record medical reels</string>
-	
-	<!-- Microphone Access (Audio/Video call er audio and reel audio er jonno) -->
+	<string>Camera access is required for video calls with doctors and recording medical content.</string>
+
 	<key>NSMicrophoneUsageDescription</key>
-	<string>We need microphone access for audio and video calls with doctors, and to record audio for medical reels</string>
+	<string>Microphone access is required for audio and video calls with healthcare providers.</string>
+
+	<!-- ================= MEDIA PERMISSIONS ================= -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to your photo library to select and upload medical reels</string>
 	
-	<!-- Motion Usage (Optional - video recording er shomoy) -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>We need access to save videos to your photo library</string>
+	
 	<key>NSMotionUsageDescription</key>
 	<string>We use motion data to enhance video recording quality</string>
 	
-	<!-- Local Network (Development er jonno - localhost API and WebRTC) -->
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>We need access to local network for API communication and real-time video/audio calls</string>
+	<string>We need access to local network for API communication during development</string>
 	
-	<!-- ==================== NETWORK SECURITY SETTINGS ==================== -->
-	
-	<!-- App Transport Security Settings (HTTP API calls and WebRTC er jonno) -->
+	<!-- ================= APP TRANSPORT SECURITY ================= -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
-		<!-- Allow all HTTP connections (Development only) -->
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
-		
-		<!-- Allow local networking for WebRTC STUN/TURN servers -->
-		<key>NSAllowsLocalNetworking</key>
-		<true/>
-		
-		<!-- Production e use korben (specific domain er jonno) -->
-		<!--
-		<key>NSAllowsArbitraryLoads</key>
-		<false/>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>your-api-domain.com</key>
-			<dict>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-				<key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-				<key>NSExceptionMinimumTLSVersion</key>
-				<string>TLSv1.2</string>
-			</dict>
-			<key>stun.l.google.com</key>
-			<dict>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-				<key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-			</dict>
-		</dict>
-		-->
 	</dict>
 	
-	<!-- ==================== BACKGROUND MODES ==================== -->
-	
-	<!-- Background Modes (Video upload, call notifications, audio playback) -->
+	<!-- ================= BACKGROUND MODES ================= -->
 	<key>UIBackgroundModes</key>
 	<array>
-		<string>fetch</string>
-		<string>remote-notification</string>
 		<string>audio</string>
 		<string>voip</string>
+		<string>fetch</string>
+		<string>remote-notification</string>
 	</array>
 	
-	<!-- ==================== ADDITIONAL SETTINGS FOR CALLS ==================== -->
-	
-	<!-- Status bar settings -->
-	<key>UIViewControllerBasedStatusBarAppearance</key>
-	<false/>
-	
-	<!-- Allow arbitrary web content loads (for WebRTC media streams) -->
-	<key>io.flutter.embedded_views_preview</key>
-	<true/>
+	<!-- ================= iOS 17+ Privacy Manifest ================= -->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
 	
 </dict>
 </plist>

@@ -12,6 +12,8 @@ class Doctor {
   final List<WeeklySchedule>? weeklySchedule;
   final bool isAvailable;
   final String distance;
+  final double? latitude;
+  final double? longitude;
 
   Doctor({
     required this.id,
@@ -27,6 +29,8 @@ class Doctor {
     this.weeklySchedule,
     this.isAvailable = true,
     this.distance = 'N/A',
+    this.latitude,
+    this.longitude,
   });
 
   factory Doctor.fromJson(Map<String, dynamic> json) {
@@ -75,6 +79,7 @@ class Doctor {
       experience: json['experience']?.toString() ?? 
                  json['experienceYears']?.toString() ?? '0',
       location: json['location']?.toString() ?? 
+               json['address']?.toString() ?? 
                json['hospital'] ?? '',
       fees: json['fees'],
       weeklySchedule: json['weeklySchedule'] != null
@@ -84,6 +89,12 @@ class Doctor {
           : null,
       isAvailable: json['isAvailable'] ?? true,
       distance: json['distance']?.toString() ?? 'N/A',
+      latitude: json['latitude'] != null 
+          ? double.tryParse(json['latitude'].toString()) 
+          : null,
+      longitude: json['longitude'] != null 
+          ? double.tryParse(json['longitude'].toString()) 
+          : null,
     );
   }
 
@@ -101,6 +112,8 @@ class Doctor {
       'fees': fees,
       'isAvailable': isAvailable,
       'distance': distance,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
     };
   }
 }

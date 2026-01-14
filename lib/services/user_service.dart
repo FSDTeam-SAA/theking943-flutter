@@ -9,7 +9,7 @@ class UserService {
     return await ApiService.get('/api/v1/user/profile', requiresAuth: true);
   }
 
-  /// Update user profile with image support
+  /// Update user profile with image and location support
   static Future<Map<String, dynamic>> updateUserProfile({
     String? fullName,
     String? username,
@@ -28,7 +28,9 @@ class UserService {
     List<Map<String, dynamic>>? weeklySchedule,
     String? visitingHoursText,
     String? medicalLicenseNumber,
-    File? profileImage, // ✅ Direct File parameter
+    File? profileImage,
+    double? latitude,      // ✅ ADDED: Latitude parameter
+    double? longitude,     // ✅ ADDED: Longitude parameter
   }) async {
     try {
       print('📤 Updating user profile...');
@@ -55,6 +57,16 @@ class UserService {
       if (weeklySchedule != null) body['weeklySchedule'] = weeklySchedule;
       if (visitingHoursText != null) body['visitingHoursText'] = visitingHoursText;
       if (medicalLicenseNumber != null) body['medicalLicenseNumber'] = medicalLicenseNumber;
+
+      // ✅ ADDED: Location fields
+      if (latitude != null) {
+        body['latitude'] = latitude;
+        print('📍 Latitude: $latitude');
+      }
+      if (longitude != null) {
+        body['longitude'] = longitude;
+        print('📍 Longitude: $longitude');
+      }
 
       // ✅ Convert image to base64 if provided
       if (profileImage != null) {

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:docmobi/services/webrtc_service.dart';
-import 'package:docmobi/services/socket_service.dart';
-import 'package:docmobi/services/api_service.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
+import '../../../services/api_service.dart';
+import '../../../services/socket_service.dart';
+import '../../../services/webrtc_service.dart';
 
 class AudioCallScreen extends StatefulWidget {
   final String chatId;
@@ -28,7 +27,7 @@ class AudioCallScreen extends StatefulWidget {
 }
 
 class _AudioCallScreenState extends State<AudioCallScreen> {
-  WebRTCService? _webrtcService;
+  WebRTCService? _webRTCService;
   bool _isMuted = false;
   bool _isSpeakerOn = false;
   bool _callConnected = false;
@@ -42,6 +41,8 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
   Timer? _timer;
   int _seconds = 0;
   String? _currentUserId;
+  bool _isDisposed = false;
+  String _callStatus = 'Initializing...';
 
   @override
   void initState() {
@@ -97,7 +98,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
       print('🎬 Is Initiator: ${widget.isInitiator}');
 
       final socket = SocketService.instance.socket;
-      if (socket == null) {
+      if (socket == null || !SocketService.instance.isConnected) {
         throw Exception('Socket not connected');
       }
 
@@ -116,18 +117,21 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
           });
         },
         onCallEnded: () {
-          print('📴 Call ended callback triggered');
+          print('📴 Call ended by peer');
           _endCall();
         },
       );
 
-      // ✅ Set current user ID
-      _webrtcService!.setCurrentUserId(_currentUserId!);
+      await _webRTCService!.initialize();
+      _webRTCService!.setCurrentUserId(_currentUserId!);
 
-      await _webrtcService!.initialize();
-      print('✅ WebRTC service initialized');
+      print('✅ WebRTC initialized');
 
       _setupSocketListeners();
+
+      setState(() {
+        _callStatus = widget.isInitiator ? 'Calling...' : 'Connecting...';
+      });
 
       if (widget.isInitiator) {
         print('⏳ Waiting for receiver to accept before creating offer...');
@@ -163,19 +167,23 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
 
   void _setupSocketListeners() {
     final socket = SocketService.instance.socket;
-    if (socket == null) {
-      print('⚠️ Socket is null in _setupSocketListeners');
-      return;
-    }
+    if (socket == null) return;
 
-    print('👂 Setting up socket listeners for chat: ${widget.chatId}');
+    socket.off('call:offer');
+    socket.off('call:answer');
+    socket.off('call:iceCandidate');
+    socket.off('call:end');
 
     socket.on('call:offer', (data) async {
-      print('📥 Received call:offer event');
-      if (data['chatId'] == widget.chatId) {
-        print('✅ Offer is for this chat, handling...');
-        final fromUserId = data['fromUserId'] ?? widget.otherUserId;
-        await _webrtcService?.handleOffer(data['offer'], fromUserId);
+      print('📥 Received offer: $data');
+      if (data['chatId'] == widget.chatId && mounted && !_isDisposed) {
+        final fromUserId = data['fromUserId']?.toString();
+        if (fromUserId != null && _webRTCService != null) {
+          setState(() {
+            _callStatus = 'Connecting...';
+          });
+          await _webRTCService!.handleOffer(data['offer'], fromUserId);
+        }
       }
     });
 
@@ -187,7 +195,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
 
         if (mounted) {
           setState(() {
-            _callConnected = true;
+            _callStatus = 'Establishing connection...';
           });
 
           // ✅ Start timer when answer received (for initiator)
@@ -301,12 +309,8 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         setState(() {
-          _seconds++;
-          final minutes = (_seconds ~/ 60).toString().padLeft(2, '0');
-          final secs = (_seconds % 60).toString().padLeft(2, '0');
-          _callDuration = '$minutes:$secs';
+          _callDuration++;
         });
-        print('⏱️ Call duration: $_callDuration');
       } else {
         timer.cancel();
       }
@@ -316,21 +320,27 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
   }
 
   void _toggleMute() {
-    setState(() {
-      _isMuted = !_isMuted;
-      _webrtcService?.toggleAudio();
-    });
-    print('🎤 Audio ${_isMuted ? "muted" : "unmuted"}');
+    if (_webRTCService != null && mounted && !_isDisposed) {
+      setState(() {
+        _isMuted = !_isMuted;
+      });
+      _webRTCService!.toggleAudio();
+    }
   }
 
   void _toggleSpeaker() {
-    setState(() {
-      _isSpeakerOn = !_isSpeakerOn;
-    });
-    print('🔊 Speaker ${_isSpeakerOn ? "on" : "off"}');
+    if (mounted && !_isDisposed) {
+      setState(() {
+        _isSpeakerOn = !_isSpeakerOn;
+      });
+      // Note: Actual speaker toggle requires platform-specific implementation
+      print('🔊 Speaker ${_isSpeakerOn ? "ON" : "OFF"}');
+    }
   }
 
   void _endCall() {
+    if (_isDisposed) return;
+    
     print('📴 Ending call...');
 
     _timer?.cancel();
@@ -454,14 +464,11 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
             children: [
               const SizedBox(height: 60),
 
+              // User Avatar
               CircleAvatar(
                 radius: 80,
                 backgroundImage:
-                    widget.userAvatar != null &&
-                        widget.userAvatar!.isNotEmpty &&
-                        widget.userAvatar != 'file:///' &&
-                        (widget.userAvatar!.startsWith('http://') ||
-                            widget.userAvatar!.startsWith('https://'))
+                    widget.userAvatar != null
                     ? NetworkImage(widget.userAvatar!)
                     : const AssetImage('assets/images/doctor.png')
                           as ImageProvider,
@@ -469,6 +476,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
 
               const SizedBox(height: 30),
 
+              // User Name
               Text(
                 widget.userName,
                 style: const TextStyle(
@@ -481,9 +489,11 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
               const SizedBox(height: 10),
 
               Text(
-                _callConnected ? _callDuration : 'Calling...',
+                _callConnected 
+                    ? _formatDuration(_callDuration)
+                    : _callStatus,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: _callConnected ? Colors.greenAccent : Colors.white70,
                   fontSize: 18,
                 ),
               ),
@@ -585,7 +595,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                     color: Colors.white,
                     size: 40,
                   ),
-                ),
+                ],
               ),
 
               const SizedBox(height: 60),
@@ -598,9 +608,9 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
 
   Widget _buildControlButton({
     required IconData icon,
-    required String label,
     required VoidCallback onPressed,
     required Color backgroundColor,
+    double size = 60,
   }) {
     return Column(
       children: [

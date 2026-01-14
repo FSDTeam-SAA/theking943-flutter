@@ -28,6 +28,10 @@ class UserModel {
   // ✅ Weekly schedule
   final List<DaySchedule>? weeklySchedule;
   
+  // ✅ Location fields (NEW)
+  final double? latitude;
+  final double? longitude;
+  
   final DateTime? createdAt;
 
   UserModel({
@@ -51,6 +55,8 @@ class UserModel {
     this.feesCurrency,
     this.degrees,
     this.weeklySchedule,
+    this.latitude,      // ✅ NEW
+    this.longitude,     // ✅ NEW
     this.createdAt,
   });
 
@@ -93,6 +99,10 @@ class UserModel {
           ? (json['weeklySchedule'] as List).map((d) => DaySchedule.fromJson(d)).toList()
           : null,
       
+      // ✅ Location fields (NEW)
+      latitude: json['latitude']?.toDouble(),
+      longitude: json['longitude']?.toDouble(),
+      
       createdAt: json['createdAt'] != null 
           ? DateTime.parse(json['createdAt']) 
           : null,
@@ -123,6 +133,8 @@ class UserModel {
       },
       'degrees': degrees?.map((d) => d.toJson()).toList(),
       'weeklySchedule': weeklySchedule?.map((d) => d.toJson()).toList(),
+      'latitude': latitude,       // ✅ NEW
+      'longitude': longitude,     // ✅ NEW
       'createdAt': createdAt?.toIso8601String(),
     };
   }
@@ -148,6 +160,8 @@ class UserModel {
     String? feesCurrency,
     List<Degree>? degrees,
     List<DaySchedule>? weeklySchedule,
+    double? latitude,       // ✅ NEW
+    double? longitude,      // ✅ NEW
     DateTime? createdAt,
   }) {
     return UserModel(
@@ -171,6 +185,8 @@ class UserModel {
       feesCurrency: feesCurrency ?? this.feesCurrency,
       degrees: degrees ?? this.degrees,
       weeklySchedule: weeklySchedule ?? this.weeklySchedule,
+      latitude: latitude ?? this.latitude,           // ✅ NEW
+      longitude: longitude ?? this.longitude,         // ✅ NEW
       createdAt: createdAt ?? this.createdAt,
     );
   }

@@ -1,10 +1,10 @@
-import 'package:docmobi/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:docmobi/services/socket_service.dart';
-import 'package:docmobi/services/webrtc_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'dart:async';
+import '../../../services/api_service.dart';
+import '../../../services/socket_service.dart';
+import '../../../services/webrtc_service.dart';
 
 class VideoCallScreen extends StatefulWidget {
   final String chatId;
@@ -98,27 +98,51 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       // Initialize renderers
       await _localRenderer.initialize();
       await _remoteRenderer.initialize();
-      print('✅ Renderers initialized');
 
-      // Initialize WebRTC service
+      await _loadCurrentUserId();
+      
+      if (_currentUserId == null) {
+        _showError('Failed to get user ID');
+        return;
+      }
+
+      setState(() {
+        _callStatus = 'Setting up video...';
+      });
+
+      print('📹 Initializing video call...');
+      print('   • Chat ID: ${widget.chatId}');
+      print('   • Other User: ${widget.otherUserId}');
+      print('   • Is Initiator: ${widget.isInitiator}');
+      print('   • Current User: $_currentUserId');
+
+      final socket = SocketService.instance.socket;
+      if (socket == null || !SocketService.instance.isConnected) {
+        throw Exception('Socket not connected');
+      }
+
       _webRTCService = WebRTCService(
-        socket: SocketService.instance.socket!,
         chatId: widget.chatId,
         isVideo: true,
         onRemoteStream: (stream) {
           _handleRemoteStream(stream);
         },
         onCallEnded: () {
-          print('📴 Call ended callback triggered');
+          print('📴 Call ended by peer');
           _endCall();
         },
       );
 
-      // ✅ Set current user ID in WebRTC service
-      _webRTCService!.setCurrentUserId(_currentUserId!);
-
       await _webRTCService!.initialize();
-      print('✅ WebRTC service initialized');
+      _webRTCService!.setCurrentUserId(_currentUserId!);
+      
+      if (mounted) {
+        setState(() {
+          _localRenderer.srcObject = _webRTCService!.localStream;
+        });
+      }
+
+      print('✅ WebRTC initialized');
 
       // Set local stream
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -130,10 +154,6 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           });
         }
       });
-      print('✅ Local stream set');
-
-      // Setup socket listeners
-      _setupSocketListeners();
 
       // If initiator, create offer
       // If initiator, wait for call:accepted before creating offer
@@ -178,24 +198,30 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       if (!_isTimerRunning()) {
         _startCallTimer();
       }
+    } catch (e) {
+      print('❌ Error loading user ID: $e');
     }
   }
 
   void _setupSocketListeners() {
     final socket = SocketService.instance.socket;
-    if (socket == null) {
-      print('⚠️ Socket is null in _setupSocketListeners');
-      return;
-    }
+    if (socket == null) return;
 
-    print('👂 Setting up socket listeners for chat: ${widget.chatId}');
+    socket.off('call:offer');
+    socket.off('call:answer');
+    socket.off('call:iceCandidate');
+    socket.off('call:end');
 
     socket.on('call:offer', (data) async {
-      print('📥 Received call:offer event: $data');
-      if (data['chatId'] == widget.chatId) {
-        print('✅ Offer is for this chat, handling...');
-        final fromUserId = data['fromUserId'] ?? widget.otherUserId;
-        await _webRTCService?.handleOffer(data['offer'], fromUserId);
+      print('📥 Received offer: $data');
+      if (data['chatId'] == widget.chatId && mounted && !_isDisposed) {
+        final fromUserId = data['fromUserId']?.toString();
+        if (fromUserId != null && _webRTCService != null) {
+          setState(() {
+            _callStatus = 'Connecting...';
+          });
+          await _webRTCService!.handleOffer(data['offer'], fromUserId);
+        }
       }
     });
 
@@ -310,7 +336,6 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     return _callTimer != null && _callTimer!.isActive;
   }
 
-  // ✅ Start call timer
   void _startCallTimer() {
     if (_isTimerRunning()) {
       print('⏱️ Timer already running');
@@ -322,7 +347,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     _callDurationSeconds = 0; // Reset to 0
 
     _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
+      if (mounted && !_isDisposed) {
         setState(() {
           _callDurationSeconds++;
           final minutes = (_callDurationSeconds ~/ 60).toString().padLeft(
@@ -335,7 +360,6 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           );
           _callDuration = '$minutes:$seconds';
         });
-        print('⏱️ Call duration: $_callDuration');
       } else {
         timer.cancel();
       }
@@ -345,11 +369,12 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   }
 
   void _toggleMute() {
-    setState(() {
-      _isMuted = !_isMuted;
-    });
-    _webRTCService?.toggleAudio();
-    print('🎤 Audio ${_isMuted ? "muted" : "unmuted"}');
+    if (_webRTCService != null && mounted && !_isDisposed) {
+      setState(() {
+        _isMuted = !_isMuted;
+      });
+      _webRTCService!.toggleAudio();
+    }
   }
 
   void _toggleVideo() {
@@ -407,6 +432,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   }
 
   void _endCall() {
+    if (_isDisposed) return;
+    
     print('📴 Ending call...');
 
     _callTimer?.cancel();
@@ -429,14 +456,36 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     }
   }
 
+  void _showError(String message) {
+    if (!mounted || _isDisposed) return;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+    
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Stack(
+    return WillPopScope(
+      onWillPop: () async {
+        _endCall();
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
           children: [
-            if (_isCallConnected)
+            // Remote video (full screen)
+            if (_callConnected)
               Positioned.fill(
                 child: _remoteVideoEnabled
                     ? RTCVideoView(
@@ -527,7 +576,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
             if (!_isVideoOff)
               Positioned(
-                top: 20,
+                top: 50,
                 right: 20,
                 child: Container(
                   width: 120,
@@ -535,6 +584,13 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(10),
@@ -548,12 +604,12 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 ),
               ),
 
+            // User name badge with duration
             Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
+              top: 50,
+              left: 20,
               child: Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
@@ -562,6 +618,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   ),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     CircleAvatar(
                       radius: 20,
@@ -603,8 +660,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
               ),
             ),
 
+            // Controls at bottom
             Positioned(
-              bottom: 0,
+              bottom: 40,
               left: 0,
               right: 0,
               child: Container(
@@ -652,37 +710,30 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   Widget _buildControlButton({
     required IconData icon,
-    required String label,
-    required VoidCallback onPressed,
-    required Color color,
-    bool isEndCall = false,
+    required VoidCallback? onPressed,
+    required Color backgroundColor,
   }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: isEndCall ? 70 : 60,
-          height: isEndCall ? 70 : 60,
-          decoration: BoxDecoration(
-            color: isEndCall ? Colors.red : Colors.white.withOpacity(0.2),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
-          ),
-          child: IconButton(
-            icon: Icon(icon, color: color, size: isEndCall ? 32 : 28),
-            onPressed: onPressed,
-          ),
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
+        child: Icon(
+          icon,
+          color: Colors.white,
+          size: 32,
         ),
-      ],
+      ),
     );
   }
 
@@ -710,5 +761,3 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     super.dispose();
   }
 }
-
-// ✅ Import for API service

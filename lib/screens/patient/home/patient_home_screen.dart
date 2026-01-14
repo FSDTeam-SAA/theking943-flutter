@@ -11,6 +11,10 @@ import 'package:docmobi/screens/patient/home/see_all_doctors_screen.dart';
 import 'package:docmobi/screens/patient/doctor/doctor_detail_screen.dart';
 import 'package:docmobi/screens/patient/doctor/book_appointment_screen.dart';
 import 'package:docmobi/screens/patient/notification/notification_screen.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:math' as math;
 import 'package:docmobi/screens/patient/profile/patient_profile_screen.dart';
 
 class PatientHomeScreen extends StatefulWidget {
@@ -22,9 +26,20 @@ class PatientHomeScreen extends StatefulWidget {
 
 class _PatientHomeScreenState extends State<PatientHomeScreen> {
   final TextEditingController _searchController = TextEditingController();
+  GoogleMapController? _mapController;
 
   static bool _hasShownLocationDialog = false;
   late bool _showLocationDialog;
+
+  // Default location (Dhaka, Bangladesh)
+  LatLng _currentPosition = const LatLng(23.8103, 90.4125);
+  bool _isLoadingLocation = true;
+  bool _locationPermissionGranted = false;
+  Set<Marker> _markers = {};
+  Set<Polyline> _polylines = {};
+
+  // Selected doctor for route display
+  String? _selectedDoctorId;
 
   @override
   void initState() {
@@ -32,14 +47,32 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     _showLocationDialog = !_hasShownLocationDialog;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<DoctorProvider>().fetchNearbyDoctors();
-      context.read<AppointmentProvider>().fetchAppointments();
+      _initializeScreen();
     });
+  }
+
+  Future<void> _initializeScreen() async {
+    try {
+      await Future.wait([
+        context.read<DoctorProvider>().fetchNearbyDoctors(),
+        context.read<AppointmentProvider>().fetchAppointments(),
+      ]);
+
+      // Delay location request to avoid crash
+      await Future.delayed(const Duration(milliseconds: 500));
+      await _getCurrentLocation();
+    } catch (e) {
+      debugPrint('Error initializing screen: $e');
+      setState(() {
+        _isLoadingLocation = false;
+      });
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _mapController?.dispose();
     super.dispose();
   }
 
@@ -50,11 +83,357 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     });
   }
 
+  Future<void> _getCurrentLocation() async {
+    try {
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        debugPrint('Location services are disabled.');
+        if (mounted) {
+          setState(() {
+            _isLoadingLocation = false;
+            _locationPermissionGranted = false;
+          });
+          // Show dialog to user
+          _showLocationServiceDialog();
+        }
+        return;
+      }
+
+      // Check location permission
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          debugPrint('Location permissions are denied');
+          if (mounted) {
+            setState(() {
+              _isLoadingLocation = false;
+              _locationPermissionGranted = false;
+            });
+          }
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        debugPrint('Location permissions are permanently denied');
+        if (mounted) {
+          setState(() {
+            _isLoadingLocation = false;
+            _locationPermissionGranted = false;
+          });
+          _showPermissionDeniedDialog();
+        }
+        return;
+      }
+
+      // Permission granted, get location
+      if (mounted) {
+        setState(() {
+          _locationPermissionGranted = true;
+        });
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
+      );
+
+      debugPrint(
+        'Location obtained: ${position.latitude}, ${position.longitude}',
+      );
+
+      if (mounted) {
+        setState(() {
+          _currentPosition = LatLng(position.latitude, position.longitude);
+          _isLoadingLocation = false;
+        });
+
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(_currentPosition, 14),
+        );
+
+        _addDoctorMarkers();
+      }
+    } catch (e) {
+      debugPrint('Error getting location: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingLocation = false;
+          _locationPermissionGranted = false;
+        });
+
+        // Show error message to user
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Unable to get your location: ${e.toString()}'),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: _getCurrentLocation,
+            ),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showLocationServiceDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Location Service Disabled'),
+          content: const Text(
+            'Please enable location services in your device settings to see nearby doctors.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await Geolocator.openLocationSettings();
+              },
+              child: const Text('Open Settings'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showPermissionDeniedDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Location Permission Required'),
+          content: const Text(
+            'Location permission is required to show nearby doctors. Please grant permission in app settings.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await Geolocator.openAppSettings();
+              },
+              child: const Text('Open Settings'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Calculate distance between two coordinates in kilometers using Haversine formula
+  double _calculateDistanceInKm(LatLng from, LatLng to) {
+    const double earthRadius = 6371; // km
+
+    double lat1 = from.latitude * math.pi / 180;
+    double lat2 = to.latitude * math.pi / 180;
+    double lon1 = from.longitude * math.pi / 180;
+    double lon2 = to.longitude * math.pi / 180;
+
+    double dLat = lat2 - lat1;
+    double dLon = lon2 - lon1;
+
+    double a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(lat1) *
+            math.cos(lat2) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+    double c = 2 * math.asin(math.sqrt(a));
+
+    return earthRadius * c;
+  }
+
+  // Get color based on distance (Green for near, Red for far)
+  Color _getRouteColor(double distanceKm) {
+    if (distanceKm <= 5) {
+      return Colors.green; // Very close
+    } else if (distanceKm <= 10) {
+      return Colors.lightGreen; // Close
+    } else if (distanceKm <= 15) {
+      return Colors.orange; // Medium distance
+    } else {
+      return Colors.red; // Far
+    }
+  }
+
+  void _addDoctorMarkers() {
+    try {
+      final doctors = context.read<DoctorProvider>().nearbyDoctors;
+
+      Set<Marker> markers = {};
+      Set<Polyline> polylines = {};
+
+      // Add user location marker
+      markers.add(
+        Marker(
+          markerId: const MarkerId('user_location'),
+          position: _currentPosition,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          infoWindow: const InfoWindow(
+            title: 'Your Location',
+            snippet: 'You are here',
+          ),
+        ),
+      );
+
+      for (int i = 0; i < doctors.length; i++) {
+        final doctor = doctors[i];
+
+        LatLng doctorLocation;
+        if (doctor.latitude != null && doctor.longitude != null) {
+          doctorLocation = LatLng(doctor.latitude!, doctor.longitude!);
+        } else {
+          // Fallback: Generate random nearby location (for demo)
+          final lat = _currentPosition.latitude + (i * 0.01);
+          final lng = _currentPosition.longitude + (i * 0.01);
+          doctorLocation = LatLng(lat, lng);
+        }
+
+        // Calculate distance
+        double distanceKm = _calculateDistanceInKm(
+          _currentPosition,
+          doctorLocation,
+        );
+
+        // Only show doctors within 20 km
+        if (distanceKm <= 20) {
+          // Add marker
+          markers.add(
+            Marker(
+              markerId: MarkerId(doctor.id),
+              position: doctorLocation,
+              infoWindow: InfoWindow(
+                title: doctor.fullName,
+                snippet:
+                    '${doctor.specialty} - ${distanceKm.toStringAsFixed(1)} km away',
+              ),
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                doctor.isAvailable
+                    ? BitmapDescriptor.hueGreen
+                    : BitmapDescriptor.hueRed,
+              ),
+              onTap: () {
+                _showDoctorRoute(doctor.id, doctorLocation, distanceKm);
+              },
+            ),
+          );
+
+          // Add polyline route from user to doctor
+          Color routeColor = _getRouteColor(distanceKm);
+
+          polylines.add(
+            Polyline(
+              polylineId: PolylineId('route_${doctor.id}'),
+              points: [_currentPosition, doctorLocation],
+              color: routeColor,
+              width: 4,
+              startCap: Cap.roundCap,
+              endCap: Cap.roundCap,
+              geodesic: true,
+              patterns: distanceKm > 15
+                  ? [PatternItem.dash(20), PatternItem.gap(10)]
+                  : [],
+            ),
+          );
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _markers = markers;
+          _polylines = polylines;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error adding doctor markers: $e');
+    }
+  }
+
+  void _showDoctorRoute(
+    String doctorId,
+    LatLng doctorLocation,
+    double distance,
+  ) {
+    setState(() {
+      _selectedDoctorId = doctorId;
+    });
+
+    // Zoom to show both user and doctor location
+    LatLngBounds bounds = LatLngBounds(
+      southwest: LatLng(
+        _currentPosition.latitude < doctorLocation.latitude
+            ? _currentPosition.latitude
+            : doctorLocation.latitude,
+        _currentPosition.longitude < doctorLocation.longitude
+            ? _currentPosition.longitude
+            : doctorLocation.longitude,
+      ),
+      northeast: LatLng(
+        _currentPosition.latitude > doctorLocation.latitude
+            ? _currentPosition.latitude
+            : doctorLocation.latitude,
+        _currentPosition.longitude > doctorLocation.longitude
+            ? _currentPosition.longitude
+            : doctorLocation.longitude,
+      ),
+    );
+
+    _mapController?.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100));
+
+    // Find doctor and navigate to details
+    final doctor = context.read<DoctorProvider>().nearbyDoctors.firstWhere(
+      (d) => d.id == doctorId,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => DoctorDetailsScreen(doctor: doctor)),
+    );
+  }
+
   Future<void> _onRefresh() async {
     await Future.wait([
       context.read<DoctorProvider>().fetchNearbyDoctors(),
       context.read<AppointmentProvider>().fetchAppointments(),
     ]);
+    _addDoctorMarkers();
+  }
+
+  String _calculateDistance(Doctor doctor) {
+    if (doctor.latitude != null && doctor.longitude != null) {
+      try {
+        double distanceInMeters = Geolocator.distanceBetween(
+          _currentPosition.latitude,
+          _currentPosition.longitude,
+          doctor.latitude!,
+          doctor.longitude!,
+        );
+
+        if (distanceInMeters < 1000) {
+          return '${distanceInMeters.round()} m';
+        } else {
+          return '${(distanceInMeters / 1000).toStringAsFixed(1)} km';
+        }
+      } catch (e) {
+        debugPrint('Error calculating distance: $e');
+        return 'N/A';
+      }
+    }
+    return doctor.distance;
   }
 
   @override
@@ -230,16 +609,228 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                       ),
                     ),
 
-                    // Map
+                    // Google Map with Routes
                     Container(
-                      height: 160,
+                      height: 250,
                       margin: const EdgeInsets.symmetric(horizontal: 20),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
-                        image: const DecorationImage(
-                          image: AssetImage('assets/images/map.png'),
-                          fit: BoxFit.cover,
-                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: _isLoadingLocation
+                            ? Container(
+                                color: Colors.grey[200],
+                                child: const Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      CircularProgressIndicator(),
+                                      SizedBox(height: 10),
+                                      Text(
+                                        'Loading map...',
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            : Stack(
+                                children: [
+                                  GoogleMap(
+                                    initialCameraPosition: CameraPosition(
+                                      target: _currentPosition,
+                                      zoom: 13,
+                                    ),
+                                    markers: _markers,
+                                    polylines: _polylines,
+                                    myLocationEnabled:
+                                        _locationPermissionGranted,
+                                    myLocationButtonEnabled: false,
+                                    zoomControlsEnabled: true,
+                                    zoomGesturesEnabled: true,
+                                    scrollGesturesEnabled: true,
+                                    tiltGesturesEnabled: true,
+                                    rotateGesturesEnabled: true,
+                                    mapType: MapType.normal,
+                                    onMapCreated: (controller) {
+                                      if (mounted) {
+                                        _mapController = controller;
+                                      }
+                                    },
+                                  ),
+                                  // Map Legend
+                                  Positioned(
+                                    top: 10,
+                                    right: 10,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(
+                                              0.1,
+                                            ),
+                                            blurRadius: 4,
+                                          ),
+                                        ],
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          _buildLegendItem(
+                                            Colors.green,
+                                            '0-5 km',
+                                          ),
+                                          _buildLegendItem(
+                                            Colors.lightGreen,
+                                            '5-10 km',
+                                          ),
+                                          _buildLegendItem(
+                                            Colors.orange,
+                                            '10-15 km',
+                                          ),
+                                          _buildLegendItem(
+                                            Colors.red,
+                                            '15-20 km',
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  // Zoom Controls
+                                  Positioned(
+                                    bottom: 10,
+                                    left: 10,
+                                    child: Column(
+                                      children: [
+                                        // Zoom In Button
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(
+                                                  0.1,
+                                                ),
+                                                blurRadius: 4,
+                                              ),
+                                            ],
+                                          ),
+                                          child: IconButton(
+                                            icon: const Icon(
+                                              Icons.add,
+                                              color: Color(0xFF0D47A1),
+                                              size: 24,
+                                            ),
+                                            onPressed: () async {
+                                              final currentZoom =
+                                                  await _mapController
+                                                      ?.getZoomLevel() ??
+                                                  13;
+                                              _mapController?.animateCamera(
+                                                CameraUpdate.zoomTo(
+                                                  currentZoom + 1,
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        // Zoom Out Button
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(
+                                                  0.1,
+                                                ),
+                                                blurRadius: 4,
+                                              ),
+                                            ],
+                                          ),
+                                          child: IconButton(
+                                            icon: const Icon(
+                                              Icons.remove,
+                                              color: Color(0xFF0D47A1),
+                                              size: 24,
+                                            ),
+                                            onPressed: () async {
+                                              final currentZoom =
+                                                  await _mapController
+                                                      ?.getZoomLevel() ??
+                                                  13;
+                                              _mapController?.animateCamera(
+                                                CameraUpdate.zoomTo(
+                                                  currentZoom - 1,
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Recenter Button
+                                  if (_locationPermissionGranted)
+                                    Positioned(
+                                      bottom: 10,
+                                      right: 10,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(
+                                                0.1,
+                                              ),
+                                              blurRadius: 4,
+                                            ),
+                                          ],
+                                        ),
+                                        child: IconButton(
+                                          icon: const Icon(
+                                            Icons.my_location,
+                                            color: Color(0xFF0D47A1),
+                                            size: 24,
+                                          ),
+                                          onPressed: () async {
+                                            if (!_locationPermissionGranted) {
+                                              await _getCurrentLocation();
+                                            } else {
+                                              _mapController?.animateCamera(
+                                                CameraUpdate.newLatLngZoom(
+                                                  _currentPosition,
+                                                  14,
+                                                ),
+                                              );
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                       ),
                     ),
                     const SizedBox(height: 25),
@@ -300,7 +891,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            "Nearby Doctors",
+                            "Nearby Doctors ",
                             style: TextStyle(
                               fontSize: 19,
                               fontWeight: FontWeight.bold,
@@ -332,26 +923,54 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                       builder: (context, doctorProvider, child) {
                         if (doctorProvider.isLoading) {
                           return const Center(
-                            child: CircularProgressIndicator(),
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: CircularProgressIndicator(),
+                            ),
                           );
                         }
 
                         if (doctorProvider.error != null) {
                           return Center(
-                            child: Text('Error: ${doctorProvider.error}'),
+                            child: Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: Text('Error: ${doctorProvider.error}'),
+                            ),
                           );
                         }
 
-                        if (doctorProvider.nearbyDoctors.isEmpty) {
+                        // Filter doctors within 20km
+                        final nearbyDoctors = doctorProvider.nearbyDoctors
+                            .where((doctor) {
+                              if (doctor.latitude != null &&
+                                  doctor.longitude != null) {
+                                final doctorLocation = LatLng(
+                                  doctor.latitude!,
+                                  doctor.longitude!,
+                                );
+                                final distance = _calculateDistanceInKm(
+                                  _currentPosition,
+                                  doctorLocation,
+                                );
+                                return distance <= 20;
+                              }
+                              return true; // Include doctors without location
+                            })
+                            .toList();
+
+                        if (nearbyDoctors.isEmpty) {
                           return const Center(
-                            child: Text('No nearby doctors found'),
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: Text('No doctors found within 20km'),
+                            ),
                           );
                         }
 
                         return ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: doctorProvider.nearbyDoctors.length,
+                          itemCount: nearbyDoctors.length,
                           itemBuilder: (context, index) {
                             return Padding(
                               padding: const EdgeInsets.only(
@@ -360,7 +979,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                                 right: 20,
                               ),
                               child: _buildCustomDoctorCard(
-                                doctorProvider.nearbyDoctors[index],
+                                nearbyDoctors[index],
                               ),
                             );
                           },
@@ -385,27 +1004,71 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     );
   }
 
-  // ✅ Profile Avatar Builder
+  Widget _buildLegendItem(Color color, String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Container(
+            width: 20,
+            height: 3,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildProfileAvatar(String? imageUrl) {
     if (imageUrl != null &&
         imageUrl.isNotEmpty &&
         (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
-      return CircleAvatar(
-        radius: 25,
-        backgroundImage: NetworkImage(imageUrl),
-        onBackgroundImageError: (exception, stackTrace) {},
-        child: null,
+      return GestureDetector(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const PatientProfileScreen()),
+        ),
+        child: CircleAvatar(
+          radius: 25,
+          backgroundImage: NetworkImage(imageUrl),
+          onBackgroundImageError: (exception, stackTrace) {},
+          child: null,
+        ),
       );
     }
 
-    return const CircleAvatar(
-      radius: 25,
-      backgroundImage: AssetImage('assets/images/profile.png'),
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PatientProfileScreen()),
+      ),
+      child: const CircleAvatar(
+        radius: 25,
+        backgroundImage: AssetImage('assets/images/profile.png'),
+      ),
     );
   }
 
-  // ✅ Fixed Doctor Card
   Widget _buildCustomDoctorCard(Doctor doctor) {
+    // Calculate distance and get color
+    Color distanceColor = Colors.grey;
+    if (doctor.latitude != null && doctor.longitude != null) {
+      final doctorLocation = LatLng(doctor.latitude!, doctor.longitude!);
+      final distanceKm = _calculateDistanceInKm(
+        _currentPosition,
+        doctorLocation,
+      );
+      distanceColor = _getRouteColor(distanceKm);
+    }
+
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
@@ -486,14 +1149,59 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(width: 15),
-                        const Icon(
-                          Icons.location_on,
-                          size: 16,
-                          color: Colors.grey,
-                        ),
-                        Text(
-                          ' ${doctor.distance}',
-                          style: const TextStyle(color: Colors.grey),
+                        Icon(Icons.location_on, size: 16, color: distanceColor),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child:
+                              doctor.latitude != null &&
+                                  doctor.longitude != null
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          _calculateDistance(doctor),
+                                          style: TextStyle(
+                                            color: distanceColor,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        Text(
+                                          ' from you',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    if (doctor.location.isNotEmpty &&
+                                        doctor.location != 'N/A')
+                                      Text(
+                                        doctor.location,
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 10,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                  ],
+                                )
+                              : Text(
+                                  doctor.location.isNotEmpty &&
+                                          doctor.location != 'N/A'
+                                      ? doctor.location
+                                      : 'Location not set',
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
                         ),
                       ],
                     ),
@@ -530,12 +1238,26 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               ),
               const SizedBox(width: 10),
               GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => DoctorDetailsScreen(doctor: doctor),
-                  ),
-                ),
+                onTap: () {
+                  if (doctor.latitude != null && doctor.longitude != null) {
+                    final doctorLocation = LatLng(
+                      doctor.latitude!,
+                      doctor.longitude!,
+                    );
+                    final distance = _calculateDistanceInKm(
+                      _currentPosition,
+                      doctorLocation,
+                    );
+                    _showDoctorRoute(doctor.id, doctorLocation, distance);
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => DoctorDetailsScreen(doctor: doctor),
+                      ),
+                    );
+                  }
+                },
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -555,7 +1277,6 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     );
   }
 
-  // ✅ Safe Doctor Image Builder
   Widget _buildDoctorImage(String? imageUrl) {
     if (imageUrl != null &&
         imageUrl.isNotEmpty &&

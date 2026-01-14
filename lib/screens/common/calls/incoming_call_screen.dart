@@ -26,26 +26,20 @@ class IncomingCallScreen extends StatefulWidget {
 class _IncomingCallScreenState extends State<IncomingCallScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
-  bool _isAccepting = false;
 
   @override
   void initState() {
     super.initState();
 
     _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(seconds: 1),
       vsync: this,
     )..repeat(reverse: true);
 
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-
-    _setupSocketListener();
+    _setupCallEndListener();
   }
 
-  void _setupSocketListener() {
+  void _setupCallEndListener() {
     final socket = SocketService.instance.socket;
     if (socket != null) {
       socket.on('call:ended', (data) {
@@ -364,10 +358,10 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
