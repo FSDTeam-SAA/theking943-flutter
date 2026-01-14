@@ -1,5 +1,6 @@
 import 'package:docmobi/screens/profile/select_profile_screen.dart';
 import 'package:docmobi/services/socket_service.dart';
+import 'package:docmobi/providers/notification_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart';
 import 'package:docmobi/screens/doctor/navigation/doctor_main_navigation.dart';
@@ -9,6 +10,7 @@ import 'package:docmobi/widgets/custom_button.dart';
 import 'package:docmobi/widgets/custom_text_field.dart';
 import 'package:docmobi/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // ✅ Changed from auth_service to api_service
+import 'package:provider/provider.dart';
 
 class SignInScreen extends StatefulWidget {
   final String userType;
@@ -26,6 +28,21 @@ class _SignInScreenState extends State<SignInScreen> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
+  NotificationProvider? _notificationProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize notification provider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _notificationProvider = Provider.of<NotificationProvider>(
+          context,
+          listen: false,
+        );
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -36,12 +53,12 @@ class _SignInScreenState extends State<SignInScreen> {
 
   void _handleSignIn() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() => _isLoading = true);
 
     try {
       print('🔄 Starting login process...');
-      
+
       // ✅ Use ApiService.login() instead of AuthService.login()
       final result = await ApiService.login(
         email: _emailController.text.trim(),
@@ -56,27 +73,32 @@ class _SignInScreenState extends State<SignInScreen> {
       if (result['success'] == true) {
         // ✅ Get role from response
         final userData = result['data'];
-        final userRole = userData?['user']?['role']?.toString().toLowerCase() ?? 
-                        userData?['role']?.toString().toLowerCase();
-        final userName = userData?['user']?['fullName'] ?? 
-                        userData?['fullName'] ?? 
-                        'User';
+        final userRole =
+            userData?['user']?['role']?.toString().toLowerCase() ??
+            userData?['role']?.toString().toLowerCase();
+        final userName =
+            userData?['user']?['fullName'] ?? userData?['fullName'] ?? 'User';
 
+        // ✅ ADD THIS SECTION:
+        final userId =
+            userData?['user']?['_id']?.toString() ??
+            userData?['_id']?.toString();
 
-                        // ✅ ADD THIS SECTION:
-               final userId = userData?['user']?['_id']?.toString() ?? 
-                userData?['_id']?.toString();
+        if (userId != null) {
+          // Save user ID
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_id', userId);
 
+          // ✅ Connect socket
+          await SocketService.instance.connect(userId);
+          print('✅ Socket connected after login');
 
-                if (userId != null) {
-    // Save user ID
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user_id', userId);
-    
-    // ✅ Connect socket
-    await SocketService.instance.connect(userId);
-    print('✅ Socket connected after login');
-  }
+          // ✅ Start notification polling
+          if (_notificationProvider != null) {
+            await _notificationProvider!.startPolling();
+            print('✅ Notification polling started after login');
+          }
+        }
 
         print('✅ Login successful - Role: $userRole');
         print('   Expected role: ${widget.userType.toLowerCase()}');
@@ -84,10 +106,10 @@ class _SignInScreenState extends State<SignInScreen> {
         // ✅ Check if role matches expected type
         if (userRole == widget.userType.toLowerCase()) {
           _showSnackBar('Welcome back, $userName!', isError: false);
-          
+
           // Small delay for better UX
           await Future.delayed(const Duration(milliseconds: 500));
-          
+
           if (!mounted) return;
 
           // ✅ Navigate based on actual role
@@ -137,15 +159,16 @@ class _SignInScreenState extends State<SignInScreen> {
       print('❌ Login error: $e');
       if (!mounted) return;
       setState(() => _isLoading = false);
-      
+
       String errorMessage = 'Connection error. ';
-      if (e.toString().contains('SocketException') || 
+      if (e.toString().contains('SocketException') ||
           e.toString().contains('Connection')) {
-        errorMessage += 'Please check if the server is running at http://localhost:5000';
+        errorMessage +=
+            'Please check if the server is running at http://localhost:5000';
       } else {
         errorMessage += e.toString();
       }
-      
+
       _showSnackBar(errorMessage, isError: true);
     }
   }
@@ -170,9 +193,7 @@ class _SignInScreenState extends State<SignInScreen> {
   void _handleBackPress() {
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(
-        builder: (context) => const SelectProfileScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const SelectProfileScreen()),
       (route) => false,
     );
   }
@@ -210,12 +231,11 @@ class _SignInScreenState extends State<SignInScreen> {
                       height: 200,
                       width: 200,
                       fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(
-                            Icons.medical_services,
-                            size: 100,
-                            color: Color(0xFF1664CD),
-                          ),
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.medical_services,
+                        size: 100,
+                        color: Color(0xFF1664CD),
+                      ),
                     ),
                   ),
 
@@ -236,7 +256,10 @@ class _SignInScreenState extends State<SignInScreen> {
                         const SizedBox(height: 8),
                         Text(
                           'Please Login to your Account as ${widget.userType}',
-                          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -330,10 +353,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             color: Color(0xFF1664CD),
                           ),
                         )
-                      : CustomButton(
-                          text: 'Sign in',
-                          onPressed: _handleSignIn,
-                        ),
+                      : CustomButton(text: 'Sign in', onPressed: _handleSignIn),
 
                   const SizedBox(height: 30),
 
@@ -347,9 +367,8 @@ class _SignInScreenState extends State<SignInScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => SignUpScreen(
-                                userType: widget.userType,
-                              ),
+                              builder: (context) =>
+                                  SignUpScreen(userType: widget.userType),
                             ),
                           );
                         },

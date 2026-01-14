@@ -7,6 +7,7 @@ import 'package:docmobi/models/doctor_model.dart';
 import 'package:docmobi/providers/doctor_provider.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
 import 'package:docmobi/providers/user_provider.dart';
+import 'package:docmobi/providers/notification_provider.dart';
 import 'package:docmobi/screens/patient/home/see_all_doctors_screen.dart';
 import 'package:docmobi/screens/patient/doctor/doctor_detail_screen.dart';
 import 'package:docmobi/screens/patient/doctor/book_appointment_screen.dart';
@@ -77,16 +78,11 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
+                          // Line 85-118 replace করো এই code দিয়ে
                           Row(
                             children: [
-                              GestureDetector(
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const PatientProfileScreen(),
-                                  ),
-                                ),
-                                child: _buildProfileAvatar(userProvider.user?.profileImage),
+                              _buildProfileAvatar(
+                                userProvider.user?.profileImage,
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -103,12 +99,20 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                                     ),
                                     Row(
                                       children: [
-                                        const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                                        const Icon(
+                                          Icons.location_on,
+                                          size: 16,
+                                          color: Colors.grey,
+                                        ),
                                         const SizedBox(width: 4),
                                         Expanded(
                                           child: Text(
-                                            userProvider.user?.address ?? 'Location not set',
-                                            style: const TextStyle(fontSize: 14, color: Colors.grey),
+                                            userProvider.user?.address ??
+                                                'Location not set',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey,
+                                            ),
                                             overflow: TextOverflow.ellipsis,
                                             maxLines: 1,
                                           ),
@@ -121,7 +125,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                               GestureDetector(
                                 onTap: () => Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (_) => const NotificationScreen()),
+                                  MaterialPageRoute(
+                                    builder: (_) => const NotificationScreen(),
+                                  ),
                                 ),
                                 child: Container(
                                   padding: const EdgeInsets.all(8),
@@ -130,15 +136,48 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                                     borderRadius: BorderRadius.circular(12),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.05),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.05,
+                                        ),
                                         blurRadius: 10,
                                       ),
                                     ],
                                   ),
-                                  child: const Icon(
-                                    Icons.notifications_none_rounded,
-                                    size: 28,
-                                    color: Colors.black87,
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      const Icon(
+                                        Icons.notifications_none_rounded,
+                                        size: 28,
+                                        color: Colors.black87,
+                                      ),
+                                      ValueListenableBuilder<int>(
+                                        valueListenable: context
+                                            .read<NotificationProvider>()
+                                            .generalUnreadCount,
+                                        builder: (context, count, child) {
+                                          if (count == 0) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          return Positioned(
+                                            top: 0,
+                                            right: 0,
+                                            child: Container(
+                                              width: 10,
+                                              height: 10,
+                                              decoration: BoxDecoration(
+                                                color: Colors.red,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: Colors.white,
+                                                  width: 2,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -149,15 +188,22 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.black.withOpacity(0.1)),
+                              border: Border.all(
+                                color: Colors.black.withValues(alpha: 0.1),
+                              ),
                             ),
                             child: TextField(
                               controller: _searchController,
                               decoration: const InputDecoration(
                                 hintText: 'Search Doctor...',
-                                prefixIcon: Icon(Icons.search, color: Colors.grey),
+                                prefixIcon: Icon(
+                                  Icons.search,
+                                  color: Colors.grey,
+                                ),
                                 border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(vertical: 15),
+                                contentPadding: EdgeInsets.symmetric(
+                                  vertical: 15,
+                                ),
                               ),
                             ),
                           ),
@@ -185,18 +231,24 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                         final now = DateTime.now();
                         final today = DateTime(now.year, now.month, now.day);
 
-                        final upcoming = aptProvider.upcomingAppointments.where((a) {
-                          final appointmentDay = DateTime(
-                            a.appointmentDate.year,
-                            a.appointmentDate.month,
-                            a.appointmentDate.day,
-                          );
-                          return appointmentDay.isAtSameMomentAs(today) ||
-                              appointmentDay.isAfter(today);
-                        }).toList()
-                          ..sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+                        final upcoming =
+                            aptProvider.upcomingAppointments.where((a) {
+                              final appointmentDay = DateTime(
+                                a.appointmentDate.year,
+                                a.appointmentDate.month,
+                                a.appointmentDate.day,
+                              );
+                              return appointmentDay.isAtSameMomentAs(today) ||
+                                  appointmentDay.isAfter(today);
+                            }).toList()..sort(
+                              (a, b) => a.appointmentDate.compareTo(
+                                b.appointmentDate,
+                              ),
+                            );
 
-                        if (upcoming.isEmpty) return const SizedBox.shrink();
+                        if (upcoming.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
 
                         return Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -212,7 +264,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                                 ),
                               ),
                               const SizedBox(height: 15),
-                              UpcomingAppointmentCard(appointment: upcoming.first),
+                              UpcomingAppointmentCard(
+                                appointment: upcoming.first,
+                              ),
                               const SizedBox(height: 25),
                             ],
                           ),
@@ -237,11 +291,16 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                           TextButton(
                             onPressed: () => Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const SeeAllDoctorsScreen()),
+                              MaterialPageRoute(
+                                builder: (_) => const SeeAllDoctorsScreen(),
+                              ),
                             ),
                             child: const Text(
                               'See All',
-                              style: TextStyle(color: Colors.grey, fontSize: 14),
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
                         ],
@@ -253,15 +312,21 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     Consumer<DoctorProvider>(
                       builder: (context, doctorProvider, child) {
                         if (doctorProvider.isLoading) {
-                          return const Center(child: CircularProgressIndicator());
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
                         }
 
                         if (doctorProvider.error != null) {
-                          return Center(child: Text('Error: ${doctorProvider.error}'));
+                          return Center(
+                            child: Text('Error: ${doctorProvider.error}'),
+                          );
                         }
 
                         if (doctorProvider.nearbyDoctors.isEmpty) {
-                          return const Center(child: Text('No nearby doctors found'));
+                          return const Center(
+                            child: Text('No nearby doctors found'),
+                          );
                         }
 
                         return ListView.builder(
@@ -326,12 +391,13 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.blue.withOpacity(0.1)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.02),
             blurRadius: 10,
-            offset: const Offset(0, 5),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -391,13 +457,21 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Icon(Icons.star, size: 16, color: Colors.orangeAccent),
+                        const Icon(
+                          Icons.star,
+                          size: 16,
+                          color: Colors.orangeAccent,
+                        ),
                         Text(
                           ' ${doctor.rating}',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(width: 15),
-                        const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                        const Icon(
+                          Icons.location_on,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
                         Text(
                           ' ${doctor.distance}',
                           style: const TextStyle(color: Colors.grey),

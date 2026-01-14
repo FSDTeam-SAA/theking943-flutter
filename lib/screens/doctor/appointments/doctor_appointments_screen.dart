@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:docmobi/models/appointment_model.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
+import 'package:docmobi/providers/notification_provider.dart';
 import 'package:docmobi/screens/doctor/appointments/session_holder_screen.dart';
 import 'package:docmobi/utils/api_config.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -105,9 +106,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
               ),
 
               // Content
-              Expanded(
-                child: _buildContent(provider),
-              ),
+              Expanded(child: _buildContent(provider)),
             ],
           );
         },
@@ -220,10 +219,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-          )
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -232,11 +228,12 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
             children: [
               CircleAvatar(
                 radius: 30,
-                backgroundImage: appointment.patientImage != null &&
+                backgroundImage:
+                    appointment.patientImage != null &&
                         appointment.patientImage!.isNotEmpty
                     ? NetworkImage(appointment.patientImage!)
                     : const AssetImage('assets/images/doctor_booking.png')
-                        as ImageProvider,
+                          as ImageProvider,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -262,15 +259,23 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                         ),
                       ],
                     ),
-                    
-                    if (appointment.bookedFor != null && appointment.bookedFor!.type == 'dependent') ...[
+
+                    // ✅ FIXED: Changed isDependent to type == 'dependent' and displayText to bookingLabel
+                    if (appointment.bookedFor != null &&
+                        appointment.bookedFor!.type == 'dependent') ...[
                       const SizedBox(height: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFE8F5E9),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFF4CAF50), width: 1),
+                          border: Border.all(
+                            color: const Color(0xFF4CAF50),
+                            width: 1,
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -322,7 +327,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
               ],
             ),
           ),
-          
+
           // ✅ NEW: See Details Button
           const SizedBox(height: 12),
           GestureDetector(
@@ -332,7 +337,9 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFFF0F7FF),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF1664CD).withOpacity(0.3)),
+                border: Border.all(
+                  color: const Color(0xFF1664CD).withOpacity(0.3),
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -355,7 +362,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 15),
           Row(
             children: [
@@ -395,7 +402,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -404,11 +411,12 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
             children: [
               CircleAvatar(
                 radius: 30,
-                backgroundImage: appointment.patientImage != null &&
+                backgroundImage:
+                    appointment.patientImage != null &&
                         appointment.patientImage!.isNotEmpty
                     ? NetworkImage(appointment.patientImage!)
                     : const AssetImage('assets/images/doctor_booking.png')
-                        as ImageProvider,
+                          as ImageProvider,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -422,15 +430,23 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    
-                    if (appointment.bookedFor != null && appointment.bookedFor!.type == 'dependent') ...[
+
+                    // ✅ FIXED: Changed isDependent to type == 'dependent' and displayText to bookingLabel
+                    if (appointment.bookedFor != null &&
+                        appointment.bookedFor!.type == 'dependent') ...[
                       const SizedBox(height: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFE8F5E9),
                           borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: const Color(0xFF4CAF50), width: 1),
+                          border: Border.all(
+                            color: const Color(0xFF4CAF50),
+                            width: 1,
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -453,7 +469,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                         ),
                       ),
                     ],
-                    
+
                     const SizedBox(height: 5),
                     Wrap(
                       spacing: 8,
@@ -480,7 +496,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
               ),
             ],
           ),
-          
+
           // ✅ NEW: See Details Button
           const SizedBox(height: 12),
           GestureDetector(
@@ -490,7 +506,9 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFFF0F7FF),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF1664CD).withOpacity(0.3)),
+                border: Border.all(
+                  color: const Color(0xFF1664CD).withOpacity(0.3),
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -513,7 +531,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 15),
           Row(
             children: [
@@ -551,18 +569,19 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
         ],
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 30,
-            backgroundImage: appointment.patientImage != null &&
+            backgroundImage:
+                appointment.patientImage != null &&
                     appointment.patientImage!.isNotEmpty
                 ? NetworkImage(appointment.patientImage!)
                 : const AssetImage('assets/images/doctor_booking.png')
-                    as ImageProvider,
+                      as ImageProvider,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -588,15 +607,23 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                     ),
                   ],
                 ),
-                
-                if (appointment.bookedFor != null && appointment.bookedFor!.type == 'dependent') ...[
+
+                // ✅ FIXED: Changed isDependent to type == 'dependent' and displayText to bookingLabel
+                if (appointment.bookedFor != null &&
+                    appointment.bookedFor!.type == 'dependent') ...[
                   const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFE8F5E9),
                       borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFF4CAF50), width: 0.8),
+                      border: Border.all(
+                        color: const Color(0xFF4CAF50),
+                        width: 0.8,
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -619,7 +646,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                     ),
                   ),
                 ],
-                
+
                 const SizedBox(height: 5),
                 Wrap(
                   spacing: 10,
@@ -656,7 +683,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
     print('📋 Appointment Type: ${appointment.appointmentType}');
     print('📄 Medical Documents: ${appointment.medicalDocuments}');
     print('💳 Payment Screenshot: ${appointment.paymentScreenshot}');
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -682,10 +709,13 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              
+
               // Header
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 child: Row(
                   children: [
                     const Icon(Icons.info_outline, color: Color(0xFF1664CD)),
@@ -705,9 +735,9 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                   ],
                 ),
               ),
-              
+
               const Divider(height: 1),
-              
+
               // Content
               Expanded(
                 child: ListView(
@@ -728,7 +758,8 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          if (appointment.bookedFor != null && appointment.bookedFor!.type == 'dependent')
+                          if (appointment.bookedFor != null &&
+                              appointment.bookedFor!.type == 'dependent')
                             Text(
                               'Booked for: ${appointment.bookedFor!.bookingLabel}',
                               style: TextStyle(
@@ -739,34 +770,38 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Symptoms Section
                     _detailSection(
                       icon: Icons.medical_information_outlined,
                       title: 'Symptoms',
                       child: Text(
-                        appointment.symptoms != null && appointment.symptoms!.isNotEmpty
+                        appointment.symptoms != null &&
+                                appointment.symptoms!.isNotEmpty
                             ? appointment.symptoms!
                             : 'No symptoms provided',
                         style: TextStyle(
                           fontSize: 14,
-                          color: appointment.symptoms != null && appointment.symptoms!.isNotEmpty
+                          color:
+                              appointment.symptoms != null &&
+                                  appointment.symptoms!.isNotEmpty
                               ? Colors.black87
                               : Colors.grey,
                           height: 1.5,
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Medical Documents Section
                     _detailSection(
                       icon: Icons.attachment,
                       title: 'Medical Documents',
-                      child: appointment.medicalDocuments != null && 
+                      child:
+                          appointment.medicalDocuments != null &&
                               appointment.medicalDocuments!.isNotEmpty
                           ? Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -779,59 +814,63 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 10),
-                                ...appointment.medicalDocuments!.map(
-                                  (doc) {
-                                    // ✅ FIXED: Extract clean filename from URL
-                                    String displayName = doc.split('/').last;
-                                    if (displayName.contains('{public_id:')) {
-                                      final match = RegExp(r'([^/]+)\.(jpg|jpeg|png|pdf|gif)', caseSensitive: false)
-                                          .firstMatch(doc);
-                                      if (match != null) {
-                                        displayName = match.group(0)!;
-                                      }
+                                ...appointment.medicalDocuments!.map((doc) {
+                                  // ✅ FIXED: Extract clean filename from URL
+                                  String displayName = doc.split('/').last;
+                                  if (displayName.contains('{public_id:')) {
+                                    final match = RegExp(
+                                      r'([^/]+)\.(jpg|jpeg|png|pdf|gif)',
+                                      caseSensitive: false,
+                                    ).firstMatch(doc);
+                                    if (match != null) {
+                                      displayName = match.group(0)!;
                                     }
-                                    
-                                    return Container(
-                                      margin: const EdgeInsets.only(bottom: 8),
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF0F7FF),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: const Color(0xFF1664CD).withOpacity(0.2),
-                                        ),
+                                  }
+
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF0F7FF),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: const Color(
+                                          0xFF1664CD,
+                                        ).withOpacity(0.2),
                                       ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.insert_drive_file,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.insert_drive_file,
+                                          color: Color(0xFF1664CD),
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            displayName,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.visibility,
                                             color: Color(0xFF1664CD),
                                             size: 20,
                                           ),
-                                          const SizedBox(width: 10),
-                                          Expanded(
-                                            child: Text(
-                                              displayName,
-                                              style: const TextStyle(fontSize: 13),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.visibility,
-                                              color: Color(0xFF1664CD),
-                                              size: 20,
-                                            ),
-                                            onPressed: () {
-                                              // ✅ FIXED: Pass the original doc URL
-                                              _viewDocument(doc);
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
+                                          onPressed: () {
+                                            // ✅ FIXED: Pass the original doc URL
+                                            _viewDocument(doc);
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }),
                               ],
                             )
                           : const Text(
@@ -842,25 +881,30 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                               ),
                             ),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Payment Screenshot (if video call)
                     if (appointment.appointmentType?.toLowerCase() == "video")
                       _detailSection(
                         icon: Icons.payment,
                         title: 'Payment Screenshot',
-                        child: appointment.paymentScreenshot != null && 
+                        child:
+                            appointment.paymentScreenshot != null &&
                                 appointment.paymentScreenshot!.isNotEmpty
                             ? GestureDetector(
-                                onTap: () => _viewDocument(appointment.paymentScreenshot!),
+                                onTap: () => _viewDocument(
+                                  appointment.paymentScreenshot!,
+                                ),
                                 child: Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFF0F7FF),
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: const Color(0xFF1664CD).withOpacity(0.2),
+                                      color: const Color(
+                                        0xFF1664CD,
+                                      ).withOpacity(0.2),
                                     ),
                                   ),
                                   child: Row(
@@ -947,21 +991,21 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      ),
+      builder: (context) =>
+          const Center(child: CircularProgressIndicator(color: Colors.white)),
     );
 
     try {
       // ✅ FIXED: Clean and fix URL format
       String cleanUrl = url.trim();
-      
+
       print('📥 Original URL: $cleanUrl'); // Debug
-      
+
       // ✅ NEW: Extract Cloudinary URL if it exists
       if (cleanUrl.contains('https://res.cloudinary.com')) {
-        final cloudinaryMatch = RegExp(r'https://res\.cloudinary\.com[^\s,}]+')
-            .firstMatch(cleanUrl);
+        final cloudinaryMatch = RegExp(
+          r'https://res\.cloudinary\.com[^\s,}]+',
+        ).firstMatch(cleanUrl);
         if (cloudinaryMatch != null) {
           cleanUrl = cloudinaryMatch.group(0)!;
           print('☁️ Found Cloudinary URL: $cleanUrl');
@@ -987,14 +1031,15 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
         }
         print('🔧 Added base URL: $cleanUrl');
       }
-      
+
       // URL decode if needed
       cleanUrl = Uri.decodeFull(cleanUrl);
-      
+
       print('🔗 Final URL: $cleanUrl'); // Debug log
 
       // Check if it's an image or PDF
-      final isImage = cleanUrl.toLowerCase().endsWith('.jpg') ||
+      final isImage =
+          cleanUrl.toLowerCase().endsWith('.jpg') ||
           cleanUrl.toLowerCase().endsWith('.jpeg') ||
           cleanUrl.toLowerCase().endsWith('.png') ||
           cleanUrl.toLowerCase().endsWith('.gif');
@@ -1014,7 +1059,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
         final uri = Uri.parse(cleanUrl);
         // You can use url_launcher package here
         await launchUrl(uri, mode: LaunchMode.externalApplication);
-        
+
         // For now, show URL in a dialog
         showDialog(
           context: context,
@@ -1050,11 +1095,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
       ),
       child: Text(
         text,
-        style: TextStyle(
-          color: txt,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(color: txt, fontSize: 10, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -1065,10 +1106,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
       children: [
         Icon(icon, size: 14, color: Colors.grey[600]),
         const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(fontSize: 11, color: Colors.grey[700]),
-        ),
+        Text(text, style: TextStyle(fontSize: 11, color: Colors.grey[700])),
       ],
     );
   }
@@ -1079,18 +1117,12 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
       style: ElevatedButton.styleFrom(
         backgroundColor: bg,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         padding: const EdgeInsets.symmetric(vertical: 12),
       ),
       child: Text(
         label,
-        style: TextStyle(
-          color: txt,
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
-        ),
+        style: TextStyle(color: txt, fontWeight: FontWeight.bold, fontSize: 14),
       ),
     );
   }
@@ -1102,21 +1134,38 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
-    final success = await provider.acceptAppointment(appointmentId);
+    try {
+      final success = await provider.acceptAppointment(appointmentId);
 
-    if (mounted) {
-      Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context); // Dismiss loading
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success
-                ? 'Appointment accepted successfully'
-                : 'Failed to accept appointment',
+        if (success) {
+          context.read<NotificationProvider>().addNotification(
+            title: 'Appointment Accepted',
+            message: 'You have accepted the appointment request.',
+            type: 'appointment_accepted',
+          );
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Appointment accepted successfully'
+                  : 'Failed to accept appointment',
+            ),
+            backgroundColor: success ? Colors.green : Colors.red,
           ),
-          backgroundColor: success ? Colors.green : Colors.red,
-        ),
-      );
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Ensure loading is dismissed on error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -1125,7 +1174,9 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cancel Appointment'),
-        content: const Text('Are you sure you want to cancel this appointment?'),
+        content: const Text(
+          'Are you sure you want to cancel this appointment?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -1142,21 +1193,43 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                     const Center(child: CircularProgressIndicator()),
               );
 
-              final success = await provider.cancelAppointment(appointmentId);
+              try {
+                final success = await provider.cancelAppointment(appointmentId);
 
-              if (mounted) {
-                Navigator.pop(context);
+                if (mounted) {
+                  Navigator.pop(context); // Dismiss loading
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success
-                          ? 'Appointment cancelled'
-                          : 'Failed to cancel appointment',
+                  if (success) {
+                    context.read<NotificationProvider>().addNotification(
+                      title: 'Appointment Cancelled',
+                      message: 'You have cancelled the appointment.',
+                      type: 'appointment_cancel',
+                    );
+                  }
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        success
+                            ? 'Appointment cancelled'
+                            : 'Failed to cancel appointment',
+                      ),
+                      backgroundColor: success ? Colors.orange : Colors.red,
                     ),
-                    backgroundColor: success ? Colors.orange : Colors.red,
-                  ),
-                );
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  Navigator.pop(
+                    context,
+                  ); // Ensure loading is dismissed on error
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               }
             },
             child: const Text('Yes', style: TextStyle(color: Colors.red)),
@@ -1170,9 +1243,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SessionHolderScreen(
-          appointment: appointment,
-        ),
+        builder: (context) => SessionHolderScreen(appointment: appointment),
       ),
     ).then((result) {
       if (result == true) {
@@ -1193,9 +1264,9 @@ class _ImageViewerScreen extends StatefulWidget {
 }
 
 class _ImageViewerScreenState extends State<_ImageViewerScreen> {
-  final TransformationController _transformationController = 
+  final TransformationController _transformationController =
       TransformationController();
-  
+
   @override
   void dispose() {
     _transformationController.dispose();
@@ -1249,7 +1320,7 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
                         CircularProgressIndicator(
                           value: loadingProgress.expectedTotalBytes != null
                               ? loadingProgress.cumulativeBytesLoaded /
-                                  loadingProgress.expectedTotalBytes!
+                                    loadingProgress.expectedTotalBytes!
                               : null,
                           color: Colors.white,
                         ),
@@ -1296,7 +1367,7 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
               ),
             ),
           ),
-          
+
           // ✅ Zoom Instructions (shows temporarily)
           Positioned(
             bottom: 30,
@@ -1319,10 +1390,7 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
                     const SizedBox(width: 8),
                     Text(
                       'Pinch to zoom • Drag to pan',
-                      style: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.grey[400], fontSize: 12),
                     ),
                   ],
                 ),

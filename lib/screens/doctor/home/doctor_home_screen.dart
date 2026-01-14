@@ -1,3 +1,4 @@
+import 'package:docmobi/screens/doctor/home/notifications/notifications.dart';
 import 'package:docmobi/screens/doctor/messages/messages_list_screen.dart';
 import 'package:docmobi/screens/doctor/posts/doctor_create_post_screen.dart';
 import 'package:docmobi/screens/doctor/profile/doctor_profile_screen.dart';
@@ -10,6 +11,7 @@ import 'package:docmobi/models/post_model.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/user_provider.dart';
 import 'dart:async';
+import '../../../providers/notification_provider.dart';
 
 class DoctorHomeScreen extends StatefulWidget {
   const DoctorHomeScreen({super.key});
@@ -23,7 +25,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _searchFocusNode = FocusNode();
-  
+
   List<PostModel> _posts = [];
   List<PostModel> _searchResults = [];
   List<Map<String, dynamic>> _searchSuggestions = [];
@@ -34,7 +36,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   bool _hasMore = true;
   Timer? _debounce;
   String _currentSearchQuery = '';
-  
+
   // For suggestion selection tracking
   int _selectedSuggestionIndex = -1;
 
@@ -68,9 +70,9 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   // ✅ ENHANCED: Search debounce with minimum 1 character
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
-    
+
     final query = _searchController.text.trim();
-    
+
     // Clear results if query is empty
     if (query.isEmpty) {
       setState(() {
@@ -121,7 +123,9 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
           _isSearchLoading = false;
         });
 
-        print('🔍 Search complete: ${_searchResults.length} posts, ${_searchSuggestions.length} suggestions');
+        print(
+          '🔍 Search complete: ${_searchResults.length} posts, ${_searchSuggestions.length} suggestions',
+        );
       } else {
         setState(() {
           _searchResults.clear();
@@ -137,7 +141,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
         _searchResults.clear();
         _searchSuggestions.clear();
       });
-      
+
       // Show error snackbar
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -177,7 +181,8 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
               onPressed: () {
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(
-                    builder: (context) => const SignInScreen(userType: 'doctor'),
+                    builder: (context) =>
+                        const SignInScreen(userType: 'doctor'),
                   ),
                   (route) => false,
                 );
@@ -200,7 +205,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
 
   Future<void> _loadPosts() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -211,19 +216,20 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
         '/api/v1/posts/all-posts?page=$_currentPage&limit=20',
         requiresAuth: true,
       );
-      
+
       if (!mounted) return;
 
       if (result['success'] == true) {
         final postsData = result['data']?['items'] ?? [];
         final pagination = result['data']?['pagination'] ?? {};
-        
+
         setState(() {
           _posts = postsData
               .map<PostModel>((p) => PostModel.fromJson(p))
               .toList();
           _currentPage = 1;
-          _hasMore = (pagination['page'] * pagination['limit']) < pagination['total'];
+          _hasMore =
+              (pagination['page'] * pagination['limit']) < pagination['total'];
           _isLoading = false;
           _errorMessage = null;
         });
@@ -264,7 +270,8 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
             postsData.map<PostModel>((p) => PostModel.fromJson(p)).toList(),
           );
           _currentPage++;
-          _hasMore = (pagination['page'] * pagination['limit']) < pagination['total'];
+          _hasMore =
+              (pagination['page'] * pagination['limit']) < pagination['total'];
           _isLoading = false;
         });
       }
@@ -282,11 +289,9 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   void _navigateToCreatePost() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const DoctorCreatePostScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const DoctorCreatePostScreen()),
     );
-    
+
     if (result == true) {
       await _refreshData();
     }
@@ -295,9 +300,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   void _navigateToProfile() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const DoctorProfileScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const DoctorProfileScreen()),
     ).then((_) {
       context.read<UserProvider>().fetchUserProfile();
     });
@@ -333,10 +336,10 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   void _onSuggestionTap(Map<String, dynamic> suggestion) {
     final type = suggestion['type'];
     final data = suggestion['data'];
-    
+
     // Hide keyboard
     FocusScope.of(context).unfocus();
-    
+
     if (type == 'doctor') {
       // Show doctor details in bottom sheet
       _showDoctorInfo(data);
@@ -365,7 +368,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
               child: Consumer<UserProvider>(
                 builder: (context, userProvider, child) {
                   final user = userProvider.user;
-                  
+
                   return Container(
                     padding: const EdgeInsets.fromLTRB(20, 50, 20, 16),
                     decoration: BoxDecoration(
@@ -387,15 +390,18 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                               child: CircleAvatar(
                                 radius: 28,
                                 backgroundColor: Colors.white,
-                                backgroundImage: user?.profileImage != null && 
-                                                user!.profileImage!.isNotEmpty
+                                backgroundImage:
+                                    user?.profileImage != null &&
+                                        user!.profileImage!.isNotEmpty
                                     ? NetworkImage(user.profileImage!)
-                                    : const AssetImage('assets/images/doctor_booking.png') 
-                                        as ImageProvider,
+                                    : const AssetImage(
+                                            'assets/images/doctor_booking.png',
+                                          )
+                                          as ImageProvider,
                               ),
                             ),
                             const SizedBox(width: 15),
-                            
+
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -419,33 +425,65 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                                 ],
                               ),
                             ),
-                            
+
                             IconButton(
                               icon: Icon(
                                 _isSearching ? Icons.close : Icons.search,
-                                color: const Color(0xFF1B2C49), 
+                                color: const Color(0xFF1B2C49),
                                 size: 24,
                               ),
                               onPressed: _toggleSearch,
                             ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.notifications_outlined, 
-                                color: Color(0xFF1B2C49), 
-                                size: 24,
-                              ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const NotificationScreen(),
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.notifications_outlined,
+                                    color: Color(0xFF1B2C49),
+                                    size: 24,
                                   ),
-                                );
-                              },
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const DoctorNotificationScreen(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                ValueListenableBuilder<int>(
+                                  valueListenable: context
+                                      .read<NotificationProvider>()
+                                      .generalUnreadCount,
+                                  builder: (context, count, child) {
+                                    if (count == 0) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: Colors.white,
+                                            width: 2,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                        
+
                         // ✅ ENHANCED: Search bar with better UX
                         if (_isSearching) ...[
                           const SizedBox(height: 15),
@@ -465,7 +503,8 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                               autofocus: true,
                               style: const TextStyle(fontSize: 15),
                               decoration: InputDecoration(
-                                hintText: 'Search doctors, posts, specialties...',
+                                hintText:
+                                    'Search doctors, posts, specialties...',
                                 hintStyle: TextStyle(
                                   color: Colors.grey[400],
                                   fontSize: 14,
@@ -489,7 +528,8 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                                           ),
                                         ),
                                       ),
-                                    if (_searchController.text.isNotEmpty && !_isSearchLoading)
+                                    if (_searchController.text.isNotEmpty &&
+                                        !_isSearchLoading)
                                       IconButton(
                                         icon: const Icon(Icons.clear, size: 20),
                                         onPressed: () {
@@ -534,7 +574,9 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
             ),
 
             // ========== SEARCH SUGGESTIONS ==========
-            if (_isSearching && _searchSuggestions.isNotEmpty && _searchController.text.isNotEmpty)
+            if (_isSearching &&
+                _searchSuggestions.isNotEmpty &&
+                _searchController.text.isNotEmpty)
               SliverToBoxAdapter(
                 child: Container(
                   margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -589,33 +631,39 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                           final type = suggestion['type'];
                           final text = suggestion['text'] ?? '';
                           final subtext = suggestion['subtext'] ?? '';
-                          
+
                           IconData icon;
                           Color iconColor;
                           Color bgColor;
-                          
+
                           switch (type) {
                             case 'doctor':
                               icon = Icons.person;
                               iconColor = const Color(0xFF1664CD);
-                              bgColor = const Color(0xFF1664CD).withOpacity(0.1);
+                              bgColor = const Color(
+                                0xFF1664CD,
+                              ).withOpacity(0.1);
                               break;
                             case 'category':
                               icon = Icons.medical_services;
                               iconColor = const Color(0xFFFF9800);
-                              bgColor = const Color(0xFFFF9800).withOpacity(0.1);
+                              bgColor = const Color(
+                                0xFFFF9800,
+                              ).withOpacity(0.1);
                               break;
                             case 'post':
                               icon = Icons.article;
                               iconColor = const Color(0xFF4CAF50);
-                              bgColor = const Color(0xFF4CAF50).withOpacity(0.1);
+                              bgColor = const Color(
+                                0xFF4CAF50,
+                              ).withOpacity(0.1);
                               break;
                             default:
                               icon = Icons.search;
                               iconColor = Colors.grey;
                               bgColor = Colors.grey.withOpacity(0.1);
                           }
-                          
+
                           return InkWell(
                             onTap: () => _onSuggestionTap(suggestion),
                             child: Container(
@@ -640,7 +688,8 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           text,
@@ -682,9 +731,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
               ),
 
             // ========== MAIN CONTENT ==========
-            SliverToBoxAdapter(
-              child: _buildContent(),
-            ),
+            SliverToBoxAdapter(child: _buildContent()),
           ],
         ),
       ),
@@ -704,10 +751,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                 SizedBox(height: 16),
                 Text(
                   'Searching...',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
                 ),
               ],
             ),
@@ -745,10 +789,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
               Text(
                 'Find doctors, posts, or specialties',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
             ],
           ),
@@ -785,10 +826,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
               Text(
                 'Try searching with different keywords',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
             ],
           ),
@@ -803,11 +841,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(
               children: [
-                const Icon(
-                  Icons.article,
-                  size: 20,
-                  color: Color(0xFF1664CD),
-                ),
+                const Icon(Icons.article, size: 20, color: Color(0xFF1664CD)),
                 const SizedBox(width: 8),
                 Text(
                   'Posts (${_searchResults.length})',
@@ -883,7 +917,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
     return Column(
       children: [
         _buildCreatePostBox(),
-        
+
         if (_posts.isEmpty)
           const Padding(
             padding: EdgeInsets.all(32.0),
@@ -930,20 +964,20 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
     return Consumer<UserProvider>(
       builder: (context, userProvider, child) {
         final user = userProvider.user;
-        
+
         return Container(
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: Colors.blue.withOpacity(0.1)),
+            border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
+                color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
-              )
+              ),
             ],
           ),
           child: Column(
@@ -952,11 +986,12 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                 children: [
                   CircleAvatar(
                     radius: 20,
-                    backgroundImage: user?.profileImage != null && 
-                                   user!.profileImage!.isNotEmpty
+                    backgroundImage:
+                        user?.profileImage != null &&
+                            user!.profileImage!.isNotEmpty
                         ? NetworkImage(user.profileImage!)
-                        : const AssetImage('assets/images/doctor_booking.png') 
-                            as ImageProvider,
+                        : const AssetImage('assets/images/doctor_booking.png')
+                              as ImageProvider,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -964,7 +999,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                       onTap: _navigateToCreatePost,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 15, 
+                          horizontal: 15,
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
@@ -987,29 +1022,29 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _buildPostAction(
-                    Icons.image_outlined, 
-                    'Photo', 
-                    Colors.brown, 
+                    Icons.image_outlined,
+                    'Photo',
+                    Colors.brown,
                     _navigateToCreatePost,
                   ),
                   _buildPostAction(
-                    Icons.videocam_outlined, 
-                    'Video', 
-                    Colors.redAccent, 
+                    Icons.videocam_outlined,
+                    'Video',
+                    Colors.redAccent,
                     _navigateToCreatePost,
                   ),
                   _buildPostAction(
-                    Icons.play_circle_outline, 
-                    'Reels', 
-                    Colors.blueAccent, 
+                    Icons.play_circle_outline,
+                    'Reels',
+                    Colors.blueAccent,
                     _navigateToCreatePost,
                   ),
-                  
+
                   InkWell(
                     onTap: _navigateToCreatePost,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12, 
+                        horizontal: 12,
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
@@ -1036,9 +1071,9 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   }
 
   Widget _buildPostAction(
-    IconData icon, 
-    String label, 
-    Color color, 
+    IconData icon,
+    String label,
+    Color color,
     VoidCallback onTap,
   ) {
     return GestureDetector(
@@ -1048,7 +1083,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
           Icon(icon, color: color, size: 20),
           const SizedBox(width: 4),
           Text(
-            label, 
+            label,
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
           ),
         ],
@@ -1097,7 +1132,8 @@ class DoctorInfoBottomSheet extends StatelessWidget {
               radius: 50,
               backgroundImage: doctorImage != null
                   ? NetworkImage(doctorImage)
-                  : const AssetImage('assets/images/doctor.png') as ImageProvider,
+                  : const AssetImage('assets/images/doctor.png')
+                        as ImageProvider,
             ),
             const SizedBox(height: 16),
 
@@ -1112,12 +1148,10 @@ class DoctorInfoBottomSheet extends StatelessWidget {
             ),
             const SizedBox(height: 4),
 
+            // Specialty
             Text(
               specialty,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             ),
             const SizedBox(height: 8),
 
@@ -1151,10 +1185,7 @@ class DoctorInfoBottomSheet extends StatelessWidget {
                 ),
                 child: Text(
                   bio,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    height: 1.5,
-                  ),
+                  style: const TextStyle(fontSize: 14, height: 1.5),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -1200,19 +1231,15 @@ class DoctorInfoBottomSheet extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => DoctorMessagesScreen(
-                        initialDoctorId: doctorId,
-                      ),
+                      builder: (context) =>
+                          DoctorMessagesScreen(initialDoctorId: doctorId),
                     ),
                   );
                 },
                 icon: const Icon(Icons.message_outlined),
                 label: const Text(
                   'Message',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1664CD),
