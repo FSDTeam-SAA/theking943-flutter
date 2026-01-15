@@ -26,6 +26,8 @@ class IncomingCallScreen extends StatefulWidget {
 class _IncomingCallScreenState extends State<IncomingCallScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+  bool _isAccepting = false;
 
   @override
   void initState() {
@@ -35,6 +37,10 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
       duration: const Duration(seconds: 1),
       vsync: this,
     )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
 
     _setupCallEndListener();
   }
@@ -186,11 +192,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                 ),
               ),
             ),
-
             Column(
               children: [
                 const SizedBox(height: 60),
-
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
@@ -220,9 +224,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                     ],
                   ),
                 ),
-
                 const Spacer(),
-
                 ScaleTransition(
                   scale: _pulseAnimation,
                   child: Container(
@@ -253,9 +255,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 40),
-
                 Text(
                   widget.callerName,
                   style: const TextStyle(
@@ -265,9 +265,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                   ),
                   textAlign: TextAlign.center,
                 ),
-
                 const SizedBox(height: 10),
-
                 Text(
                   'Incoming ${widget.isVideoCall ? 'Video' : 'Audio'} Call...',
                   style: TextStyle(
@@ -275,9 +273,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                     fontSize: 18,
                   ),
                 ),
-
                 const Spacer(),
-
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 40,
@@ -316,7 +312,6 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                           ),
                         ],
                       ),
-
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -358,10 +353,10 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                       ),
                     ],
                   ),
-                ],
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

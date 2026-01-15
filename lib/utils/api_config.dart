@@ -1,19 +1,22 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+
 class ApiConfig {
   // ═══════════════════════════════════════════════════════════════
   // 🌐 SERVER URLS
   // ═══════════════════════════════════════════════════════════════
 
   /// Production URL (Render) - ALWAYS works
-  static const String prodUrl = 'https://docmobi-backend.onrender.com';
+  static const String prodUrl = 'https://thekingbackend.onrender.com';
 
   /// Development URLs
-  static const String localhostUrl = 'http://localhost:5000';
-  static const String androidEmulatorUrl = 'http://10.0.2.2:5000';
+  static const String localhostUrl = 'http://localhost:5005';
+  static const String androidEmulatorUrl = 'http://10.0.2.2:5005';
 
   /// Your computer's local IP (for physical device testing on same WiFi)
   /// Find using: ipconfig (Windows) or ifconfig (Mac/Linux)
-  /// Example: 'http://192.168.0.105:5000'
-  static const String localNetworkUrl = 'http://192.168.0.XXX:5000';
+  /// Example: 'http://192.168.0.105:5005'
+  static const String localNetworkUrl = 'http://192.168.0.XXX:5005';
 
   // ═══════════════════════════════════════════════════════════════
   // 🎯 ENVIRONMENT SELECTOR - CHANGE THIS TO SWITCH
@@ -31,19 +34,24 @@ class ApiConfig {
 
   /// Get base URL based on environment and platform
   static String get baseUrl {
-    // Default to Live Render Server
-    return 'https://thekingbackend.onrender.com';
-
-    /* 
-    // For Local Development (Debug Mode)
-    if (kReleaseMode) {
-      return 'https://thekingbackend.onrender.com';
-    } else {
-      // Web / Desktop fallback
-      return 'http://localhost:5000';
+    if (kReleaseMode || _currentMode == DevMode.production) {
+      return prodUrl;
     }
-    */
+
+    if (_currentMode == DevMode.network) {
+      return localNetworkUrl;
+    }
+
+    // Default to localhost/emulator
+    if (Platform.isAndroid) {
+      return androidEmulatorUrl;
+    } else {
+      return localhostUrl;
+    }
   }
+
+  /// Get Socket URL (WebSocket protocol)
+  static String get socketUrl => baseUrl;
 
   // ========== Auth Endpoints ==========
   static const String register = '/api/v1/auth/register';

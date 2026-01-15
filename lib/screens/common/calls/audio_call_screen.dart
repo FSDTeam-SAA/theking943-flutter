@@ -5,6 +5,7 @@ import 'dart:async';
 import '../../../services/api_service.dart';
 import '../../../services/socket_service.dart';
 import '../../../services/webrtc_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AudioCallScreen extends StatefulWidget {
   final String chatId;
@@ -37,7 +38,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
   final RTCVideoRenderer _localRenderer = RTCVideoRenderer();
   final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
 
-  String _callDuration = '00:00';
+  int _callDuration = 0;
   Timer? _timer;
   int _seconds = 0;
   String? _currentUserId;
@@ -106,8 +107,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
       await _localRenderer.initialize();
       await _remoteRenderer.initialize();
 
-      _webrtcService = WebRTCService(
-        socket: socket,
+      _webRTCService = WebRTCService(
         chatId: widget.chatId,
         isVideo: false,
         onRemoteStream: (stream) {
@@ -138,8 +138,8 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
       } else {
         print('📥 Waiting for offer as receiver...');
         // ✅ For receiver, sometimes the remote stream is already available
-        if (_webrtcService?.remoteStream != null && !_callConnected) {
-          _handleRemoteStream(_webrtcService!.remoteStream!);
+        if (_webRTCService?.remoteStream != null && !_callConnected) {
+          _handleRemoteStream(_webRTCService!.remoteStream!);
         }
       }
     } catch (e) {
@@ -191,7 +191,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
       print('📥 Received call:answer event');
       if (data['chatId'] == widget.chatId) {
         print('✅ Answer is for this chat, handling...');
-        await _webrtcService?.handleAnswer(data['answer']);
+        await _webRTCService?.handleAnswer(data['answer']);
 
         if (mounted) {
           setState(() {
@@ -209,7 +209,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
     socket.on('call:iceCandidate', (data) async {
       print('📥 Received ICE candidate');
       if (data['chatId'] == widget.chatId) {
-        await _webrtcService?.addIceCandidate(data['candidate']);
+        await _webRTCService?.addIceCandidate(data['candidate']);
       }
     });
 
@@ -258,10 +258,10 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
         print('✅ Call was accepted by receiver');
 
         // ✅ Initiator creates offer ONLY after receiver accepts
-        if (widget.isInitiator && _webrtcService != null) {
+        if (widget.isInitiator && _webRTCService != null) {
           print('📤 Receiver is ready. Creating offer in 1 second...');
           await Future.delayed(const Duration(milliseconds: 1000));
-          await _webrtcService!.createOffer(widget.otherUserId);
+          await _webRTCService!.createOffer(widget.otherUserId);
         }
       }
     });
@@ -340,7 +340,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
 
   void _endCall() {
     if (_isDisposed) return;
-    
+
     print('📴 Ending call...');
 
     _timer?.cancel();
@@ -361,13 +361,13 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
 
   void _toggleVideo() async {
     if (_localVideoEnabled) {
-      _webrtcService?.toggleVideo();
+      _webRTCService?.toggleVideo();
       setState(() {
         _localVideoEnabled = false;
       });
     } else {
       // ✅ Instead of immediate enable, send a request
-      _webrtcService?.requestSwitchToVideo();
+      _webRTCService?.requestSwitchToVideo();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Requesting switch to video...')),
       );
@@ -385,14 +385,14 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              _webrtcService?.respondToSwitchRequest(false);
+              _webRTCService?.respondToSwitchRequest(false);
             },
             child: const Text('Decline', style: TextStyle(color: Colors.red)),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _webrtcService?.respondToSwitchRequest(true);
+              _webRTCService?.respondToSwitchRequest(true);
               _performSwitchToVideo();
             },
             child: const Text('Accept'),
@@ -403,13 +403,19 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
   }
 
   void _performSwitchToVideo() async {
-    await _webrtcService?.enableVideo();
+    await _webRTCService?.enableVideo();
     if (mounted) {
       setState(() {
         _localVideoEnabled = true;
-        _localRenderer.srcObject = _webrtcService?.localStream;
+        _localRenderer.srcObject = _webRTCService?.localStream;
       });
     }
+  }
+
+  String _formatDuration(int seconds) {
+    final minutes = (seconds / 60).floor();
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
   void _showError(String message) {
@@ -432,7 +438,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
     WakelockPlus.disable();
     _timer?.cancel();
     _timer = null;
-    _webrtcService?.dispose();
+    _webRTCService?.dispose();
     _localRenderer.dispose();
     _remoteRenderer.dispose();
 
@@ -467,8 +473,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
               // User Avatar
               CircleAvatar(
                 radius: 80,
-                backgroundImage:
-                    widget.userAvatar != null
+                backgroundImage: widget.userAvatar != null
                     ? NetworkImage(widget.userAvatar!)
                     : const AssetImage('assets/images/doctor.png')
                           as ImageProvider,
@@ -489,9 +494,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
               const SizedBox(height: 10),
 
               Text(
-                _callConnected 
-                    ? _formatDuration(_callDuration)
-                    : _callStatus,
+                _callConnected ? _formatDuration(_callDuration) : _callStatus,
                 style: TextStyle(
                   color: _callConnected ? Colors.greenAccent : Colors.white70,
                   fontSize: 18,
@@ -595,7 +598,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                     color: Colors.white,
                     size: 40,
                   ),
-                ],
+                ),
               ),
 
               const SizedBox(height: 60),
@@ -608,6 +611,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
 
   Widget _buildControlButton({
     required IconData icon,
+    required String label,
     required VoidCallback onPressed,
     required Color backgroundColor,
     double size = 60,

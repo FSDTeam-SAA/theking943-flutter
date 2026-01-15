@@ -13,7 +13,6 @@ import 'package:docmobi/screens/patient/doctor/book_appointment_screen.dart';
 import 'package:docmobi/screens/patient/notification/notification_screen.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'dart:math' as math;
 import 'package:docmobi/screens/patient/profile/patient_profile_screen.dart';
 

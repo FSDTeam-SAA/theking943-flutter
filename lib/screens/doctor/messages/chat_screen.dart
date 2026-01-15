@@ -45,6 +45,8 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
   String? _resolvedOtherUserId;
   String? _otherUserRole;
   String? _actualUserAvatar;
+  String? _actualUserName;
+  bool _isAutoScrollEnabled = true;
 
   Timer? _refreshTimer;
   Set<String> _messageIds = {};
@@ -827,6 +829,30 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
       return '${difference.inMinutes}m ago';
     } else {
       return 'Just now';
+    }
+  }
+
+  ImageProvider _getAvatarImage(String? avatarUrl) {
+    if (avatarUrl == null ||
+        avatarUrl.isEmpty ||
+        avatarUrl == 'file:///' ||
+        (!avatarUrl.startsWith('http://') &&
+            !avatarUrl.startsWith('https://'))) {
+      return const AssetImage('assets/images/doctor1.png');
+    }
+    return NetworkImage(avatarUrl);
+  }
+
+  String _formatTime(String? timestamp) {
+    if (timestamp == null) return '';
+    try {
+      final date = DateTime.parse(timestamp).toLocal();
+      final hour = date.hour > 12 ? date.hour - 12 : date.hour;
+      final minute = date.minute.toString().padLeft(2, '0');
+      final period = date.hour >= 12 ? 'PM' : 'AM';
+      return '$hour:$minute $period';
+    } catch (e) {
+      return '';
     }
   }
 

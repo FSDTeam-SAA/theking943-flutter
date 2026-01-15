@@ -152,14 +152,15 @@ class WebRTCService {
       'iceCandidatePoolSize': 10,
     };
 
-    _peerConnection = await createPeerConnection(configuration);
-    print('✅ Peer connection created');
+    try {
+      _peerConnection = await createPeerConnection(configuration);
+      print('✅ Peer connection created');
 
-    // Add local tracks
-    localStream!.getTracks().forEach((track) {
-      _peerConnection!.addTrack(track, localStream!);
-      print('📤 Added track to peer connection: ${track.kind}');
-    });
+      // Add local tracks
+      localStream!.getTracks().forEach((track) {
+        _peerConnection!.addTrack(track, localStream!);
+        print('📤 Added track to peer connection: ${track.kind}');
+      });
 
       // ✅ Listen for remote stream
       _peerConnection!.onTrack = (RTCTrackEvent event) {
@@ -187,17 +188,20 @@ class WebRTCService {
         print('🧊 ICE candidate generated');
         print('📤 Sending ICE to: $_remoteUserId');
 
-        socket.emit('call:iceCandidate', {
-          'chatId': chatId,
-          'toUserId': _remoteUserId,
-          'fromUserId': _currentUserId, // ✅ Include sender ID
-          'candidate': {
-            'candidate': candidate.candidate,
-            'sdpMid': candidate.sdpMid,
-            'sdpMLineIndex': candidate.sdpMLineIndex,
-          },
-        });
-        print('✅ ICE candidate sent');
+        final socket = SocketService.instance.socket;
+        if (socket != null) {
+          socket.emit('call:iceCandidate', {
+            'chatId': chatId,
+            'toUserId': _remoteUserId,
+            'fromUserId': _currentUserId, // ✅ Include sender ID
+            'candidate': {
+              'candidate': candidate.candidate,
+              'sdpMid': candidate.sdpMid,
+              'sdpMLineIndex': candidate.sdpMLineIndex,
+            },
+          });
+          print('✅ ICE candidate sent');
+        }
       };
 
       // Handle connection state changes
@@ -259,19 +263,21 @@ class WebRTCService {
       });
 
       await _peerConnection!.setLocalDescription(offer);
-      
+
       print('✅ Offer created and local description set');
       print('   • Type: ${offer.type}');
       print('   • SDP length: ${offer.sdp?.length}');
 
-      final emitResult = await SocketService.instance.emit('call:offer', {
-        'chatId': chatId,
-        'toUserId': toUserId,
-        'fromUserId': _currentUserId, // ✅ Include sender
-        'offer': {'type': offer.type, 'sdp': offer.sdp},
-      });
-      
-      print('📤 Offer emit result: $emitResult');
+      final socket = SocketService.instance.socket;
+      if (socket != null) {
+        final emitResult = await SocketService.instance.emit('call:offer', {
+          'chatId': chatId,
+          'toUserId': toUserId,
+          'fromUserId': _currentUserId, // ✅ Include sender
+          'offer': {'type': offer.type, 'sdp': offer.sdp},
+        });
+        print('📤 Offer emit result: $emitResult');
+      }
     } catch (e) {
       print('❌ Error creating offer: $e');
       rethrow;
@@ -289,14 +295,11 @@ class WebRTCService {
     Map<String, dynamic> offerData,
     String fromUserId,
   ) async {
-    if (_isDisposed) return;
-
-  Future<void> handleOffer(Map<String, dynamic> offerData, String fromUserId) async {
     if (_isDisposed || _peerConnection == null) {
       print('❌ Cannot handle offer - disposed or no peer connection');
       return;
     }
-    
+
     _remoteUserId = fromUserId;
 
     try {
@@ -319,14 +322,16 @@ class WebRTCService {
       await _peerConnection!.setLocalDescription(answer);
       print('✅ Answer created and local description set');
 
-      final emitResult = await SocketService.instance.emit('call:answer', {
-        'chatId': chatId,
-        'toUserId': fromUserId,
-        'fromUserId': _currentUserId, // ✅ Include sender
-        'answer': {'type': answer.type, 'sdp': answer.sdp},
-      });
-      
-      print('📤 Answer emit result: $emitResult');
+      final socket = SocketService.instance.socket;
+      if (socket != null) {
+        final emitResult = await SocketService.instance.emit('call:answer', {
+          'chatId': chatId,
+          'toUserId': fromUserId,
+          'fromUserId': _currentUserId, // ✅ Include sender
+          'answer': {'type': answer.type, 'sdp': answer.sdp},
+        });
+        print('📤 Answer emit result: $emitResult');
+      }
     } catch (e) {
       print('❌ Error handling offer: $e');
       rethrow;
@@ -420,11 +425,14 @@ class WebRTCService {
         print('📹 Video ${videoTrack.enabled ? "enabled" : "disabled"}');
 
         // Notify remote peer
-        socket.emit('call:media_update', {
-          'chatId': chatId,
-          'toUserId': _remoteUserId,
-          'videoEnabled': videoTrack.enabled,
-        });
+        final socket = SocketService.instance.socket;
+        if (socket != null) {
+          socket.emit('call:media_update', {
+            'chatId': chatId,
+            'toUserId': _remoteUserId,
+            'videoEnabled': videoTrack.enabled,
+          });
+        }
       }
     } catch (e) {
       print('❌ Error toggling video: $e');
@@ -462,11 +470,14 @@ class WebRTCService {
         videoTrack.enabled = true;
       }
 
-      socket.emit('call:media_update', {
-        'chatId': chatId,
-        'toUserId': _remoteUserId,
-        'videoEnabled': true,
-      });
+      final socket = SocketService.instance.socket;
+      if (socket != null) {
+        socket.emit('call:media_update', {
+          'chatId': chatId,
+          'toUserId': _remoteUserId,
+          'videoEnabled': true,
+        });
+      }
 
       print('📹 Video enabled and signaled');
     } catch (e) {
@@ -478,24 +489,30 @@ class WebRTCService {
   void requestSwitchToVideo() {
     if (_isDisposed) return;
     print('📤 Sending switch to video request...');
-    socket.emit('call:switch_request', {
-      'chatId': chatId,
-      'toUserId': _remoteUserId,
-      'fromUserId': _currentUserId,
-      'type': 'video', // we can expand this later if needed
-    });
+    final socket = SocketService.instance.socket;
+    if (socket != null) {
+      socket.emit('call:switch_request', {
+        'chatId': chatId,
+        'toUserId': _remoteUserId,
+        'fromUserId': _currentUserId,
+        'type': 'video', // we can expand this later if needed
+      });
+    }
   }
 
   // ✅ Respond to a switch request
   void respondToSwitchRequest(bool accepted) {
     if (_isDisposed) return;
     print('📤 Sending switch response: ${accepted ? "Accepted" : "Declined"}');
-    socket.emit('call:switch_response', {
-      'chatId': chatId,
-      'toUserId': _remoteUserId,
-      'fromUserId': _currentUserId,
-      'accepted': accepted,
-    });
+    final socket = SocketService.instance.socket;
+    if (socket != null) {
+      socket.emit('call:switch_response', {
+        'chatId': chatId,
+        'toUserId': _remoteUserId,
+        'fromUserId': _currentUserId,
+        'accepted': accepted,
+      });
+    }
   }
 
   Future<void> dispose() async {
@@ -532,4 +549,3 @@ class WebRTCService {
     }
   }
 }
-

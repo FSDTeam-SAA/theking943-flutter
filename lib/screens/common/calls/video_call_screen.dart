@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../services/api_service.dart';
 import '../../../services/socket_service.dart';
 import '../../../services/webrtc_service.dart';
@@ -38,6 +39,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   bool _remoteVideoEnabled = true; // ✅ Track remote video status
   String _callStatus = 'Connecting...';
   String? _currentUserId;
+  bool _isDisposed = false;
 
   Timer? _callTimer;
   int _callDurationSeconds = 0;
@@ -99,8 +101,16 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       await _localRenderer.initialize();
       await _remoteRenderer.initialize();
 
-      await _loadCurrentUserId();
-      
+      // We already loaded user ID in _loadCurrentUserIdAndInitialize
+      // but let's ensure it's there if called from elsewhere
+      if (_currentUserId == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final profileResult = await ApiService.getUserProfile();
+        if (profileResult['success'] == true) {
+          _currentUserId = profileResult['data']['_id']?.toString();
+        }
+      }
+
       if (_currentUserId == null) {
         _showError('Failed to get user ID');
         return;
@@ -135,7 +145,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
       await _webRTCService!.initialize();
       _webRTCService!.setCurrentUserId(_currentUserId!);
-      
+
       if (mounted) {
         setState(() {
           _localRenderer.srcObject = _webRTCService!.localStream;
@@ -187,19 +197,21 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   void _handleRemoteStream(MediaStream stream) {
     print('📹 Handling remote stream...');
-    if (mounted) {
-      setState(() {
-        _remoteRenderer.srcObject = stream;
-        _isCallConnected = true;
-        _callStatus = 'Connected';
-      });
+    try {
+      if (mounted) {
+        setState(() {
+          _remoteRenderer.srcObject = stream;
+          _isCallConnected = true;
+          _callStatus = 'Connected';
+        });
 
-      // ✅ Start timer when connection is established
-      if (!_isTimerRunning()) {
-        _startCallTimer();
+        // ✅ Start timer when connection is established
+        if (!_isTimerRunning()) {
+          _startCallTimer();
+        }
       }
     } catch (e) {
-      print('❌ Error loading user ID: $e');
+      print('❌ Error handling remote stream: $e');
     }
   }
 
@@ -433,7 +445,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   void _endCall() {
     if (_isDisposed) return;
-    
+
     print('📴 Ending call...');
 
     _callTimer?.cancel();
@@ -458,14 +470,11 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   void _showError(String message) {
     if (!mounted || _isDisposed) return;
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
-    
+
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted && Navigator.canPop(context)) {
         Navigator.pop(context);
@@ -485,7 +494,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         body: Stack(
           children: [
             // Remote video (full screen)
-            if (_callConnected)
+            if (_isCallConnected)
               Positioned.fill(
                 child: _remoteVideoEnabled
                     ? RTCVideoView(
@@ -609,7 +618,10 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
               top: 50,
               left: 20,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
@@ -710,36 +722,41 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   Widget _buildControlButton({
     required IconData icon,
+    required String label,
     required VoidCallback? onPressed,
-    required Color backgroundColor,
+    required Color color,
+    bool isEndCall = false,
   }) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: onPressed,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isEndCall ? Colors.red : Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-          ],
+            child: Icon(icon, color: color, size: 32),
+          ),
         ),
-        child: Icon(
-          icon,
-          color: Colors.white,
-          size: 32,
-        ),
-      ),
+        const SizedBox(height: 8),
+        Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+      ],
     );
   }
 
   @override
   void dispose() {
     print('🧹 Disposing VideoCallScreen');
+    _isDisposed = true;
 
     _callTimer?.cancel();
     _callTimer = null;

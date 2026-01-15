@@ -40,6 +40,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   String? _currentUserName;
   String? _otherUserId;
   String? _actualDoctorAvatar; // ✅ Real avatar from API
+  String? _actualDoctorName;
 
   Timer? _refreshTimer;
   Set<String> _messageIds = {};
@@ -707,6 +708,30 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ],
       ),
     );
+  }
+
+  ImageProvider _getAvatarImage(String? avatarUrl) {
+    if (avatarUrl == null ||
+        avatarUrl.isEmpty ||
+        avatarUrl == 'file:///' ||
+        (!avatarUrl.startsWith('http://') &&
+            !avatarUrl.startsWith('https://'))) {
+      return const AssetImage('assets/images/doctor1.png');
+    }
+    return NetworkImage(avatarUrl);
+  }
+
+  String _formatTime(String? timestamp) {
+    if (timestamp == null) return '';
+    try {
+      final date = DateTime.parse(timestamp).toLocal();
+      final hour = date.hour > 12 ? date.hour - 12 : date.hour;
+      final minute = date.minute.toString().padLeft(2, '0');
+      final period = date.hour >= 12 ? 'PM' : 'AM';
+      return '$hour:$minute $period';
+    } catch (e) {
+      return '';
+    }
   }
 
   @override
