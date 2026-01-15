@@ -4,24 +4,25 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     
+    <!-- ==================== LOCATION PERMISSIONS ==================== -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
+    
     <!-- ==================== AUDIO/VIDEO CALL PERMISSIONS ==================== -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
     
     <!-- ==================== STORAGE PERMISSIONS ==================== -->
-    <!-- Android 12 and below -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"/>
     
-    <!-- Android 13+ (Tiramisu) -->
+    <!-- Android 13+ -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/>
-    
-    <!-- Microphone Permission (video recording audio er jonno) -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     
     <!-- Notification Permissions -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
@@ -34,6 +35,11 @@
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
         
+        <!-- Google Maps API Key -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyDwpV4RKu-t9aThomHv7SPcbY0uAj80dek"/>
+        
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -44,7 +50,6 @@
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
             
-            <!-- Theme for splash screen -->
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"/>
@@ -55,32 +60,23 @@
             </intent-filter>
         </activity>
         
-        <!-- Flutter plugin registration -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2"/>
             
     </application>
     
-    <!-- ==================== QUERIES (Android 11+) ==================== -->
     <queries>
-        <!-- Process text -->
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
-        
-        <!-- Camera intent -->
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE"/>
         </intent>
-        
-        <!-- Video capture intent -->
         <intent>
             <action android:name="android.media.action.VIDEO_CAPTURE"/>
         </intent>
-        
-        <!-- Gallery/File picker -->
         <intent>
             <action android:name="android.intent.action.GET_CONTENT"/>
         </intent>

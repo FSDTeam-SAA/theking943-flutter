@@ -29,6 +29,7 @@ class UserProvider with ChangeNotifier {
         print('✅ Profile image: ${_user?.profileImage}');
         print('✅ Specialty: ${_user?.specialty}');
         print('✅ Bio: ${_user?.bio}');
+        print('✅ Location: lat=${_user?.latitude}, lng=${_user?.longitude}');
         _isLoading = false;
         notifyListeners();
         return true;
@@ -48,7 +49,7 @@ class UserProvider with ChangeNotifier {
     }
   }
 
-  /// Update user profile (with image support)
+  /// Update user profile (with image and location support)
   Future<bool> updateUserProfile({
     String? fullName,
     String? username,
@@ -68,6 +69,8 @@ class UserProvider with ChangeNotifier {
     String? visitingHoursText,
     String? medicalLicenseNumber,
     File? profileImage,
+    double? latitude,      // ✅ NEW: Latitude parameter
+    double? longitude,     // ✅ NEW: Longitude parameter
   }) async {
     _isLoading = true;
     _error = null;
@@ -80,9 +83,11 @@ class UserProvider with ChangeNotifier {
       print('   - address: $address');
       print('   - bio: $bio');
       print('   - specialty: $specialty');
+      print('   - latitude: $latitude');
+      print('   - longitude: $longitude');
       print('   - profileImage: ${profileImage != null ? "Yes" : "No"}');
 
-      // ✅ Pass File directly to UserService
+      // ✅ Pass File and location directly to UserService
       final response = await UserService.updateUserProfile(
         fullName: fullName,
         username: username,
@@ -101,7 +106,9 @@ class UserProvider with ChangeNotifier {
         weeklySchedule: weeklySchedule,
         visitingHoursText: visitingHoursText,
         medicalLicenseNumber: medicalLicenseNumber,
-        profileImage: profileImage, // ✅ UserService will handle base64 conversion
+        profileImage: profileImage,
+        latitude: latitude,        // ✅ Pass latitude
+        longitude: longitude,      // ✅ Pass longitude
       );
 
       if (response['success'] == true && response['data'] != null) {
@@ -111,6 +118,7 @@ class UserProvider with ChangeNotifier {
         print('   - Specialty: ${_user?.specialty}');
         print('   - Bio: ${_user?.bio}');
         print('   - Address: ${_user?.address}');
+        print('   - Location: lat=${_user?.latitude}, lng=${_user?.longitude}');
         print('   - New avatar: ${_user?.profileImage}');
         _isLoading = false;
         notifyListeners();
