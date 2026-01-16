@@ -1,7 +1,6 @@
-import 'package:docmobi/screens/doctor/messages/messages_list_screen.dart';
+import 'package:docmobi/screens/doctor/messages/doctor_messages_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/services/api_service.dart';
-
 
 class SeeAllDoctorsScreen extends StatefulWidget {
   const SeeAllDoctorsScreen({super.key});
@@ -38,12 +37,12 @@ class _SeeAllDoctorsScreenState extends State<SeeAllDoctorsScreen> {
 
       if (result['success'] == true) {
         final doctorsData = result['data'] as List? ?? [];
-        
+
         setState(() {
           _doctors = List<Map<String, dynamic>>.from(doctorsData);
           _isLoading = false;
         });
-        
+
         print('✅ Loaded ${_doctors.length} doctors');
       } else {
         setState(() {
@@ -95,9 +94,7 @@ class _SeeAllDoctorsScreenState extends State<SeeAllDoctorsScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_errorMessage != null) {
@@ -189,7 +186,8 @@ class _SeeAllDoctorsScreenState extends State<SeeAllDoctorsScreen> {
               radius: 30,
               backgroundImage: doctorImage != null
                   ? NetworkImage(doctorImage)
-                  : const AssetImage('assets/images/doctor.png') as ImageProvider,
+                  : const AssetImage('assets/images/doctor.png')
+                        as ImageProvider,
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -207,10 +205,7 @@ class _SeeAllDoctorsScreenState extends State<SeeAllDoctorsScreen> {
                   const SizedBox(height: 4),
                   Text(
                     specialty,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                   if (experienceYears > 0) ...[
                     const SizedBox(height: 4),
@@ -235,9 +230,8 @@ class _SeeAllDoctorsScreenState extends State<SeeAllDoctorsScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => DoctorMessagesScreen(
-                      initialDoctorId: doctorId,
-                    ),
+                    builder: (context) =>
+                        DoctorMessagesListScreen(initialDoctorId: doctorId),
                   ),
                 );
               },
@@ -304,10 +298,7 @@ class _DoctorInfoBottomSheet extends StatelessWidget {
 
           Text(
             specialty,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
           const SizedBox(height: 8),
 
@@ -373,19 +364,15 @@ class _DoctorInfoBottomSheet extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => DoctorMessagesScreen(
-                      initialDoctorId: doctorId,
-                    ),
+                    builder: (context) =>
+                        DoctorMessagesListScreen(initialDoctorId: doctorId),
                   ),
                 );
               },
               icon: const Icon(Icons.message_outlined),
               label: const Text(
                 'Message',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1664CD),

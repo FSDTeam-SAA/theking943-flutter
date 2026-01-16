@@ -24,7 +24,8 @@ class _MyAppState extends State<MyApp> {
   bool _isLoggedIn = false;
   bool _isLoading = true;
   String? _userRole;
-  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>(); // ✅ ADDED
+  final GlobalKey<NavigatorState> _navigatorKey =
+      GlobalKey<NavigatorState>(); // ✅ ADDED
 
   @override
   void initState() {
@@ -47,9 +48,7 @@ class _MyAppState extends State<MyApp> {
       final apiServiceLoggedIn = ApiService.isLoggedIn;
 
       print('📦 SharedPreferences Check:');
-      print(
-        '   • Token: ${token != null ? "✅ Found" : "❌ Not found"}',
-      );
+      print('   • Token: ${token != null ? "✅ Found" : "❌ Not found"}');
       print('   • Role: ${role ?? "❌ Not found"}');
       print('   • User ID: ${userId ?? "❌ Not found"}');
       print('');
@@ -76,7 +75,7 @@ class _MyAppState extends State<MyApp> {
           try {
             await SocketService.instance.connect(userId);
             print('✅ Socket connected for user: $userId');
-            
+
             // ✅ Initialize CallManager after socket connection
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (_navigatorKey.currentContext != null) {
@@ -300,11 +299,11 @@ class _MyAppState extends State<MyApp> {
 
       // ✅ Dispose CallManager
       CallManager.instance.dispose();
-      
+
       // ✅ Disconnect socket
       SocketService.instance.disconnect();
       print('✅ Socket disconnected');
-      
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
 

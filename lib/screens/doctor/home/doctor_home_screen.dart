@@ -1,5 +1,5 @@
 import 'package:docmobi/screens/doctor/home/notifications/notifications.dart';
-import 'package:docmobi/screens/doctor/messages/messages_list_screen.dart';
+import 'package:docmobi/screens/doctor/messages/doctor_messages_list_screen.dart';
 import 'package:docmobi/screens/doctor/posts/doctor_create_post_screen.dart';
 import 'package:docmobi/screens/doctor/profile/doctor_profile_screen.dart';
 import 'package:docmobi/screens/patient/notification/notification_screen.dart';
@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import '../../../providers/user_provider.dart';
 import 'dart:async';
 import '../../../providers/notification_provider.dart';
+import '../../../widgets/custom_image.dart';
 
 class DoctorHomeScreen extends StatefulWidget {
   const DoctorHomeScreen({super.key});
@@ -43,7 +44,9 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeScreen();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeScreen();
+    });
     _scrollController.addListener(_onScroll);
     _searchController.addListener(_onSearchChanged);
   }
@@ -387,19 +390,16 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                           children: [
                             GestureDetector(
                               onTap: _navigateToProfile,
-                              child: CircleAvatar(
-                                radius: 28,
-                                backgroundColor: Colors.white,
-                                backgroundImage:
-                                    user?.profileImage != null &&
-                                        user!.profileImage!.isNotEmpty
-                                    ? NetworkImage(user.profileImage!)
-                                    : const AssetImage(
-                                            'assets/images/doctor_booking.png',
-                                          )
-                                          as ImageProvider,
+                              child: CustomImage(
+                                imageUrl: user?.profileImage,
+                                width: 56,
+                                height: 56,
+                                shape: BoxShape.circle,
+                                placeholderAsset:
+                                    'assets/images/doctor_booking.png',
                               ),
                             ),
+
                             const SizedBox(width: 15),
 
                             Expanded(
@@ -1232,7 +1232,7 @@ class DoctorInfoBottomSheet extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
-                          DoctorMessagesScreen(initialDoctorId: doctorId),
+                          DoctorMessagesListScreen(initialDoctorId: doctorId),
                     ),
                   );
                 },

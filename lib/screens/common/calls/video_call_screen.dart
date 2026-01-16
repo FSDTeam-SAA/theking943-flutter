@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../services/api_service.dart';
 import '../../../services/socket_service.dart';
-import '../../../services/webrtc_service.dart';
+import '../../../services/agora_service.dart';
 
 class VideoCallScreen extends StatefulWidget {
   final String chatId;
@@ -28,15 +28,15 @@ class VideoCallScreen extends StatefulWidget {
 }
 
 class _VideoCallScreenState extends State<VideoCallScreen> {
-  final RTCVideoRenderer _localRenderer = RTCVideoRenderer();
-  final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
+  // Agora Service
+  final AgoraService _agoraService = AgoraService.instance;
 
-  WebRTCService? _webRTCService;
+  int? _remoteUid; // Track the remote user's Agora UID
+
   bool _isMuted = false;
   bool _isVideoOff = false;
   bool _isCallConnected = false;
   bool _isInitializing = true;
-  bool _remoteVideoEnabled = true; // ✅ Track remote video status
   String _callStatus = 'Connecting...';
   String? _currentUserId;
   bool _isDisposed = false;
@@ -48,28 +48,22 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   @override
   void initState() {
     super.initState();
+    WakelockPlus.enable();
     _loadCurrentUserIdAndInitialize();
   }
 
-  // ✅ Load current user ID first, then initialize call
   Future<void> _loadCurrentUserIdAndInitialize() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      // ignore: unused_local_variable
       final userDataString = prefs.getString('user_data');
 
-      // Try to get from API
       final profileResult = await ApiService.getUserProfile();
       if (profileResult['success'] == true) {
         _currentUserId = profileResult['data']['_id']?.toString();
         print('✅ Current user ID loaded: $_currentUserId');
 
-        // ✅ Check permissions first
-        bool permissionsGranted = await WebRTCService.checkPermissions(true);
-        if (!permissionsGranted) {
-          throw Exception('Microphone or Camera permission denied');
-        }
-
-        // Now initialize the call
+        // Initialize Call
         await _initializeCall();
       } else {
         throw Exception('Failed to load user profile');
@@ -77,141 +71,98 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     } catch (e) {
       print('❌ Error loading user ID: $e');
       if (mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Failed to initialize: $e')));
-            Navigator.pop(context);
-          }
-        });
+        _showError('Failed to initialize: $e');
       }
     }
   }
 
   Future<void> _initializeCall() async {
+    if (_isDisposed) return;
+
     try {
-      print('🎥 Initializing video call...');
-      print('💬 Chat ID: ${widget.chatId}');
-      print('👤 Other user: ${widget.otherUserId}');
-      print('👤 Current user: $_currentUserId');
-      print('🎬 Is Initiator: ${widget.isInitiator}');
+      setState(() => _callStatus = 'Setting up video...');
 
-      // Initialize renderers
-      await _localRenderer.initialize();
-      await _remoteRenderer.initialize();
+      // 1. Initialize Agora
+      await _agoraService.initialize();
 
-      // We already loaded user ID in _loadCurrentUserIdAndInitialize
-      // but let's ensure it's there if called from elsewhere
-      if (_currentUserId == null) {
-        final prefs = await SharedPreferences.getInstance();
-        final profileResult = await ApiService.getUserProfile();
-        if (profileResult['success'] == true) {
-          _currentUserId = profileResult['data']['_id']?.toString();
-        }
-      }
-
-      if (_currentUserId == null) {
-        _showError('Failed to get user ID');
-        return;
-      }
-
-      setState(() {
-        _callStatus = 'Setting up video...';
-      });
-
-      print('📹 Initializing video call...');
-      print('   • Chat ID: ${widget.chatId}');
-      print('   • Other User: ${widget.otherUserId}');
-      print('   • Is Initiator: ${widget.isInitiator}');
-      print('   • Current User: $_currentUserId');
-
-      final socket = SocketService.instance.socket;
-      if (socket == null || !SocketService.instance.isConnected) {
-        throw Exception('Socket not connected');
-      }
-
-      _webRTCService = WebRTCService(
-        chatId: widget.chatId,
-        isVideo: true,
-        onRemoteStream: (stream) {
-          _handleRemoteStream(stream);
-        },
-        onCallEnded: () {
-          print('📴 Call ended by peer');
-          _endCall();
-        },
-      );
-
-      await _webRTCService!.initialize();
-      _webRTCService!.setCurrentUserId(_currentUserId!);
-
-      if (mounted) {
-        setState(() {
-          _localRenderer.srcObject = _webRTCService!.localStream;
-        });
-      }
-
-      print('✅ WebRTC initialized');
-
-      // Set local stream
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      // 2. Setup Agora Listeners
+      _agoraService.onUserJoined = (uid, elapsed) {
         if (mounted) {
+          print('✅ Remote user joined: $uid');
           setState(() {
-            _localRenderer.srcObject = _webRTCService!.localStream;
-            _isInitializing = false;
-            _callStatus = widget.isInitiator ? 'Calling...' : 'Connecting...';
+            _remoteUid = uid;
+            _isCallConnected = true;
+            _callStatus = 'Connected';
+          });
+          _startCallTimer();
+        }
+      };
+
+      _agoraService.onUserOffline = (uid, reason) {
+        if (mounted) {
+          print('Remote user offline: $reason');
+          // Optional: Don't end call immediately if it's just a temporary drop, but for now we end it or show waiting
+          // _endCall();
+          setState(() {
+            _remoteUid = null;
+            _callStatus = 'User Offline';
           });
         }
+      };
+
+      _agoraService.onLeaveChannel = (stats) {
+        print('I left the channel');
+      };
+
+      // 3. Setup Socket Listeners (for strict signaling like End Call)
+      _setupSocketListeners();
+
+      setState(() {
+        _isInitializing = false;
       });
 
-      // If initiator, create offer
-      // If initiator, wait for call:accepted before creating offer
+      // 4. Join Channel
       if (widget.isInitiator) {
-        print('⏳ Waiting for receiver to accept before creating offer...');
-        // createOffer will be called inside call:accepted listener
+        setState(() => _callStatus = 'Calling...');
+        // Wait for 'call:accepted' event before joining to avoid joining empty channel
       } else {
-        print('📥 Waiting for offer as receiver...');
-        // ✅ For receiver, sometimes the remote stream is already available
-        if (_webRTCService?.remoteStream != null && !_isCallConnected) {
-          _handleRemoteStream(_webRTCService!.remoteStream!);
-        }
+        // Receiver joins immediately
+        print('📥 Receiver joining channel immediately...');
+        await _joinAgoraChannel();
       }
     } catch (e) {
       print('❌ Error initializing call: $e');
-      if (mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            String errorMsg = e.toString().contains('permission')
-                ? 'Permissions are required for the call'
-                : 'Failed to start call: $e';
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(errorMsg)));
-            Navigator.pop(context);
-          }
-        });
-      }
+      _showError('Failed to start call: $e');
     }
   }
 
-  void _handleRemoteStream(MediaStream stream) {
-    print('📹 Handling remote stream...');
+  Future<void> _joinAgoraChannel() async {
     try {
-      if (mounted) {
-        setState(() {
-          _remoteRenderer.srcObject = stream;
-          _isCallConnected = true;
-          _callStatus = 'Connected';
-        });
+      setState(() => _callStatus = 'Securing connection...');
 
-        // ✅ Start timer when connection is established
-        if (!_isTimerRunning()) {
-          _startCallTimer();
-        }
+      // ✅ Fetch Dynamic Token
+      final result = await ApiService.getAgoraToken(channelName: widget.chatId);
+      final String? token = (result['success'] == true)
+          ? result['data']['token']
+          : null;
+
+      if (token == null) {
+        if (mounted) _showError('Connection security failed');
+        return;
       }
+      print('🔐 Call Token Secured');
+
+      // Use chatId as channel name
+      await _agoraService.joinChannel(
+        channelName: widget.chatId,
+        uid: 0,
+        isVideo: true,
+        token: token, // Pass dynamic token
+      );
+      print('✅ Joined Agora channel: ${widget.chatId}');
     } catch (e) {
-      print('❌ Error handling remote stream: $e');
+      print('❌ Failed to join channel: $e');
+      _showError('Failed to connect to call');
     }
   }
 
@@ -219,51 +170,21 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     final socket = SocketService.instance.socket;
     if (socket == null) return;
 
-    socket.off('call:offer');
-    socket.off('call:answer');
-    socket.off('call:iceCandidate');
-    socket.off('call:end');
+    // Cleanup first
+    socket.off('call:accepted');
+    socket.off('call:ended');
+    socket.off('call:rejected');
 
-    socket.on('call:offer', (data) async {
-      print('📥 Received offer: $data');
-      if (data['chatId'] == widget.chatId && mounted && !_isDisposed) {
-        final fromUserId = data['fromUserId']?.toString();
-        if (fromUserId != null && _webRTCService != null) {
-          setState(() {
-            _callStatus = 'Connecting...';
-          });
-          await _webRTCService!.handleOffer(data['offer'], fromUserId);
-        }
-      }
-    });
-
-    socket.on('call:answer', (data) async {
-      print('📥 Received call:answer event: $data');
+    socket.on('call:accepted', (data) async {
+      print('📥 Received call:accepted event');
       if (data['chatId'] == widget.chatId) {
-        print('✅ Answer is for this chat, handling...');
-        await _webRTCService?.handleAnswer(data['answer']);
-
-        setState(() {
-          _callStatus = 'Connected';
-          _isCallConnected = true;
-        });
-
-        // ✅ Start timer when answer is received (for initiator)
-        if (!_isTimerRunning()) {
-          _startCallTimer();
-        }
-      }
-    });
-
-    socket.on('call:iceCandidate', (data) async {
-      print('📥 Received ICE candidate: ${data['candidate']}');
-      if (data['chatId'] == widget.chatId) {
-        await _webRTCService?.addIceCandidate(data['candidate']);
+        print('✅ Call accepted, joining Agora channel...');
+        setState(() => _callStatus = 'Connecting...');
+        await _joinAgoraChannel();
       }
     });
 
     socket.on('call:ended', (data) {
-      print('📥 Received call:ended event');
       if (data['chatId'] == widget.chatId) {
         print('📴 Call ended by remote user');
         _endCall();
@@ -271,95 +192,23 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     });
 
     socket.on('call:rejected', (data) {
-      print('📥 Received call:rejected event');
       if (data['chatId'] == widget.chatId) {
-        print('❌ Call was rejected');
-        if (mounted) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'The receiver is currently busy or declined the call',
-                  ),
-                  duration: Duration(seconds: 3),
-                ),
-              );
-              Navigator.pop(context);
-            }
-          });
-        }
-      }
-    });
-
-    socket.on('call:accepted', (data) async {
-      print('📥 Received call:accepted event');
-      if (data['chatId'] == widget.chatId) {
-        print('✅ Call was accepted by receiver');
-        setState(() {
-          _callStatus = 'Connecting...';
-        });
-
-        // ✅ Initiator creates offer ONLY after receiver accepts
-        if (widget.isInitiator && _webRTCService != null) {
-          print('📤 Receiver is ready. Creating offer in 1 second...');
-          await Future.delayed(const Duration(milliseconds: 1000));
-          await _webRTCService!.createOffer(widget.otherUserId);
-        }
-      }
-    });
-
-    socket.on('call:media_update', (data) {
-      print('📥 Received call:media_update: $data');
-      if (data['chatId'] == widget.chatId && data['videoEnabled'] != null) {
-        setState(() {
-          _remoteVideoEnabled = data['videoEnabled'];
-        });
+        _showError('Call declined');
       }
     });
 
     socket.on('call:switch_request', (data) {
-      print('📥 Received call:switch_request: $data');
-      if (data['chatId'] == widget.chatId &&
-          data['type'] == 'video' &&
-          mounted) {
-        _showSwitchRequestDialog();
-      }
-    });
-
-    socket.on('call:switch_response', (data) {
-      print('📥 Received call:switch_response: $data');
       if (data['chatId'] == widget.chatId && mounted) {
-        if (data['accepted'] == true) {
-          _performSwitchToVideo();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Switch to video request declined')),
-          );
-        }
+        // Handle switch request if needed (e.g. audio to video)
       }
     });
-
-    print('✅ All socket listeners set up');
-  }
-
-  // ✅ Check if timer is running
-  bool _isTimerRunning() {
-    return _callTimer != null && _callTimer!.isActive;
   }
 
   void _startCallTimer() {
-    if (_isTimerRunning()) {
-      print('⏱️ Timer already running');
-      return;
-    }
-
-    print('⏱️ Starting call timer');
-    _callTimer?.cancel();
-    _callDurationSeconds = 0; // Reset to 0
+    if (_callTimer != null && _callTimer!.isActive) return;
 
     _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted && !_isDisposed) {
+      if (mounted) {
         setState(() {
           _callDurationSeconds++;
           final minutes = (_callDurationSeconds ~/ 60).toString().padLeft(
@@ -376,92 +225,37 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         timer.cancel();
       }
     });
-
-    print('✅ Call timer started');
   }
 
   void _toggleMute() {
-    if (_webRTCService != null && mounted && !_isDisposed) {
-      setState(() {
-        _isMuted = !_isMuted;
-      });
-      _webRTCService!.toggleAudio();
-    }
+    setState(() => _isMuted = !_isMuted);
+    _agoraService.toggleAudio(_isMuted);
   }
 
   void _toggleVideo() {
-    if (_isVideoOff) {
-      // ✅ Request to turn on video
-      _webRTCService?.requestSwitchToVideo();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Requesting to turn on video...')),
-      );
-    } else {
-      // Immediate turn off
-      setState(() {
-        _isVideoOff = true;
-      });
-      _webRTCService?.toggleVideo();
-      print('📹 Video disabled');
-    }
+    setState(() => _isVideoOff = !_isVideoOff);
+    _agoraService.toggleVideo(_isVideoOff);
   }
 
-  void _showSwitchRequestDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Turn on Video?'),
-        content: Text('${widget.userName} wants you to turn on your video.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _webRTCService?.respondToSwitchRequest(false);
-            },
-            child: const Text('Decline', style: TextStyle(color: Colors.red)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _webRTCService?.respondToSwitchRequest(true);
-              _performSwitchToVideo();
-            },
-            child: const Text('Accept'),
-          ),
-        ],
-      ),
-    );
+  void _switchCamera() {
+    _agoraService.switchCamera();
   }
 
-  void _performSwitchToVideo() {
-    if (mounted) {
-      setState(() {
-        _isVideoOff = false;
-      });
-      _webRTCService?.toggleVideo();
-    }
-  }
-
-  void _endCall() {
+  void _endCall() async {
     if (_isDisposed) return;
-
-    print('📴 Ending call...');
+    _isDisposed = true;
 
     _callTimer?.cancel();
-    _callTimer = null;
 
+    // Notify server
     SocketService.instance.emit('call:end', {
       'chatId': widget.chatId,
       'toUserId': widget.otherUserId,
       'fromUserId': _currentUserId,
     });
 
-    _webRTCService?.dispose();
-    _localRenderer.dispose();
-    _remoteRenderer.dispose();
-
-    print('✅ Call ended, navigating back');
+    // Leave Agora
+    await _agoraService.leaveChannel();
 
     if (mounted) {
       Navigator.pop(context);
@@ -470,16 +264,34 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   void _showError(String message) {
     if (!mounted || _isDisposed) return;
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
-
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted && Navigator.canPop(context)) {
         Navigator.pop(context);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    print('🧹 Disposing VideoCallScreen');
+    WakelockPlus.disable();
+    _callTimer?.cancel();
+
+    final socket = SocketService.instance.socket;
+    socket?.off('call:accepted');
+    socket?.off('call:ended');
+    socket?.off('call:rejected');
+
+    _agoraService.leaveChannel();
+
+    // Clear callbacks to avoid calling setState on disposed widget
+    _agoraService.onUserJoined = null;
+    _agoraService.onUserOffline = null;
+
+    super.dispose();
   }
 
   @override
@@ -493,51 +305,19 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         backgroundColor: Colors.black,
         body: Stack(
           children: [
-            // Remote video (full screen)
-            if (_isCallConnected)
+            // Remote Video (Full Screen)
+            if (_remoteUid != null)
               Positioned.fill(
-                child: _remoteVideoEnabled
-                    ? RTCVideoView(
-                        _remoteRenderer,
-                        objectFit:
-                            RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                        mirror: false,
-                      )
-                    : Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircleAvatar(
-                              radius: 80,
-                              backgroundImage:
-                                  widget.userAvatar != null &&
-                                      widget.userAvatar!.isNotEmpty &&
-                                      widget.userAvatar != 'file:///' &&
-                                      (widget.userAvatar!.startsWith(
-                                            'http://',
-                                          ) ||
-                                          widget.userAvatar!.startsWith(
-                                            'https://',
-                                          ))
-                                  ? NetworkImage(widget.userAvatar!)
-                                  : const AssetImage(
-                                          'assets/images/doctor1.png',
-                                        )
-                                        as ImageProvider,
-                            ),
-                            const SizedBox(height: 20),
-                            const Text(
-                              'Video Paused',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                child: AgoraVideoView(
+                  controller: VideoViewController.remote(
+                    rtcEngine: _agoraService.engine!,
+                    canvas: VideoCanvas(uid: _remoteUid),
+                    connection: RtcConnection(channelId: widget.chatId),
+                  ),
+                ),
               )
             else
+              // Waiting for remote user
               Container(
                 color: const Color(0xFF1B2C49),
                 child: Center(
@@ -548,10 +328,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                         radius: 60,
                         backgroundImage:
                             widget.userAvatar != null &&
-                                widget.userAvatar!.isNotEmpty &&
-                                widget.userAvatar != 'file:///' &&
-                                (widget.userAvatar!.startsWith('http://') ||
-                                    widget.userAvatar!.startsWith('https://'))
+                                widget.userAvatar!.isNotEmpty
                             ? NetworkImage(widget.userAvatar!)
                             : const AssetImage('assets/images/doctor1.png')
                                   as ImageProvider,
@@ -567,13 +344,15 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        _isCallConnected ? _callDuration : _callStatus,
+                        _callStatus,
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 16,
                         ),
                       ),
-                      if (_isInitializing)
+                      if (_isInitializing ||
+                          _callStatus == 'Calling...' ||
+                          _callStatus == 'Connecting...')
                         const Padding(
                           padding: EdgeInsets.only(top: 20),
                           child: CircularProgressIndicator(color: Colors.white),
@@ -583,7 +362,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 ),
               ),
 
-            if (!_isVideoOff)
+            // Local Video (Small View) - Only if video is ON
+            if (!_isVideoOff && _agoraService.engine != null)
               Positioned(
                 top: 50,
                 right: 20,
@@ -603,114 +383,107 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(10),
-                    child: RTCVideoView(
-                      _localRenderer,
-                      objectFit:
-                          RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                      mirror: true,
+                    child: AgoraVideoView(
+                      controller: VideoViewController(
+                        rtcEngine: _agoraService.engine!,
+                        canvas: const VideoCanvas(uid: 0), // 0 for local view
+                      ),
                     ),
                   ),
                 ),
               ),
 
-            // User name badge with duration
+            // Header Info
             Positioned(
               top: 50,
               left: 20,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.black.withOpacity(0.7), Colors.transparent],
+              child: SafeArea(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
                   ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundImage:
-                          widget.userAvatar != null &&
-                              widget.userAvatar!.isNotEmpty &&
-                              widget.userAvatar != 'file:///' &&
-                              (widget.userAvatar!.startsWith('http://') ||
-                                  widget.userAvatar!.startsWith('https://'))
-                          ? NetworkImage(widget.userAvatar!)
-                          : const AssetImage('assets/images/doctor1.png')
-                                as ImageProvider,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundImage:
+                            widget.userAvatar != null &&
+                                widget.userAvatar!.isNotEmpty
+                            ? NetworkImage(widget.userAvatar!)
+                            : const AssetImage('assets/images/doctor1.png')
+                                  as ImageProvider,
+                      ),
+                      const SizedBox(width: 8),
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             widget.userName,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
                               fontWeight: FontWeight.bold,
+                              fontSize: 14,
                             ),
                           ),
                           Text(
                             _isCallConnected ? _callDuration : _callStatus,
                             style: const TextStyle(
                               color: Colors.white70,
-                              fontSize: 12,
+                              fontSize: 10,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
 
-            // Controls at bottom
+            // Controls
             Positioned(
               bottom: 40,
               left: 0,
               right: 0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 30),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+              child: SafeArea(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildControlButton(
+                        icon: _isMuted ? Icons.mic_off : Icons.mic,
+                        label: _isMuted ? 'Unmute' : 'Mute',
+                        onPressed: _toggleMute,
+                        color: _isMuted ? Colors.red : Colors.white,
+                      ),
+                      _buildControlButton(
+                        icon: _isVideoOff ? Icons.videocam_off : Icons.videocam,
+                        label: _isVideoOff ? 'Cam Off' : 'Cam On',
+                        onPressed: _toggleVideo,
+                        color: _isVideoOff ? Colors.red : Colors.white,
+                      ),
+                      _buildControlButton(
+                        icon: Icons.cameraswitch,
+                        label: 'Switch',
+                        onPressed: _switchCamera,
+                        color: Colors.white,
+                      ),
+                      _buildControlButton(
+                        icon: Icons.call_end,
+                        label: 'End',
+                        onPressed: _endCall,
+                        color: Colors.red,
+                        isEndCall: true,
+                      ),
+                    ],
                   ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildControlButton(
-                      icon: _isMuted ? Icons.mic_off : Icons.mic,
-                      label: _isMuted ? 'Unmute' : 'Mute',
-                      onPressed: _toggleMute,
-                      color: _isMuted ? Colors.red : Colors.white,
-                    ),
-
-                    _buildControlButton(
-                      icon: _isVideoOff ? Icons.videocam_off : Icons.videocam,
-                      label: _isVideoOff ? 'Turn On' : 'Turn Off',
-                      onPressed: _toggleVideo,
-                      color: _isVideoOff ? Colors.red : Colors.white,
-                    ),
-
-                    _buildControlButton(
-                      icon: Icons.call_end,
-                      label: 'End',
-                      onPressed: _endCall,
-                      color: Colors.red,
-                      isEndCall: true,
-                    ),
-                  ],
                 ),
               ),
             ),
@@ -723,11 +496,12 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   Widget _buildControlButton({
     required IconData icon,
     required String label,
-    required VoidCallback? onPressed,
+    required VoidCallback onPressed,
     required Color color,
     bool isEndCall = false,
   }) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
           onTap: onPressed,
@@ -736,45 +510,13 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
             decoration: BoxDecoration(
               color: isEndCall ? Colors.red : Colors.white.withOpacity(0.2),
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
             ),
-            child: Icon(icon, color: color, size: 32),
+            child: Icon(icon, color: color, size: 28),
           ),
         ),
         const SizedBox(height: 8),
         Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
       ],
     );
-  }
-
-  @override
-  void dispose() {
-    print('🧹 Disposing VideoCallScreen');
-    _isDisposed = true;
-
-    _callTimer?.cancel();
-    _callTimer = null;
-
-    _webRTCService?.dispose();
-    _localRenderer.dispose();
-    _remoteRenderer.dispose();
-
-    final socket = SocketService.instance.socket;
-    socket?.off('call:offer');
-    socket?.off('call:answer');
-    socket?.off('call:iceCandidate');
-    socket?.off('call:ended');
-    socket?.off('call:rejected');
-    socket?.off('call:accepted');
-
-    print('✅ VideoCallScreen disposed');
-
-    super.dispose();
   }
 }

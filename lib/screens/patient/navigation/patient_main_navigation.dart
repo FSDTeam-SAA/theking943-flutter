@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:docmobi/screens/patient/home/patient_home_screen.dart';
 import 'package:docmobi/screens/patient/appointments/patient_appointments_screen.dart';
 import 'package:docmobi/screens/patient/reels/patient_reels_screen.dart';
-import 'package:docmobi/screens/patient/messages/messages_list_screen.dart';
+import 'package:docmobi/screens/patient/messages/patient_messages_list_screen.dart';
 import 'package:docmobi/screens/patient/profile/patient_profile_screen.dart';
 import 'package:docmobi/providers/notification_provider.dart';
 import 'package:provider/provider.dart';
+
+import 'package:docmobi/services/call_manager_service.dart';
 
 class PatientMainNavigation extends StatefulWidget {
   const PatientMainNavigation({super.key});
@@ -17,11 +19,21 @@ class PatientMainNavigation extends StatefulWidget {
 class _PatientMainNavigationState extends State<PatientMainNavigation> {
   int _currentIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    // Initialize CallManager when dashboard loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('🏥 Patient Dashboard Loaded - Initializing CallManager');
+      CallManager.instance.initialize(context);
+    });
+  }
+
   final List<Widget> _screens = const [
     PatientHomeScreen(),
     PatientAppointmentsScreen(),
     PatientReelsScreen(),
-    MessagesScreen(),
+    PatientMessagesListScreen(),
     PatientProfileScreen(),
   ];
 
@@ -55,59 +67,54 @@ class _PatientMainNavigationState extends State<PatientMainNavigation> {
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
           items: [
             const BottomNavigationBarItem(
-              icon: Icon(Icons.home),
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.home_outlined, size: 28),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.home, size: 28),
+              ),
               label: 'Home',
             ),
             const BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today),
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.calendar_today_outlined, size: 26),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.calendar_today, size: 26),
+              ),
               label: 'Appointments',
             ),
             const BottomNavigationBarItem(
-              icon: Icon(Icons.play_circle_fill),
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.video_library_outlined, size: 26),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.video_library, size: 26),
+              ),
               label: 'Reels',
             ),
             BottomNavigationBarItem(
-              icon: Consumer<NotificationProvider>(
-                builder: (context, notificationProvider, child) {
-                  final unreadCount =
-                      notificationProvider.messageUnreadCount.value;
-                  return Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      const Icon(Icons.message),
-                      if (unreadCount > 0)
-                        Positioned(
-                          right: -8,
-                          top: -8,
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            constraints: const BoxConstraints(
-                              minWidth: 16,
-                              minHeight: 16,
-                            ),
-                            child: Text(
-                              unreadCount > 99 ? '99+' : unreadCount.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              ),
+              icon: _buildNotificationIcon(
+                Icons.mail_outline,
+              ), // Inactive state
+              activeIcon: _buildNotificationIcon(Icons.mail), // Active state
               label: 'Messages',
             ),
             const BottomNavigationBarItem(
-              icon: Icon(Icons.person),
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.person_outline, size: 28),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 5),
+                child: Icon(Icons.person, size: 28),
+              ),
               label: 'Profile',
             ),
           ],
@@ -115,4 +122,44 @@ class _PatientMainNavigationState extends State<PatientMainNavigation> {
       ),
     );
   }
+}
+
+Widget _buildNotificationIcon(IconData iconData) {
+  return Consumer<NotificationProvider>(
+    builder: (context, notificationProvider, child) {
+      final unreadCount = notificationProvider.messageUnreadCount.value;
+      return Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // This applies your specific styling (padding & size) to whatever icon is passed in
+          Padding(
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Icon(iconData, size: 26),
+          ),
+          if (unreadCount > 0)
+            Positioned(
+              right: -8,
+              top: -8,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                child: Text(
+                  unreadCount > 99 ? '99+' : unreadCount.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+        ],
+      );
+    },
+  );
 }

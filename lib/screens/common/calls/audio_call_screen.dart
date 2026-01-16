@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart';
+// import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../services/api_service.dart';
 import '../../../services/socket_service.dart';
-import '../../../services/webrtc_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../../services/agora_service.dart';
 
 class AudioCallScreen extends StatefulWidget {
   final String chatId;
@@ -28,22 +28,18 @@ class AudioCallScreen extends StatefulWidget {
 }
 
 class _AudioCallScreenState extends State<AudioCallScreen> {
-  WebRTCService? _webRTCService;
+  final AgoraService _agoraService = AgoraService.instance;
+
   bool _isMuted = false;
   bool _isSpeakerOn = false;
   bool _callConnected = false;
-  bool _remoteVideoEnabled = false; // ✅ Track remote video
-  bool _localVideoEnabled = false; // ✅ Track local video
 
-  final RTCVideoRenderer _localRenderer = RTCVideoRenderer();
-  final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
-
-  int _callDuration = 0;
-  Timer? _timer;
-  int _seconds = 0;
+  String _callStatus = 'Connecting...';
   String? _currentUserId;
   bool _isDisposed = false;
-  String _callStatus = 'Initializing...';
+
+  Timer? _timer;
+  int _callDuration = 0;
 
   @override
   void initState() {
@@ -52,116 +48,89 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
     _loadCurrentUserIdAndInitialize();
   }
 
-  // ✅ Load current user ID first
   Future<void> _loadCurrentUserIdAndInitialize() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      // ignore: unused_local_variable
       final userDataString = prefs.getString('user_data');
 
-      // Try to get from API
       final profileResult = await ApiService.getUserProfile();
       if (profileResult['success'] == true) {
         _currentUserId = profileResult['data']['_id']?.toString();
-        print('✅ Current user ID loaded: $_currentUserId');
-
-        // ✅ Check permissions first
-        bool permissionsGranted = await WebRTCService.checkPermissions(false);
-        if (!permissionsGranted) {
-          throw Exception('Microphone permission denied');
-        }
-
-        // Now initialize the call
         await _initializeCall();
       } else {
         throw Exception('Failed to load user profile');
       }
     } catch (e) {
-      print('❌ Error loading user ID: $e');
-      if (mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Failed to initialize: $e')));
-            Navigator.pop(context);
-          }
-        });
-      }
+      if (mounted) _showError('Failed to initialize: $e');
     }
   }
 
   Future<void> _initializeCall() async {
+    if (_isDisposed) return;
+
     try {
-      print('🎤 Initializing audio call...');
-      print('💬 Chat ID: ${widget.chatId}');
-      print('👤 Other user: ${widget.otherUserId}');
-      print('👤 Current user: $_currentUserId');
-      print('🎬 Is Initiator: ${widget.isInitiator}');
+      setState(() => _callStatus = 'Setting up audio...');
 
-      final socket = SocketService.instance.socket;
-      if (socket == null || !SocketService.instance.isConnected) {
-        throw Exception('Socket not connected');
-      }
+      await _agoraService.initialize();
 
-      // Initialize renderers even for audio call (just in case we switch)
-      await _localRenderer.initialize();
-      await _remoteRenderer.initialize();
-
-      _webRTCService = WebRTCService(
-        chatId: widget.chatId,
-        isVideo: false,
-        onRemoteStream: (stream) {
-          _handleRemoteStream(stream);
+      // Events
+      _agoraService.onUserJoined = (uid, elapsed) {
+        if (mounted) {
           setState(() {
-            _remoteRenderer.srcObject = stream;
+            _callConnected = true;
+            _callStatus = 'Connected';
           });
-        },
-        onCallEnded: () {
-          print('📴 Call ended by peer');
+          _startTimer();
+        }
+      };
+
+      _agoraService.onUserOffline = (uid, reason) {
+        if (mounted) {
+          print('Remote user offline');
           _endCall();
-        },
-      );
-
-      await _webRTCService!.initialize();
-      _webRTCService!.setCurrentUserId(_currentUserId!);
-
-      print('✅ WebRTC initialized');
+        }
+      };
 
       _setupSocketListeners();
 
-      setState(() {
-        _callStatus = widget.isInitiator ? 'Calling...' : 'Connecting...';
-      });
-
       if (widget.isInitiator) {
-        print('⏳ Waiting for receiver to accept before creating offer...');
+        setState(() => _callStatus = 'Calling...');
+        // Wait for accept
       } else {
-        print('📥 Waiting for offer as receiver...');
-        // ✅ For receiver, sometimes the remote stream is already available
-        if (_webRTCService?.remoteStream != null && !_callConnected) {
-          _handleRemoteStream(_webRTCService!.remoteStream!);
-        }
+        await _joinAgoraChannel();
       }
     } catch (e) {
-      print('❌ Error initializing call: $e');
-      String errorMsg = e.toString().contains('permission')
-          ? 'Microphone permission is required for the call'
-          : 'Failed to start call: $e';
-      _showError(errorMsg);
+      _showError('Error: $e');
     }
   }
 
-  void _handleRemoteStream(MediaStream stream) {
-    print('🎵 Handling remote stream...');
-    if (mounted) {
-      setState(() {
-        _callConnected = true;
-      });
+  Future<void> _joinAgoraChannel() async {
+    try {
+      setState(() => _callStatus = 'Securing connection...');
 
-      // ✅ Start timer when connection is established
-      if (!_isTimerRunning()) {
-        _startTimer();
+      // ✅ Fetch Dynamic Token
+      final result = await ApiService.getAgoraToken(channelName: widget.chatId);
+      final String? token = (result['success'] == true)
+          ? result['data']['token']
+          : null;
+
+      if (token == null) {
+        if (mounted) _showError('Connection security failed');
+        return;
       }
+
+      // isVideo: false for audio only
+      await _agoraService.joinChannel(
+        channelName: widget.chatId,
+        uid: 0,
+        isVideo: false,
+        token: token,
+      );
+      print('✅ Joined Agora channel (Audio Mode) with Token');
+    } catch (e) {
+      print('❌ Failed to join: $e');
+      if (mounted) _showError('Failed to connect: $e');
     }
   }
 
@@ -169,182 +138,57 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
     final socket = SocketService.instance.socket;
     if (socket == null) return;
 
-    socket.off('call:offer');
-    socket.off('call:answer');
-    socket.off('call:iceCandidate');
-    socket.off('call:end');
+    socket.off('call:accepted');
+    socket.off('call:ended');
+    socket.off('call:rejected');
 
-    socket.on('call:offer', (data) async {
-      print('📥 Received offer: $data');
-      if (data['chatId'] == widget.chatId && mounted && !_isDisposed) {
-        final fromUserId = data['fromUserId']?.toString();
-        if (fromUserId != null && _webRTCService != null) {
-          setState(() {
-            _callStatus = 'Connecting...';
-          });
-          await _webRTCService!.handleOffer(data['offer'], fromUserId);
-        }
-      }
-    });
-
-    socket.on('call:answer', (data) async {
-      print('📥 Received call:answer event');
+    socket.on('call:accepted', (data) async {
       if (data['chatId'] == widget.chatId) {
-        print('✅ Answer is for this chat, handling...');
-        await _webRTCService?.handleAnswer(data['answer']);
-
-        if (mounted) {
-          setState(() {
-            _callStatus = 'Establishing connection...';
-          });
-
-          // ✅ Start timer when answer received (for initiator)
-          if (!_isTimerRunning()) {
-            _startTimer();
-          }
-        }
-      }
-    });
-
-    socket.on('call:iceCandidate', (data) async {
-      print('📥 Received ICE candidate');
-      if (data['chatId'] == widget.chatId) {
-        await _webRTCService?.addIceCandidate(data['candidate']);
+        setState(() => _callStatus = 'Connecting...');
+        await _joinAgoraChannel();
       }
     });
 
     socket.on('call:ended', (data) {
-      print('📥 Received call:ended event');
       if (data['chatId'] == widget.chatId) {
-        print('📴 Call ended by remote user');
         _endCall();
       }
     });
 
     socket.on('call:rejected', (data) {
-      print('📥 Received call:rejected event');
       if (data['chatId'] == widget.chatId) {
-        print('❌ Call was rejected');
-        if (mounted) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'The receiver is currently busy or declined the call',
-                  ),
-                  duration: Duration(seconds: 3),
-                ),
-              );
-              Navigator.pop(context);
-            }
-          });
-        }
+        _showError('Call declined');
       }
     });
-
-    socket.on('call:media_update', (data) {
-      print('📥 Received call:media_update: $data');
-      if (data['chatId'] == widget.chatId && data['videoEnabled'] != null) {
-        setState(() {
-          _remoteVideoEnabled = data['videoEnabled'];
-        });
-      }
-    });
-
-    socket.on('call:accepted', (data) async {
-      print('📥 Received call:accepted event');
-      if (data['chatId'] == widget.chatId) {
-        print('✅ Call was accepted by receiver');
-
-        // ✅ Initiator creates offer ONLY after receiver accepts
-        if (widget.isInitiator && _webRTCService != null) {
-          print('📤 Receiver is ready. Creating offer in 1 second...');
-          await Future.delayed(const Duration(milliseconds: 1000));
-          await _webRTCService!.createOffer(widget.otherUserId);
-        }
-      }
-    });
-
-    socket.on('call:switch_request', (data) {
-      print('📥 Received call:switch_request: $data');
-      if (data['chatId'] == widget.chatId &&
-          data['type'] == 'video' &&
-          mounted) {
-        _showSwitchRequestDialog();
-      }
-    });
-
-    socket.on('call:switch_response', (data) {
-      print('📥 Received call:switch_response: $data');
-      if (data['chatId'] == widget.chatId && mounted) {
-        if (data['accepted'] == true) {
-          _performSwitchToVideo();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Switch to video request declined')),
-          );
-        }
-      }
-    });
-
-    print('✅ All socket listeners set up');
-  }
-
-  // ✅ Check if timer is running
-  bool _isTimerRunning() {
-    return _timer != null && _timer!.isActive;
   }
 
   void _startTimer() {
-    if (_isTimerRunning()) {
-      print('⏱️ Timer already running');
-      return;
-    }
-
-    print('⏱️ Starting call timer');
-    _timer?.cancel();
-    _seconds = 0; // Reset to 0
-
+    if (_timer != null && _timer!.isActive) return;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
-        setState(() {
-          _callDuration++;
-        });
+        setState(() => _callDuration++);
       } else {
         timer.cancel();
       }
     });
-
-    print('✅ Call timer started');
   }
 
   void _toggleMute() {
-    if (_webRTCService != null && mounted && !_isDisposed) {
-      setState(() {
-        _isMuted = !_isMuted;
-      });
-      _webRTCService!.toggleAudio();
-    }
+    setState(() => _isMuted = !_isMuted);
+    _agoraService.toggleAudio(_isMuted);
   }
 
-  void _toggleSpeaker() {
-    if (mounted && !_isDisposed) {
-      setState(() {
-        _isSpeakerOn = !_isSpeakerOn;
-      });
-      // Note: Actual speaker toggle requires platform-specific implementation
-      print('🔊 Speaker ${_isSpeakerOn ? "ON" : "OFF"}');
-    }
+  void _toggleSpeaker() async {
+    setState(() => _isSpeakerOn = !_isSpeakerOn);
+    // Use Agora engine to set speaker
+    await _agoraService.engine?.setEnableSpeakerphone(_isSpeakerOn);
   }
 
-  void _endCall() {
+  void _endCall() async {
     if (_isDisposed) return;
-
-    print('📴 Ending call...');
+    _isDisposed = true;
 
     _timer?.cancel();
-    _timer = null;
 
     SocketService.instance.emit('call:end', {
       'chatId': widget.chatId,
@@ -352,64 +196,19 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
       'fromUserId': _currentUserId,
     });
 
-    print('✅ Call ended, navigating back');
+    await _agoraService.leaveChannel();
 
-    if (mounted) {
-      Navigator.pop(context);
-    }
+    if (mounted) Navigator.pop(context);
   }
 
-  void _toggleVideo() async {
-    if (_localVideoEnabled) {
-      _webRTCService?.toggleVideo();
-      setState(() {
-        _localVideoEnabled = false;
-      });
-    } else {
-      // ✅ Instead of immediate enable, send a request
-      _webRTCService?.requestSwitchToVideo();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Requesting switch to video...')),
-      );
-    }
-  }
-
-  void _showSwitchRequestDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Switch to Video Call'),
-        content: Text('${widget.userName} wants to switch to a video call.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _webRTCService?.respondToSwitchRequest(false);
-            },
-            child: const Text('Decline', style: TextStyle(color: Colors.red)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _webRTCService?.respondToSwitchRequest(true);
-              _performSwitchToVideo();
-            },
-            child: const Text('Accept'),
-          ),
-        ],
-      ),
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
-  }
-
-  void _performSwitchToVideo() async {
-    await _webRTCService?.enableVideo();
-    if (mounted) {
-      setState(() {
-        _localVideoEnabled = true;
-        _localRenderer.srcObject = _webRTCService?.localStream;
-      });
-    }
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted && Navigator.canPop(context)) Navigator.pop(context);
+    });
   }
 
   String _formatDuration(int seconds) {
@@ -418,38 +217,17 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
     return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
-  void _showError(String message) {
-    if (mounted) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(message), backgroundColor: Colors.red),
-          );
-          Navigator.pop(context);
-        }
-      });
-    }
-  }
-
   @override
   void dispose() {
     print('🧹 Disposing AudioCallScreen');
-
     WakelockPlus.disable();
     _timer?.cancel();
-    _timer = null;
-    _webRTCService?.dispose();
-    _localRenderer.dispose();
-    _remoteRenderer.dispose();
+    _agoraService.leaveChannel();
 
-    SocketService.instance.off('call:offer');
-    SocketService.instance.off('call:answer');
-    SocketService.instance.off('call:iceCandidate');
-    SocketService.instance.off('call:ended');
-    SocketService.instance.off('call:rejected');
-    SocketService.instance.off('call:accepted');
-
-    print('✅ AudioCallScreen disposed');
+    final socket = SocketService.instance.socket;
+    socket?.off('call:accepted');
+    socket?.off('call:ended');
+    socket?.off('call:rejected');
 
     super.dispose();
   }
@@ -469,8 +247,6 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
           child: Column(
             children: [
               const SizedBox(height: 60),
-
-              // User Avatar
               CircleAvatar(
                 radius: 80,
                 backgroundImage: widget.userAvatar != null
@@ -478,10 +254,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                     : const AssetImage('assets/images/doctor.png')
                           as ImageProvider,
               ),
-
               const SizedBox(height: 30),
-
-              // User Name
               Text(
                 widget.userName,
                 style: const TextStyle(
@@ -490,9 +263,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               const SizedBox(height: 10),
-
               Text(
                 _callConnected ? _formatDuration(_callDuration) : _callStatus,
                 style: TextStyle(
@@ -500,31 +271,9 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                   fontSize: 18,
                 ),
               ),
-
               const Spacer(),
 
-              // ✅ Remote Video View (if enabled)
-              if (_remoteVideoEnabled)
-                Container(
-                  width: double.infinity,
-                  height: 300,
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white24),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: RTCVideoView(
-                      _remoteRenderer,
-                      objectFit:
-                          RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                    ),
-                  ),
-                ),
-
-              const Spacer(),
-
+              // Controls
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Row(
@@ -546,61 +295,23 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                           ? Colors.blue
                           : Colors.white.withOpacity(0.3),
                     ),
-                    _buildControlButton(
-                      icon: _localVideoEnabled
-                          ? Icons.videocam
-                          : Icons.videocam_off,
-                      label: 'Video',
-                      onPressed: _toggleVideo,
-                      backgroundColor: _localVideoEnabled
-                          ? Colors.green
-                          : Colors.white.withOpacity(0.3),
-                    ),
                   ],
                 ),
               ),
 
               const SizedBox(height: 40),
-
-              const SizedBox(height: 20),
-
-              // ✅ Local Video Preview (Mini)
-              if (_localVideoEnabled)
-                Container(
-                  width: 100,
-                  height: 130,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: RTCVideoView(
-                      _localRenderer,
-                      mirror: true,
-                      objectFit:
-                          RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                    ),
-                  ),
-                ),
-
-              GestureDetector(
-                onTap: _endCall,
-                child: Container(
-                  padding: const EdgeInsets.all(20),
+              IconButton(
+                iconSize: 60,
+                icon: Container(
+                  padding: const EdgeInsets.all(15),
                   decoration: const BoxDecoration(
-                    color: Colors.red,
                     shape: BoxShape.circle,
+                    color: Colors.red,
                   ),
-                  child: const Icon(
-                    Icons.call_end,
-                    color: Colors.white,
-                    size: 40,
-                  ),
+                  child: const Icon(Icons.call_end, color: Colors.white),
                 ),
+                onPressed: _endCall,
               ),
-
               const SizedBox(height: 60),
             ],
           ),
@@ -614,7 +325,6 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
     required String label,
     required VoidCallback onPressed,
     required Color backgroundColor,
-    double size = 60,
   }) {
     return Column(
       children: [

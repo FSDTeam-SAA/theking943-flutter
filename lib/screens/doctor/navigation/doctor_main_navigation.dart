@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/doctor/home/doctor_home_screen.dart';
 import 'package:docmobi/screens/doctor/appointments/doctor_appointments_screen.dart';
-import 'package:docmobi/screens/doctor/reels/doctor_reels_screen.dart'; 
+import 'package:docmobi/screens/doctor/reels/doctor_reels_screen.dart';
 import 'package:docmobi/screens/doctor/profile/doctor_profile_screen.dart';
-import 'package:docmobi/screens/doctor/messages/messages_list_screen.dart';
+import 'package:docmobi/screens/doctor/messages/doctor_messages_list_screen.dart';
+
+import 'package:docmobi/services/call_manager_service.dart';
 
 class DoctorMainNavigation extends StatefulWidget {
   const DoctorMainNavigation({super.key});
@@ -15,11 +17,21 @@ class DoctorMainNavigation extends StatefulWidget {
 class _DoctorMainNavigationState extends State<DoctorMainNavigation> {
   int _currentIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    // ✅ Initialize CallManager when dashboard loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('👨‍⚕️ Doctor Dashboard Loaded - Initializing CallManager');
+      CallManager.instance.initialize(context);
+    });
+  }
+
   final List<Widget> _screens = const [
     DoctorHomeScreen(),
     DoctorAppointmentsScreen(),
     DoctorReelsScreen(),
-    DoctorMessagesScreen(),
+    DoctorMessagesListScreen(),
     DoctorProfileScreen(),
   ];
 
@@ -35,10 +47,7 @@ class _DoctorMainNavigationState extends State<DoctorMainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.only(top: 10, bottom: 10),
         decoration: BoxDecoration(
@@ -63,8 +72,14 @@ class _DoctorMainNavigationState extends State<DoctorMainNavigation> {
           elevation: 0,
           selectedItemColor: const Color(0xFF1664CD),
           unselectedItemColor: const Color(0xFF4B5563),
-          selectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+          selectedLabelStyle: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
           items: [
             const BottomNavigationBarItem(
               icon: Padding(

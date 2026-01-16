@@ -15,6 +15,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:math' as math;
 import 'package:docmobi/screens/patient/profile/patient_profile_screen.dart';
+import '../../../widgets/custom_image.dart';
+import 'dart:async'; // For Timer
 
 class PatientHomeScreen extends StatefulWidget {
   const PatientHomeScreen({super.key});
@@ -26,6 +28,7 @@ class PatientHomeScreen extends StatefulWidget {
 class _PatientHomeScreenState extends State<PatientHomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   GoogleMapController? _mapController;
+  Timer? _socketCheckTimer; // Timer for checking connection status
 
   static bool _hasShownLocationDialog = false;
   late bool _showLocationDialog;
@@ -44,6 +47,11 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   void initState() {
     super.initState();
     _showLocationDialog = !_hasShownLocationDialog;
+
+    // Start periodic check for socket status
+    _socketCheckTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (mounted) setState(() {});
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeScreen();
@@ -70,6 +78,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
   @override
   void dispose() {
+    _socketCheckTimer?.cancel(); // Cancel timer
     _searchController.dispose();
     _mapController?.dispose();
     super.dispose();
@@ -469,9 +478,16 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                                   ),
                                   child: Row(
                                     children: [
-                                      _buildProfileAvatar(
-                                        userProvider.user?.profileImage,
+                                      CustomImage(
+                                        imageUrl:
+                                            userProvider.user?.profileImage,
+                                        width: 56,
+                                        height: 56,
+                                        shape: BoxShape.circle,
+                                        placeholderAsset:
+                                            'assets/images/profile.png',
                                       ),
+
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Column(
@@ -1022,36 +1038,6 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
             style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildProfileAvatar(String? imageUrl) {
-    if (imageUrl != null &&
-        imageUrl.isNotEmpty &&
-        (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
-      return GestureDetector(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const PatientProfileScreen()),
-        ),
-        child: CircleAvatar(
-          radius: 25,
-          backgroundImage: NetworkImage(imageUrl),
-          onBackgroundImageError: (exception, stackTrace) {},
-          child: null,
-        ),
-      );
-    }
-
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const PatientProfileScreen()),
-      ),
-      child: const CircleAvatar(
-        radius: 25,
-        backgroundImage: AssetImage('assets/images/profile.png'),
       ),
     );
   }

@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:docmobi/screens/patient/messages/chat_screen.dart';
+import 'package:docmobi/screens/patient/messages/patient_chat_screen.dart';
 import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart';
 import 'package:docmobi/services/api_service.dart';
 import 'package:docmobi/services/socket_service.dart';
 import 'dart:async';
 
-class MessagesScreen extends StatefulWidget {
-  const MessagesScreen({super.key});
+class PatientMessagesListScreen extends StatefulWidget {
+  const PatientMessagesListScreen({super.key});
 
   @override
-  State<MessagesScreen> createState() => _MessagesScreenState();
+  State<PatientMessagesListScreen> createState() =>
+      _PatientMessagesListScreenState();
 }
 
-class _MessagesScreenState extends State<MessagesScreen> {
+class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
   List<dynamic> _chats = [];
   bool _isLoading = true;
   String? _currentUserId;
@@ -51,16 +52,16 @@ class _MessagesScreenState extends State<MessagesScreen> {
   Future<void> _loadChatsQuietly() async {
     try {
       final result = await ApiService.getMyChats();
-      
+
       if (result['success'] == true && mounted) {
         final chats = result['data'] ?? [];
-        
+
         Map<String, dynamic> uniqueChatsMap = {};
         for (var chat in chats) {
           final chatId = chat['_id']?.toString();
           if (chatId != null) {
             final participants = chat['participants'] as List?;
-            if (participants != null && 
+            if (participants != null &&
                 participants.any((p) => p['role'] == 'doctor')) {
               if (!uniqueChatsMap.containsKey(chatId) ||
                   _isNewerChat(chat, uniqueChatsMap[chatId])) {
@@ -69,15 +70,15 @@ class _MessagesScreenState extends State<MessagesScreen> {
             }
           }
         }
-        
+
         final uniqueChats = uniqueChatsMap.values.toList();
-        
+
         uniqueChats.sort((a, b) {
           final aTime = a['updatedAt']?.toString() ?? '';
           final bTime = b['updatedAt']?.toString() ?? '';
           return bTime.compareTo(aTime);
         });
-        
+
         if (mounted) {
           setState(() {
             _chats = uniqueChats;
@@ -110,16 +111,16 @@ class _MessagesScreenState extends State<MessagesScreen> {
     try {
       print('🔍 Loading patient chats...');
       final result = await ApiService.getMyChats();
-      
+
       if (result['success'] == true) {
         final chats = result['data'] ?? [];
-        
+
         Map<String, dynamic> uniqueChatsMap = {};
         for (var chat in chats) {
           final chatId = chat['_id']?.toString();
           if (chatId != null) {
             final participants = chat['participants'] as List?;
-            if (participants != null && 
+            if (participants != null &&
                 participants.any((p) => p['role'] == 'doctor')) {
               if (!uniqueChatsMap.containsKey(chatId) ||
                   _isNewerChat(chat, uniqueChatsMap[chatId])) {
@@ -128,15 +129,15 @@ class _MessagesScreenState extends State<MessagesScreen> {
             }
           }
         }
-        
+
         final uniqueChats = uniqueChatsMap.values.toList();
-        
+
         uniqueChats.sort((a, b) {
           final aTime = a['updatedAt']?.toString() ?? '';
           final bTime = b['updatedAt']?.toString() ?? '';
           return bTime.compareTo(aTime);
         });
-        
+
         setState(() {
           _chats = uniqueChats;
           _isLoading = false;
@@ -166,9 +167,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   void _goBackToHome() {
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(
-        builder: (context) => const PatientMainNavigation(),
-      ),
+      MaterialPageRoute(builder: (context) => const PatientMainNavigation()),
       (route) => false,
     );
   }
@@ -182,9 +181,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
         _goBackToHome();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFF),
+        backgroundColor: const Color.fromARGB(255, 248, 246, 246),
         appBar: AppBar(
-          backgroundColor: Colors.transparent,
+          backgroundColor: Colors.white,
           elevation: 0,
           toolbarHeight: 80,
           leading: IconButton(
@@ -205,37 +204,39 @@ class _MessagesScreenState extends State<MessagesScreen> {
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _chats.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.chat_bubble_outline, 
-                              size: 64, 
-                              color: Colors.grey[400]),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No conversations yet',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextButton.icon(
-                            onPressed: _loadChats,
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Refresh'),
-                          ),
-                        ],
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline,
+                        size: 64,
+                        color: Colors.grey[400],
                       ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      itemCount: _chats.length,
-                      itemBuilder: (context, index) {
-                        return _buildChatItem(_chats[index]);
-                      },
-                    ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No conversations yet',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: _loadChats,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Refresh'),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  itemCount: _chats.length,
+                  itemBuilder: (context, index) {
+                    return _buildChatItem(_chats[index]);
+                  },
+                ),
         ),
       ),
     );
@@ -243,29 +244,29 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   Widget _buildChatItem(Map<String, dynamic> chat) {
     final participants = chat['participants'] as List? ?? [];
-    
+
     final doctor = participants.firstWhere(
       (p) => p['role'] == 'doctor',
       orElse: () => null,
     );
-    
+
     if (doctor == null) {
       return const SizedBox.shrink();
     }
-    
+
     final String doctorName = doctor['fullName']?.toString() ?? 'Doctor';
     final String? doctorAvatar = doctor['avatar']?['url']?.toString();
     final String doctorId = doctor['_id']?.toString() ?? '';
-    
+
     final lastMessage = chat['lastMessage'];
-    final String messageText = lastMessage != null 
+    final String messageText = lastMessage != null
         ? (lastMessage['content']?.toString() ?? 'Start conversation')
         : 'Start conversation';
-    
+
     // ✅ Get unread count
     final int unreadCount = chat['unreadCount'] ?? 0;
-    
-    final DateTime? updatedAt = chat['updatedAt'] != null 
+
+    final DateTime? updatedAt = chat['updatedAt'] != null
         ? DateTime.tryParse(chat['updatedAt'].toString())
         : null;
     final String timeText = updatedAt != null ? _formatTime(updatedAt) : '';
@@ -306,23 +307,24 @@ class _MessagesScreenState extends State<MessagesScreen> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: doctorAvatar != null && 
-                       doctorAvatar.isNotEmpty &&
-                       doctorAvatar != 'file:///' &&
-                       (doctorAvatar.startsWith('http://') || 
-                        doctorAvatar.startsWith('https://'))
+                child:
+                    doctorAvatar != null &&
+                        doctorAvatar.isNotEmpty &&
+                        doctorAvatar != 'file:///' &&
+                        (doctorAvatar.startsWith('http://') ||
+                            doctorAvatar.startsWith('https://'))
                     ? Image.network(
                         doctorAvatar,
                         height: 56,
                         width: 56,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => 
-                           Image.asset(
-                             "assets/images/doctor1.png",
-                             height: 56,
-                             width: 56,
-                             fit: BoxFit.cover,
-                           ),
+                        errorBuilder: (context, error, stackTrace) =>
+                            Image.asset(
+                              "assets/images/doctor1.png",
+                              height: 56,
+                              width: 56,
+                              fit: BoxFit.cover,
+                            ),
                       )
                     : Image.asset(
                         "assets/images/doctor1.png",
@@ -352,7 +354,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
                         ),
                         Container(
                           margin: const EdgeInsets.only(left: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.blue[50],
                             borderRadius: BorderRadius.circular(4),
@@ -378,12 +383,12 @@ class _MessagesScreenState extends State<MessagesScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: unreadCount > 0 
+                              color: unreadCount > 0
                                   ? const Color(0xFF1B2C49)
                                   : Colors.grey,
                               fontSize: 14,
-                              fontWeight: unreadCount > 0 
-                                  ? FontWeight.w600 
+                              fontWeight: unreadCount > 0
+                                  ? FontWeight.w600
                                   : FontWeight.normal,
                             ),
                           ),
@@ -417,10 +422,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               const SizedBox(width: 8),
               Text(
                 timeText,
-                style: const TextStyle(
-                  color: Colors.black54,
-                  fontSize: 12,
-                ),
+                style: const TextStyle(color: Colors.black54, fontSize: 12),
               ),
             ],
           ),

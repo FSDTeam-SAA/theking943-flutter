@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:docmobi/models/doctor_model.dart';
 import 'package:docmobi/services/api_service.dart';
-import 'package:docmobi/screens/patient/messages/chat_screen.dart';
+import 'package:docmobi/screens/patient/messages/patient_chat_screen.dart';
 import 'book_appointment_screen.dart';
 
 class DoctorDetailsScreen extends StatelessWidget {
@@ -27,23 +27,54 @@ class DoctorDetailsScreen extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(15),
                     child: doctor.image.startsWith('http')
-                        ? Image.network(doctor.image, height: 80, width: 80, fit: BoxFit.cover)
-                        : Image.asset(doctor.image, height: 80, width: 80, fit: BoxFit.cover),
+                        ? Image.network(
+                            doctor.image,
+                            height: 80,
+                            width: 80,
+                            fit: BoxFit.cover,
+                          )
+                        : Image.asset(
+                            doctor.image,
+                            height: 80,
+                            width: 80,
+                            fit: BoxFit.cover,
+                          ),
                   ),
                   const SizedBox(width: 15),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(doctor.fullName, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
-                        Text(doctor.specialty, style: const TextStyle(fontSize: 18)),
+                        Text(
+                          doctor.fullName,
+                          style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          doctor.specialty,
+                          style: const TextStyle(fontSize: 18),
+                        ),
                         const SizedBox(height: 4),
-                        const Row(children: [Icon(Icons.videocam_outlined), SizedBox(width: 5), Text("Video Consultation")]),
+                        const Row(
+                          children: [
+                            Icon(Icons.videocam_outlined),
+                            SizedBox(width: 5),
+                            Text("Video Consultation"),
+                          ],
+                        ),
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.star, size: 20, color: Colors.orange),
-                            Text(" ${doctor.rating} (${doctor.reviews} reviews)"),
+                            const Icon(
+                              Icons.star,
+                              size: 20,
+                              color: Colors.orange,
+                            ),
+                            Text(
+                              " ${doctor.rating} (${doctor.reviews} reviews)",
+                            ),
                             const SizedBox(width: 10),
                             const Icon(Icons.location_on),
                             Text(" ${doctor.distance}"),
@@ -52,14 +83,22 @@ class DoctorDetailsScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  IconButton(icon: const Icon(Icons.close, size: 35), onPressed: () => Navigator.pop(context)),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 35),
+                    onPressed: () => Navigator.pop(context),
+                  ),
                 ],
               ),
 
               const SizedBox(height: 25),
-              const Text("Bio", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const Text(
+                "Bio",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
-              Text("${doctor.fullName} is a senior ${doctor.specialty} at ${doctor.location} with ${doctor.experience} of experience."),
+              Text(
+                "${doctor.fullName} is a senior ${doctor.specialty} at ${doctor.location} with ${doctor.experience} of experience.",
+              ),
 
               const SizedBox(height: 30),
 
@@ -69,7 +108,13 @@ class DoctorDetailsScreen extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Specialty", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                      const Text(
+                        "Specialty",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 10),
                       _buildBulletItem(doctor.specialty),
                       _buildBulletItem("General Medicine"),
@@ -78,7 +123,13 @@ class DoctorDetailsScreen extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Degree", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                      const Text(
+                        "Degree",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 10),
                       _buildBulletItem("MBBS, FCPS"),
                       _buildBulletItem("MD"),
@@ -88,9 +139,18 @@ class DoctorDetailsScreen extends StatelessWidget {
               ),
 
               const SizedBox(height: 35),
-              Text("Fees: ${doctor.fees?['amount'] ?? 500} ${doctor.fees?['currency'] ?? 'BDT'}", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(
+                "Fees: ${doctor.fees?['amount'] ?? 500} ${doctor.fees?['currency'] ?? 'BDT'}",
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 15),
-              const Text("Visiting Hours: Sun-Thu", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const Text(
+                "Visiting Hours: Sun-Thu",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
 
               const Spacer(),
 
@@ -99,7 +159,10 @@ class DoctorDetailsScreen extends StatelessWidget {
                 height: 55,
                 child: OutlinedButton.icon(
                   onPressed: () => _openChatWithDoctor(context),
-                  icon: const Icon(Icons.message_outlined, color: Color(0xFF6C5CE7)),
+                  icon: const Icon(
+                    Icons.message_outlined,
+                    color: Color(0xFF6C5CE7),
+                  ),
                   label: const Text(
                     "Message Doctor",
                     style: TextStyle(
@@ -124,16 +187,32 @@ class DoctorDetailsScreen extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () {
                     if (doctor.id.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid Doctor')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Invalid Doctor')),
+                      );
                       return;
                     }
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => BookAppointmentScreen(doctor: doctor)));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BookAppointmentScreen(doctor: doctor),
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0D53C1), 
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
+                    backgroundColor: const Color(0xFF0D53C1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
                   ),
-                  child: const Text("Book Now", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                  child: const Text(
+                    "Book Now",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
@@ -150,7 +229,10 @@ class DoctorDetailsScreen extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text("• ", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const Text(
+            "• ",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
           Text(text, style: const TextStyle(fontSize: 17)),
         ],
       ),
@@ -161,14 +243,12 @@ class DoctorDetailsScreen extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
       final doctorId = doctor.id;
-      
+
       if (doctorId.isEmpty) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -191,7 +271,7 @@ class DoctorDetailsScreen extends StatelessWidget {
       if (result['success'] == true) {
         final chatData = result['data'];
         final chatId = chatData['_id']?.toString();
-        
+
         if (chatId == null || chatId.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -207,13 +287,13 @@ class DoctorDetailsScreen extends StatelessWidget {
         // Get doctor's info from participants
         final participants = chatData['participants'] as List?;
         String? doctorAvatar;
-        
+
         if (participants != null) {
           final doctorParticipant = participants.firstWhere(
             (p) => p['_id'] == doctorId,
             orElse: () => null,
           );
-          
+
           if (doctorParticipant != null) {
             doctorAvatar = doctorParticipant['avatar']?['url'];
           }
@@ -227,7 +307,9 @@ class DoctorDetailsScreen extends StatelessWidget {
               builder: (context) => ChatDetailScreen(
                 chatId: chatId,
                 doctorName: doctor.fullName,
-                doctorAvatar: doctorAvatar ?? (doctor.image.startsWith('http') ? doctor.image : null),
+                doctorAvatar:
+                    doctorAvatar ??
+                    (doctor.image.startsWith('http') ? doctor.image : null),
                 doctorId: doctorId,
               ),
             ),
@@ -246,10 +328,7 @@ class DoctorDetailsScreen extends StatelessWidget {
       print('❌ Error opening chat: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     }

@@ -3,7 +3,6 @@ import 'package:docmobi/services/api_service.dart';
 import 'package:docmobi/services/socket_service.dart';
 import 'package:docmobi/screens/common/calls/video_call_screen.dart';
 import 'package:docmobi/screens/common/calls/audio_call_screen.dart';
-import 'package:docmobi/screens/common/calls/incoming_call_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'dart:async';
@@ -100,46 +99,12 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
   void _setupSocketListeners() {
     final socket = SocketService.instance.socket;
     if (socket != null) {
-      socket.on('call:incoming', (data) {
-        print('📞 Incoming call event received: $data');
-        if (data['chatId'] == widget.chatId && mounted) {
-          _showIncomingCall(
-            callerId: data['fromUserId'],
-            callerName: data['callerName'] ?? widget.userName,
-            callerAvatar: data['callerAvatar'] ?? _actualUserAvatar,
-            isVideoCall: data['isVideo'] ?? true,
-          );
-        }
-      });
-
       socket.on('message:new', (data) {
         if (data['chatId'] == widget.chatId && mounted) {
           _loadMessagesQuietly();
         }
       });
     }
-  }
-
-  void _showIncomingCall({
-    required String callerId,
-    required String callerName,
-    String? callerAvatar,
-    required bool isVideoCall,
-  }) {
-    if (!mounted) return;
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => IncomingCallScreen(
-          chatId: widget.chatId,
-          callerName: callerName,
-          callerAvatar: callerAvatar,
-          callerId: callerId,
-          isVideoCall: isVideoCall,
-        ),
-      ),
-    );
   }
 
   void _startAutoRefresh() {
@@ -375,6 +340,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
       print('👤 Other user: $targetUserId');
       print('💬 Chat ID: ${widget.chatId}');
 
+      // ✅ Use API instead of direct socket emission
       final socketService = SocketService.instance;
       if (!socketService.isConnected) {
         print('⚠️ Socket not connected, attempting to connect...');
@@ -389,38 +355,42 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
         }
       }
 
-      print('✅ Socket connected, sending call request...');
+      print('✅ Socket connected, initiating call via API...');
 
-      socketService.emit('call:request', {
-        'fromUserId': _currentUserId,
-        'toUserId': targetUserId,
-        'chatId': widget.chatId,
-        'isVideo': isVideo,
-      });
+      // ✅ Use API instead of direct socket emission
+      final result = await ApiService.initiateCall(
+        chatId: widget.chatId,
+        receiverId: targetUserId,
+        isVideo: isVideo,
+      );
 
-      print('📤 Call request sent');
+      if (result['success'] == true) {
+        print('📤 Call initiated successfully');
 
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => isVideo
-                ? VideoCallScreen(
-                    chatId: widget.chatId,
-                    userName: widget.userName,
-                    userAvatar: _actualUserAvatar ?? widget.userAvatar,
-                    otherUserId: targetUserId,
-                    isInitiator: true,
-                  )
-                : AudioCallScreen(
-                    chatId: widget.chatId,
-                    userName: widget.userName,
-                    userAvatar: _actualUserAvatar ?? widget.userAvatar,
-                    otherUserId: targetUserId,
-                    isInitiator: true,
-                  ),
-          ),
-        );
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => isVideo
+                  ? VideoCallScreen(
+                      chatId: widget.chatId,
+                      userName: widget.userName,
+                      userAvatar: _actualUserAvatar ?? widget.userAvatar,
+                      otherUserId: targetUserId,
+                      isInitiator: true,
+                    )
+                  : AudioCallScreen(
+                      chatId: widget.chatId,
+                      userName: widget.userName,
+                      userAvatar: _actualUserAvatar ?? widget.userAvatar,
+                      otherUserId: targetUserId,
+                      isInitiator: true,
+                    ),
+            ),
+          );
+        }
+      } else {
+        throw Exception(result['message'] ?? 'Failed to initiate call');
       }
     } catch (e) {
       print('❌ Error starting call: $e');

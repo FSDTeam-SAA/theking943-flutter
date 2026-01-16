@@ -6,44 +6,46 @@ import 'package:docmobi/screens/common/calls/audio_call_screen.dart';
 class CallManager {
   static final CallManager _instance = CallManager._internal();
   static CallManager get instance => _instance;
-  
+
   CallManager._internal();
-  
+
   BuildContext? _context;
   bool _isListening = false;
-  
+
   void initialize(BuildContext context) {
     _context = context;
-    
+
     if (_isListening) {
       print('⚠️ CallManager already listening - reinitializing');
       _cleanup();
     }
-    
+
     _setupCallListeners();
     _isListening = true;
-    
+
     print('');
     print('╔═══════════════════════════════════════════╗');
     print('║     📞 CALL MANAGER INITIALIZED           ║');
     print('╚═══════════════════════════════════════════╝');
     print('✅ Context: ${_context != null ? "Available" : "NULL"}');
-    print('✅ Socket: ${SocketService.instance.isConnected ? "Connected" : "Disconnected"}');
+    print(
+      '✅ Socket: ${SocketService.instance.isConnected ? "Connected" : "Disconnected"}',
+    );
     print('✅ Listening for incoming calls');
     print('');
   }
-  
+
   void _setupCallListeners() {
     final socket = SocketService.instance.socket;
     if (socket == null) {
       print('⚠️ Socket not available for CallManager');
       return;
     }
-    
+
     socket.off('call:incoming');
     socket.off('call:accepted');
     socket.off('call:rejected');
-    
+
     socket.on('call:incoming', (data) {
       print('');
       print('╔═══════════════════════════════════════════════════════════╗');
@@ -51,7 +53,7 @@ class CallManager {
       print('╚═══════════════════════════════════════════════════════════╝');
       print('   • Raw data: $data');
       print('   • Data type: ${data.runtimeType}');
-      
+
       Map<String, dynamic> callData;
       if (data is Map<String, dynamic>) {
         callData = data;
@@ -61,60 +63,62 @@ class CallManager {
         print('❌ Invalid data format: ${data.runtimeType}');
         return;
       }
-      
+
       print('   • From: ${callData['fromUserId']}');
       print('   • Chat: ${callData['chatId']}');
       print('   • Type: ${callData['isVideo'] ? "VIDEO 📹" : "AUDIO 📞"}');
       print('   • Context: ${_context != null ? "Available" : "NULL"}');
       print('   • Mounted: ${_context?.mounted}');
       print('');
-      
+
       if (_context != null && _context!.mounted) {
         _handleIncomingCall(callData);
       } else {
         print('❌ Context not available or not mounted');
       }
     });
-    
+
     socket.on('call:accepted', (data) {
       print('✅ Call accepted by other user');
     });
-    
+
     socket.on('call:rejected', (data) {
       print('❌ Call rejected by other user');
       _showSnackbar('Call rejected');
     });
-    
+
     print('👂 Listening: call:incoming, call:accepted, call:rejected');
   }
-  
+
   void _handleIncomingCall(Map<String, dynamic> data) {
     if (_context == null || !_context!.mounted) {
       print('⚠️ Context not available');
       return;
     }
-    
-    final fromUserId = data['fromUserId']?.toString() ?? 
-                       data['callerId']?.toString();
+
+    final fromUserId =
+        data['fromUserId']?.toString() ?? data['callerId']?.toString();
     final chatId = data['chatId']?.toString();
     final isVideo = data['isVideo'] == true;
     final callerName = data['callerName']?.toString() ?? 'Unknown User';
     final callerAvatar = data['callerAvatar']?.toString();
-    
+
     print('📋 Extracted:');
     print('   • fromUserId: $fromUserId');
     print('   • chatId: $chatId');
     print('   • isVideo: $isVideo');
     print('   • callerName: $callerName');
-    
-    if (fromUserId == null || fromUserId.isEmpty || 
-        chatId == null || chatId.isEmpty) {
+
+    if (fromUserId == null ||
+        fromUserId.isEmpty ||
+        chatId == null ||
+        chatId.isEmpty) {
       print('❌ Missing required fields');
       return;
     }
-    
+
     print('📱 Showing incoming call dialog');
-    
+
     try {
       showDialog(
         context: _context!,
@@ -132,10 +136,10 @@ class CallManager {
       print('❌ Error showing dialog: $e');
     }
   }
-  
+
   void _showSnackbar(String message) {
     if (_context == null || !_context!.mounted) return;
-    
+
     ScaffoldMessenger.of(_context!).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -144,7 +148,7 @@ class CallManager {
       ),
     );
   }
-  
+
   void _cleanup() {
     final socket = SocketService.instance.socket;
     socket?.off('call:incoming');
@@ -152,7 +156,7 @@ class CallManager {
     socket?.off('call:rejected');
     _isListening = false;
   }
-  
+
   void dispose() {
     _cleanup();
     _context = null;
@@ -166,7 +170,7 @@ class IncomingCallDialog extends StatefulWidget {
   final bool isVideo;
   final String callerName;
   final String? callerAvatar;
-  
+
   const IncomingCallDialog({
     super.key,
     required this.fromUserId,
@@ -182,26 +186,26 @@ class IncomingCallDialog extends StatefulWidget {
 
 class _IncomingCallDialogState extends State<IncomingCallDialog> {
   bool _isProcessing = false;
-  
+
   @override
   void initState() {
     super.initState();
-    
+
     print('🎬 IncomingCallDialog initialized');
     print('   • From: ${widget.fromUserId}');
     print('   • Chat: ${widget.chatId}');
     print('   • Type: ${widget.isVideo ? "VIDEO" : "AUDIO"}');
-    
+
     Future.delayed(const Duration(seconds: 60), () {
       if (mounted && !_isProcessing) {
         print('⏱️ Call timeout - Auto rejecting');
         _rejectCall();
       }
     });
-    
+
     _setupCallEndListener();
   }
-  
+
   void _setupCallEndListener() {
     final socket = SocketService.instance.socket;
     if (socket != null) {
@@ -258,20 +262,22 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
                   size: 48,
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               CircleAvatar(
                 radius: 40,
                 backgroundColor: Colors.white.withOpacity(0.2),
-                backgroundImage: widget.callerAvatar != null &&
+                backgroundImage:
+                    widget.callerAvatar != null &&
                         widget.callerAvatar!.isNotEmpty &&
                         widget.callerAvatar != 'file:///' &&
                         (widget.callerAvatar!.startsWith('http://') ||
                             widget.callerAvatar!.startsWith('https://'))
                     ? NetworkImage(widget.callerAvatar!)
                     : null,
-                child: widget.callerAvatar == null ||
+                child:
+                    widget.callerAvatar == null ||
                         widget.callerAvatar!.isEmpty ||
                         widget.callerAvatar == 'file:///' ||
                         (!widget.callerAvatar!.startsWith('http://') &&
@@ -286,9 +292,9 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
                       )
                     : null,
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               Text(
                 widget.callerName,
                 style: const TextStyle(
@@ -300,9 +306,9 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              
+
               const SizedBox(height: 8),
-              
+
               Text(
                 'Incoming ${widget.isVideo ? "Video" : "Audio"} Call',
                 style: TextStyle(
@@ -310,9 +316,9 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
                   color: Colors.white.withOpacity(0.9),
                 ),
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -322,7 +328,7 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
                     color: Colors.red,
                     onPressed: _isProcessing ? null : _rejectCall,
                   ),
-                  
+
                   _buildActionButton(
                     icon: widget.isVideo ? Icons.videocam : Icons.phone,
                     label: _isProcessing ? 'Connecting...' : 'Accept',
@@ -337,7 +343,7 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
       ),
     );
   }
-  
+
   Widget _buildActionButton({
     required IconData icon,
     required String label,
@@ -345,7 +351,7 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
     required VoidCallback? onPressed,
   }) {
     final isDisabled = onPressed == null;
-    
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -375,9 +381,7 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
         Text(
           label,
           style: TextStyle(
-            color: isDisabled 
-                ? Colors.white.withOpacity(0.5) 
-                : Colors.white,
+            color: isDisabled ? Colors.white.withOpacity(0.5) : Colors.white,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -385,32 +389,33 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
       ],
     );
   }
-  
+
   void _acceptCall() async {
     if (_isProcessing) return;
-    
+
     setState(() => _isProcessing = true);
-    
+
     print('');
     print('✅ ACCEPTING CALL');
     print('   • From: ${widget.fromUserId}');
     print('   • Chat: ${widget.chatId}');
-    
+
     try {
       await SocketService.instance.emit('call:accept', {
         'chatId': widget.chatId,
-        'toUserId': widget.fromUserId,
+        'fromUserId': widget
+            .fromUserId, // ✅ FIXED: Backend expects 'fromUserId' as target
         'isVideo': widget.isVideo,
       });
-      
+
       print('   ✅ Accept event sent');
-      
+
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       if (!mounted) return;
-      
+
       Navigator.of(context).pop();
-      
+
       await Navigator.push(
         context,
         MaterialPageRoute(
@@ -431,10 +436,9 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
                 ),
         ),
       );
-      
     } catch (e) {
       print('❌ Error accepting call: $e');
-      
+
       if (mounted) {
         setState(() => _isProcessing = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -446,25 +450,25 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
       }
     }
   }
-  
+
   void _rejectCall() {
     if (_isProcessing) return;
-    
+
     setState(() => _isProcessing = true);
-    
+
     print('❌ REJECTING CALL');
-    
+
     try {
       SocketService.instance.emit('call:reject', {
         'chatId': widget.chatId,
         'toUserId': widget.fromUserId,
       });
-      
+
       SocketService.instance.emit('call:end', {
         'chatId': widget.chatId,
         'toUserId': widget.fromUserId,
       });
-      
+
       if (mounted) {
         Navigator.of(context).pop();
       }
@@ -475,7 +479,7 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
       }
     }
   }
-  
+
   @override
   void dispose() {
     SocketService.instance.socket?.off('call:end');

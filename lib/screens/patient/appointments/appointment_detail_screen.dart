@@ -1,7 +1,6 @@
 import 'package:docmobi/screens/patient/doctor/book_appointment_screen.dart';
-import 'package:docmobi/screens/patient/messages/chat_screen.dart';
+import 'package:docmobi/screens/patient/messages/patient_chat_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:docmobi/models/appointment_model.dart';
 import 'package:docmobi/services/api_service.dart';
 import 'package:provider/provider.dart';
@@ -62,7 +61,10 @@ class AppointmentDetailScreen extends StatelessWidget {
                         const SizedBox(height: 5),
                         Text(
                           appointment.specialty ?? 'Specialist',
-                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
                         ),
                         const SizedBox(height: 5),
                         Row(
@@ -73,8 +75,9 @@ class AppointmentDetailScreen extends StatelessWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: _getStatusColor(appointment.status)
-                                    .withOpacity(0.2),
+                                color: _getStatusColor(
+                                  appointment.status,
+                                ).withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(5),
                               ),
                               child: Text(
@@ -92,7 +95,9 @@ class AppointmentDetailScreen extends StatelessWidget {
                               child: Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF6C5CE7).withOpacity(0.1),
+                                  color: const Color(
+                                    0xFF6C5CE7,
+                                  ).withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(5),
                                   border: Border.all(
                                     color: const Color(0xFF6C5CE7),
@@ -250,10 +255,7 @@ class AppointmentDetailScreen extends StatelessWidget {
         ),
         child: Text(
           text,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -280,16 +282,12 @@ class AppointmentDetailScreen extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      ),
+      builder: (context) =>
+          const Center(child: CircularProgressIndicator(color: Colors.white)),
     );
 
     try {
-      final provider = Provider.of<AppointmentProvider>(
-        context,
-        listen: false,
-      );
+      final provider = Provider.of<AppointmentProvider>(context, listen: false);
 
       // Call cancel API
       final success = await provider.cancelAppointment(appointment.id);
@@ -355,10 +353,7 @@ class AppointmentDetailScreen extends StatelessWidget {
 
       // Show error
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -392,17 +387,15 @@ class AppointmentDetailScreen extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
       final doctorId = appointment.doctorId;
-      
+
       if (doctorId.isEmpty) {
         Navigator.pop(context);
-        
+
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
@@ -431,7 +424,7 @@ class AppointmentDetailScreen extends StatelessWidget {
 
       if (result['success'] == true) {
         final chatId = result['data']['_id']?.toString();
-        
+
         if (chatId == null || chatId.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -449,13 +442,13 @@ class AppointmentDetailScreen extends StatelessWidget {
               chatId: chatId,
               doctorName: appointment.doctorName ?? 'Doctor',
               doctorAvatar: appointment.doctorImage,
-              doctorId: appointment.doctorId, 
+              doctorId: appointment.doctorId,
             ),
           ),
         );
       } else {
         final errorMessage = result['message'] ?? 'Failed to open chat';
-        
+
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
@@ -478,7 +471,7 @@ class AppointmentDetailScreen extends StatelessWidget {
       }
     } catch (e) {
       Navigator.pop(context);
-      
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(

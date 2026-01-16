@@ -1,4 +1,4 @@
-import 'package:docmobi/screens/profile/select_profile_screen.dart';
+import 'package:docmobi/screens/onboarding/profile/select_profile_screen.dart';
 import 'package:docmobi/services/socket_service.dart';
 import 'package:docmobi/providers/notification_provider.dart';
 import 'package:flutter/material.dart';

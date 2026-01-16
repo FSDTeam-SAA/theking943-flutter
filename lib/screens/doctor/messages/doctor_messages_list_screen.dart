@@ -1,20 +1,21 @@
-import 'package:docmobi/screens/doctor/messages/chat_screen.dart';
+import 'package:docmobi/screens/doctor/messages/doctor_chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/services/api_service.dart';
 import 'package:docmobi/services/socket_service.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 
-class DoctorMessagesScreen extends StatefulWidget {
+class DoctorMessagesListScreen extends StatefulWidget {
   final String? initialDoctorId;
 
-  const DoctorMessagesScreen({super.key, this.initialDoctorId});
+  const DoctorMessagesListScreen({super.key, this.initialDoctorId});
 
   @override
-  State<DoctorMessagesScreen> createState() => _DoctorMessagesScreenState();
+  State<DoctorMessagesListScreen> createState() =>
+      _DoctorMessagesListScreenState();
 }
 
-class _DoctorMessagesScreenState extends State<DoctorMessagesScreen>
+class _DoctorMessagesListScreenState extends State<DoctorMessagesListScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<Map<String, dynamic>> allChats = [];
@@ -64,7 +65,7 @@ class _DoctorMessagesScreenState extends State<DoctorMessagesScreen>
       final response = await ApiService.getMyChats();
       if (response['success'] == true && mounted) {
         final chats = List<Map<String, dynamic>>.from(response['data'] ?? []);
-        
+
         Map<String, Map<String, dynamic>> uniqueChatsMap = {};
         for (var chat in chats) {
           final chatId = chat['_id']?.toString();
@@ -75,15 +76,15 @@ class _DoctorMessagesScreenState extends State<DoctorMessagesScreen>
             }
           }
         }
-        
+
         final uniqueChats = uniqueChatsMap.values.toList();
-        
+
         uniqueChats.sort((a, b) {
           final aTime = a['updatedAt']?.toString() ?? '';
           final bTime = b['updatedAt']?.toString() ?? '';
           return bTime.compareTo(aTime);
         });
-        
+
         if (mounted) {
           setState(() {
             allChats = uniqueChats;
@@ -114,7 +115,7 @@ class _DoctorMessagesScreenState extends State<DoctorMessagesScreen>
       final response = await ApiService.getMyChats();
       if (response['success'] == true) {
         final chats = List<Map<String, dynamic>>.from(response['data'] ?? []);
-        
+
         Map<String, Map<String, dynamic>> uniqueChatsMap = {};
         for (var chat in chats) {
           final chatId = chat['_id']?.toString();
@@ -125,20 +126,20 @@ class _DoctorMessagesScreenState extends State<DoctorMessagesScreen>
             }
           }
         }
-        
+
         final uniqueChats = uniqueChatsMap.values.toList();
-        
+
         uniqueChats.sort((a, b) {
           final aTime = a['updatedAt']?.toString() ?? '';
           final bTime = b['updatedAt']?.toString() ?? '';
           return bTime.compareTo(aTime);
         });
-        
+
         setState(() {
           allChats = uniqueChats;
           isLoading = false;
         });
-        
+
         print('✅ Loaded ${allChats.length} unique chats');
       }
     } catch (e) {
@@ -167,7 +168,7 @@ class _DoctorMessagesScreenState extends State<DoctorMessagesScreen>
       if (result['success'] == true) {
         final chatData = result['data'];
         final chatId = chatData['_id']?.toString();
-        
+
         if (chatId != null) {
           final participants = chatData['participants'] as List;
           final otherUser = participants.firstWhere(
@@ -193,9 +194,9 @@ class _DoctorMessagesScreenState extends State<DoctorMessagesScreen>
       }
     } catch (e) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -206,8 +207,8 @@ class _DoctorMessagesScreenState extends State<DoctorMessagesScreen>
   List<Map<String, dynamic>> get doctorChats {
     return uniqueChats.where((chat) {
       final participants = chat['participants'] as List? ?? [];
-      return participants.any((p) => 
-        p['_id'] != currentUserId && p['role'] == 'doctor'
+      return participants.any(
+        (p) => p['_id'] != currentUserId && p['role'] == 'doctor',
       );
     }).toList();
   }
@@ -215,8 +216,8 @@ class _DoctorMessagesScreenState extends State<DoctorMessagesScreen>
   List<Map<String, dynamic>> get patientChats {
     return uniqueChats.where((chat) {
       final participants = chat['participants'] as List? ?? [];
-      return participants.any((p) => 
-        p['_id'] != currentUserId && p['role'] == 'patient'
+      return participants.any(
+        (p) => p['_id'] != currentUserId && p['role'] == 'patient',
       );
     }).toList();
   }
@@ -269,7 +270,10 @@ class _DoctorMessagesScreenState extends State<DoctorMessagesScreen>
           children: [
             Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey),
             SizedBox(height: 16),
-            Text('No messages yet', style: TextStyle(fontSize: 16, color: Colors.grey)),
+            Text(
+              'No messages yet',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
           ],
         ),
       );
@@ -297,11 +301,12 @@ class _DoctorMessagesScreenState extends State<DoctorMessagesScreen>
     final String userName = otherUser['fullName'] ?? 'Unknown';
     final String? userAvatar = otherUser['avatar']?['url'];
     final String userRole = otherUser['role'] ?? 'user';
-    final String lastMessageText = chat['lastMessage']?['content'] ?? 'No messages yet';
+    final String lastMessageText =
+        chat['lastMessage']?['content'] ?? 'No messages yet';
     final int unreadCount = chat['unreadCount'] ?? 0;
-    
+
     final String? lastMessageTime = chat['lastMessage']?['createdAt'];
-    final String timeText = lastMessageTime != null 
+    final String timeText = lastMessageTime != null
         ? _formatTime(DateTime.parse(lastMessageTime))
         : '';
 
@@ -338,13 +343,15 @@ class _DoctorMessagesScreenState extends State<DoctorMessagesScreen>
           children: [
             CircleAvatar(
               radius: 28,
-              backgroundImage: userAvatar != null &&
+              backgroundImage:
+                  userAvatar != null &&
                       userAvatar.isNotEmpty &&
                       userAvatar != 'file:///' &&
                       (userAvatar.startsWith('http://') ||
                           userAvatar.startsWith('https://'))
                   ? NetworkImage(userAvatar)
-                  : const AssetImage('assets/images/doctor.png') as ImageProvider,
+                  : const AssetImage('assets/images/doctor.png')
+                        as ImageProvider,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -383,11 +390,11 @@ class _DoctorMessagesScreenState extends State<DoctorMessagesScreen>
                           lastMessageText,
                           style: TextStyle(
                             fontSize: 14,
-                            color: unreadCount > 0 
+                            color: unreadCount > 0
                                 ? const Color(0xFF1B2C49)
                                 : Colors.grey[600],
-                            fontWeight: unreadCount > 0 
-                                ? FontWeight.w600 
+                            fontWeight: unreadCount > 0
+                                ? FontWeight.w600
                                 : FontWeight.normal,
                           ),
                           maxLines: 1,

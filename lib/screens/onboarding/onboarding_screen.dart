@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../screens/profile/select_profile_screen.dart';
+import 'profile/select_profile_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -85,7 +85,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
 
-            const SizedBox(height: 40), 
+            const SizedBox(height: 40),
             // NEXT BUTTON
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),

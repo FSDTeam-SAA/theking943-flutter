@@ -3,7 +3,6 @@ import 'package:docmobi/services/api_service.dart';
 import 'package:docmobi/services/socket_service.dart';
 import 'package:docmobi/screens/common/calls/video_call_screen.dart';
 import 'package:docmobi/screens/common/calls/audio_call_screen.dart';
-import 'package:docmobi/screens/common/calls/incoming_call_screen.dart';
 import 'dart:io';
 import 'dart:async';
 import 'package:image_picker/image_picker.dart';
@@ -301,13 +300,35 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       }
     }
 
-    // ✅ Emit call:request event
-    SocketService.instance.emit('call:request', {
-      'fromUserId': _currentUserId,
-      'toUserId': _otherUserId,
-      'chatId': widget.chatId,
-      'isVideo': isVideo,
-    });
+    // ✅ Use API Service to initiate call (matches Doctor implementation)
+    // This ensures backend sets up the call properly and sends caller info
+    try {
+      final result = await ApiService.initiateCall(
+        chatId: widget.chatId,
+        receiverId: _otherUserId!,
+        isVideo: isVideo,
+      );
+
+      if (result['success'] != true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Call failed: ${result['message']}')),
+          );
+        }
+        return;
+      }
+    } catch (e) {
+      print('❌ Call initiation error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to connect call')));
+      }
+      return;
+    }
+
+    // Call triggered successfully via API, navigation handles locally
+    print('📞 Call initiated via API successfully');
 
     if (mounted) {
       Navigator.push(
