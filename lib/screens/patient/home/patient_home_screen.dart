@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:docmobi/screens/patient/home/dialog/location_permission_dialog.dart';
 import 'package:docmobi/screens/patient/home/upcoming_appointment_card.dart';
 import 'package:flutter/material.dart';
@@ -93,14 +95,37 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
   Future<void> _getCurrentLocation() async {
     try {
-      // Check permission
-      var permission = await _locationService.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await _locationService.requestPermission();
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        debugPrint('Location services are disabled.');
+        if (mounted) {
+          setState(() {
+            _isLoadingLocation = false;
+            _locationPermissionGranted = false;
+          });
+          _showLocationServiceDialog();
+        }
+        return;
       }
 
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          debugPrint('Location permissions are denied');
+          if (mounted) {
+            setState(() {
+              _isLoadingLocation = false;
+              _locationPermissionGranted = false;
+            });
+          }
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        debugPrint('Location permissions are permanently denied');
         if (mounted) {
           setState(() {
             _isLoadingLocation = false;
@@ -111,14 +136,20 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         return;
       }
 
-      // Permission granted, get location
       if (mounted) {
         setState(() {
           _locationPermissionGranted = true;
         });
       }
 
-      final position = await _locationService.getCurrentPosition();
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
+      );
+
+      debugPrint(
+        'Location obtained: ${position.latitude}, ${position.longitude}',
+      );
 
       if (mounted) {
         setState(() {
@@ -130,6 +161,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           CameraUpdate.newLatLngZoom(_currentPosition, 14),
         );
 
+        _printCurrentLocation();
         _addDoctorMarkers();
       }
     } catch (e) {
@@ -139,9 +171,15 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           _isLoadingLocation = false;
           _locationPermissionGranted = false;
         });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Unable to get your location: ${e.toString()}'),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: _getCurrentLocation,
+            ),
+            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -178,6 +216,65 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         );
       },
     );
+  }
+
+  /// 🔥 Console এ location print করবে
+  Future<void> _printCurrentLocation() async {
+    if (!_locationPermissionGranted) {
+      print('⚠️ Location permission নাই');
+      return;
+    }
+
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 5),
+      );
+
+      final locationData = {
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+
+      print('');
+      print('📍 ==========================================');
+      print('📍 CURRENT LOCATION (প্রতি 10 সেকেন্ডে update)');
+      print('📍 ==========================================');
+      print('Latitude : ${position.latitude}');
+      print('Longitude: ${position.longitude}');
+      print('Timestamp: ${DateTime.now().toIso8601String()}');
+      print('📍 ==========================================');
+      print('📍 JSON FORMAT (Backend Developer এর জন্য):');
+      print(json.encode(locationData));
+      print('📍 ==========================================');
+      print('');
+    } catch (e) {
+      print('❌ Location নিতে error: $e');
+    }
+  }
+
+  // Calculate distance between two coordinates in kilometers using Haversine formula
+  double _calculateDistanceInKm(LatLng from, LatLng to) {
+    const double earthRadius = 6371; // km
+
+    double lat1 = from.latitude * math.pi / 180;
+    double lat2 = to.latitude * math.pi / 180;
+    double lon1 = from.longitude * math.pi / 180;
+    double lon2 = to.longitude * math.pi / 180;
+
+    double dLat = lat2 - lat1;
+    double dLon = lon2 - lon1;
+
+    double a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(lat1) *
+            math.cos(lat2) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+    double c = 2 * math.asin(math.sqrt(a));
+
+    return earthRadius * c;
   }
 
   // Get color based on distance (Green for near, Red for far)
