@@ -1,5 +1,10 @@
 import 'dart:convert';
 
+<<<<<<< HEAD
+=======
+import 'package:docmobi/screens/patient/home/dialog/location_permission_dialog.dart';
+import 'package:docmobi/screens/patient/home/full_map_screen.dart';
+>>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
 import 'package:docmobi/screens/patient/home/upcoming_appointment_card.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -16,10 +21,11 @@ import 'package:docmobi/screens/patient/doctor/book_appointment_screen.dart';
 import 'package:docmobi/screens/patient/notification/patient_notification_screen.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../services/location_service.dart';
+import '../../../services/directions_service.dart';  // ✅ Add this line
 import '../../../utils/marker_factory.dart';
 import 'package:docmobi/screens/patient/profile/patient_profile_screen.dart';
 import '../../../widgets/custom_image.dart';
-import 'dart:async'; // For Timer
+import 'dart:async';
 
 class PatientHomeScreen extends ConsumerStatefulWidget {
   const PatientHomeScreen({super.key});
@@ -31,9 +37,11 @@ class PatientHomeScreen extends ConsumerStatefulWidget {
 class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   final LocationService _locationService = LocationService();
   final MarkerFactory _markerFactory = MarkerFactory();
+  final DirectionsService _directionsService = DirectionsService();  // ✅ Add
+
   final TextEditingController _searchController = TextEditingController();
   GoogleMapController? _mapController;
-  Timer? _socketCheckTimer; // Timer for checking connection status
+  Timer? _socketCheckTimer;
 
   static bool _hasShownLocationDialog = false;
   late bool _showLocationDialog;
@@ -44,6 +52,10 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   bool _locationPermissionGranted = false;
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
+  Set<Polyline> _directionPolylines = {};  // ✅ Already added
+  String? _selectedDoctorId;  // ✅ Already added
+
+
 
   @override
   void initState() {
@@ -300,6 +312,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     }
   }
 
+<<<<<<< HEAD
   void _addDoctorMarkers() {
     try {
       final doctors = legacy_provider.Provider.of<DoctorProvider>(
@@ -308,78 +321,168 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
       ).nearbyDoctors;
       Set<Marker> markers = {};
       Set<Polyline> polylines = {};
+=======
+void _addDoctorMarkers() {
+  try {
+    final doctors = context.read<DoctorProvider>().nearbyDoctors;
+    Set<Marker> markers = {};
+    Set<Polyline> polylines = {};
+>>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
 
-      // Add user location marker
-      markers.add(_markerFactory.createUserMarker(_currentPosition));
+    // Add user location marker
+    markers.add(_markerFactory.createUserMarker(_currentPosition));
 
-      for (int i = 0; i < doctors.length; i++) {
-        final doctor = doctors[i];
-        LatLng doctorLocation;
+    debugPrint('📍 ==========================================');
+    debugPrint('📍 DOCTOR MARKERS - সম্পূর্ণ তথ্য');
+    debugPrint('📍 Patient Location: ${_currentPosition.latitude}, ${_currentPosition.longitude}');
+    debugPrint('📍 Total Doctors: ${doctors.length}');
+    debugPrint('📍 ==========================================');
 
-        if (doctor.latitude != null && doctor.longitude != null) {
-          doctorLocation = LatLng(doctor.latitude!, doctor.longitude!);
-        } else {
-          // Fallback: Generate random nearby location (for demo)
-          final lat = _currentPosition.latitude + (i * 0.01);
-          final lng = _currentPosition.longitude + (i * 0.01);
-          doctorLocation = LatLng(lat, lng);
-        }
+    for (int i = 0; i < doctors.length; i++) {
+      final doctor = doctors[i];
+      
+      // ✅ Backend থেকে আসা location check করুন
+      if (doctor.latitude != null && doctor.longitude != null) {
+        final doctorLocation = LatLng(doctor.latitude!, doctor.longitude!);
 
-        // Calculate distance via service
+        // Calculate distance
         double distanceKm = _locationService.calculateDistanceInKm(
           _currentPosition,
           doctorLocation,
         );
 
-        // Only show doctors within 20 km
-        if (distanceKm <= 20) {
-          // Use MarkerFactory
-          markers.add(
-            _markerFactory.createDoctorMarker(
-              doctor: doctor,
-              distanceKm: distanceKm,
-              onTap: () {
-                _showDoctorRoute(doctor.id, doctorLocation, distanceKm);
-              },
-            ),
-          );
+        debugPrint('');
+        debugPrint('👨‍⚕️ Doctor #${i + 1}: ${doctor.fullName}');
+        debugPrint('   - Specialty: ${doctor.specialty}');
+        debugPrint('   - Latitude: ${doctor.latitude}');
+        debugPrint('   - Longitude: ${doctor.longitude}');
+        debugPrint('   - Address: ${doctor.address ?? "N/A"}');
+        debugPrint('   - Distance: ${distanceKm.toStringAsFixed(2)} km');
+        debugPrint('   - Video Call: ${doctor.isVideoCallAvailable}');
 
-          // Add polyline route from user to doctor
-          Color routeColor = _getRouteColor(distanceKm);
+        // ✅ Marker add করুন (কোনো km limit নেই)
+        markers.add(
+          _markerFactory.createDoctorMarker(
+            doctor: doctor,
+            distanceKm: distanceKm,
+            onTap: () {
+              _showDoctorRoute(doctor.id, doctorLocation, distanceKm);
+            },
+          ),
+        );
 
-          polylines.add(
-            Polyline(
-              polylineId: PolylineId('route_${doctor.id}'),
-              points: [_currentPosition, doctorLocation],
-              color: routeColor,
-              width: 4,
-              startCap: Cap.roundCap,
-              endCap: Cap.roundCap,
-              geodesic: true,
-              patterns: distanceKm > 15
-                  ? [PatternItem.dash(20), PatternItem.gap(10)]
-                  : [],
-            ),
-          );
-        }
+        // ✅ Polyline route add করুন
+        Color routeColor = _getRouteColor(distanceKm);
+
+        polylines.add(
+          Polyline(
+            polylineId: PolylineId('route_${doctor.id}'),
+            points: [_currentPosition, doctorLocation],
+            color: routeColor,
+            width: 4,
+            startCap: Cap.roundCap,
+            endCap: Cap.roundCap,
+            geodesic: true,
+            patterns: distanceKm > 15
+                ? [PatternItem.dash(20), PatternItem.gap(10)]
+                : [],
+          ),
+        );
+      } else {
+        debugPrint('');
+        debugPrint('⚠️ Doctor #${i + 1}: ${doctor.fullName}');
+        debugPrint('   - NO LOCATION DATA');
+        debugPrint('   - latitude: ${doctor.latitude}');
+        debugPrint('   - longitude: ${doctor.longitude}');
       }
-
-      if (mounted) {
-        setState(() {
-          _markers = markers;
-          _polylines = polylines;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error adding doctor markers: $e');
     }
+
+    debugPrint('');
+    debugPrint('📍 ==========================================');
+    debugPrint('📍 SUMMARY:');
+    debugPrint('   - Total Markers: ${markers.length}');
+    debugPrint('   - Total Routes: ${polylines.length}');
+    debugPrint('📍 ==========================================');
+
+    if (mounted) {
+      setState(() {
+        _markers = markers;
+        _polylines = polylines;
+      });
+    }
+  } catch (e) {
+    debugPrint('❌ Error adding doctor markers: $e');
+  }
+}
+
+void _showDoctorRoute(
+  String doctorId,
+  LatLng doctorLocation,
+  double distance,
+) async {
+  // Set selected doctor
+  if (mounted) {
+    setState(() {
+      _selectedDoctorId = doctorId;
+    });
   }
 
-  void _showDoctorRoute(
-    String doctorId,
-    LatLng doctorLocation,
-    double distance,
-  ) {
+  debugPrint('🗺️ Fetching street-level directions...');
+
+  // Show loading snackbar
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Row(
+        children: [
+          SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          ),
+          SizedBox(width: 12),
+          Text('Loading route...'),
+        ],
+      ),
+      duration: Duration(seconds: 2),
+      backgroundColor: Colors.blue,
+    ),
+  );
+
+  // Fetch directions from Google Maps Directions API
+  final directions = await _directionsService.getDirections(
+    origin: _currentPosition,
+    destination: doctorLocation,
+  );
+
+  if (directions != null && mounted) {
+    final polylinePoints = directions['polylinePoints'] as List<LatLng>;
+
+    debugPrint('✅ Street route loaded with ${polylinePoints.length} points');
+    debugPrint('📏 Distance via road: ${directions['distance']}');
+    debugPrint('⏱️ Estimated time: ${directions['duration']}');
+
+    setState(() {
+      // Clear old direction polylines
+      _directionPolylines.clear();
+
+      // Add new street-level direction polyline
+      _directionPolylines.add(
+        Polyline(
+          polylineId: PolylineId('direction_$doctorId'),
+          points: polylinePoints,
+          color: Colors.blue,
+          width: 6,
+          startCap: Cap.roundCap,
+          endCap: Cap.roundCap,
+          geodesic: true,
+          patterns: [],
+        ),
+      );
+    });
+
     // Zoom to show both user and doctor location
     LatLngBounds bounds = LatLngBounds(
       southwest: LatLng(
@@ -400,19 +503,114 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
       ),
     );
 
-    _mapController?.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100));
+    _mapController?.animateCamera(
+      CameraUpdate.newLatLngBounds(bounds, 100),
+    );
 
+    // Show distance and duration info
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.directions_car, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              '${directions['distance']} • ${directions['duration']}',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 4),
+        backgroundColor: Colors.blue,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+
+    // Navigate to doctor details after showing route
+    await Future.delayed(const Duration(milliseconds: 500));
+
+<<<<<<< HEAD
     // Find doctor and navigate to details
     final doctor = legacy_provider.Provider.of<DoctorProvider>(
       context,
       listen: false,
     ).nearbyDoctors.firstWhere((d) => d.id == doctorId);
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => DoctorDetailsScreen(doctor: doctor)),
+=======
+    final doctor = context.read<DoctorProvider>().nearbyDoctors.firstWhere(
+      (d) => d.id == doctorId,
     );
+>>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
+
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DoctorDetailsScreen(doctor: doctor),
+        ),
+      );
+    }
+  } else {
+    debugPrint('⚠️ Could not fetch street directions, using straight line');
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Directions API not enabled. Using straight line route.',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+          duration: Duration(seconds: 4),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      // Still zoom to location
+      LatLngBounds bounds = LatLngBounds(
+        southwest: LatLng(
+          _currentPosition.latitude < doctorLocation.latitude
+              ? _currentPosition.latitude
+              : doctorLocation.latitude,
+          _currentPosition.longitude < doctorLocation.longitude
+              ? _currentPosition.longitude
+              : doctorLocation.longitude,
+        ),
+        northeast: LatLng(
+          _currentPosition.latitude > doctorLocation.latitude
+              ? _currentPosition.latitude
+              : doctorLocation.latitude,
+          _currentPosition.longitude > doctorLocation.longitude
+              ? _currentPosition.longitude
+              : doctorLocation.longitude,
+        ),
+      );
+
+      _mapController?.animateCamera(
+        CameraUpdate.newLatLngBounds(bounds, 100),
+      );
+
+      // Navigate to doctor details
+      final doctor = context.read<DoctorProvider>().nearbyDoctors.firstWhere(
+        (d) => d.id == doctorId,
+      );
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DoctorDetailsScreen(doctor: doctor),
+        ),
+      );
+    }
   }
+}
 
   Future<void> _onRefresh() async {
     await Future.wait([
@@ -624,227 +822,209 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                     ),
 
                     // Google Map with Routes
-                    Container(
-                      height: 250,
-                      margin: const EdgeInsets.symmetric(horizontal: 20),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+
+// Google Map with Routes
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FullMapScreen(
+                              currentPosition: _currentPosition,
+                              markers: _markers,
+                              polylines: _polylines,
+                            ),
                           ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: _isLoadingLocation
-                            ? Container(
-                                color: Colors.grey[200],
-                                child: const Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      CircularProgressIndicator(),
-                                      SizedBox(height: 10),
-                                      Text(
-                                        'Loading map...',
-                                        style: TextStyle(color: Colors.grey),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              )
-                            : Stack(
-                                children: [
-                                  GoogleMap(
-                                    initialCameraPosition: CameraPosition(
-                                      target: _currentPosition,
-                                      zoom: 13,
-                                    ),
-                                    markers: _markers,
-                                    polylines: _polylines,
-                                    myLocationEnabled:
-                                        _locationPermissionGranted,
-                                    myLocationButtonEnabled: false,
-                                    zoomControlsEnabled: true,
-                                    zoomGesturesEnabled: true,
-                                    scrollGesturesEnabled: true,
-                                    tiltGesturesEnabled: true,
-                                    rotateGesturesEnabled: true,
-                                    mapType: MapType.normal,
-                                    onMapCreated: (controller) {
-                                      if (mounted) {
-                                        _mapController = controller;
-                                      }
-                                    },
-                                  ),
-                                  // Map Legend
-                                  Positioned(
-                                    top: 10,
-                                    right: 10,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(8),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.1,
-                                            ),
-                                            blurRadius: 4,
-                                          ),
-                                        ],
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          _buildLegendItem(
-                                            Colors.green,
-                                            '0-5 km',
-                                          ),
-                                          _buildLegendItem(
-                                            Colors.lightGreen,
-                                            '5-10 km',
-                                          ),
-                                          _buildLegendItem(
-                                            Colors.orange,
-                                            '10-15 km',
-                                          ),
-                                          _buildLegendItem(
-                                            Colors.red,
-                                            '15-20 km',
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  // Zoom Controls
-                                  Positioned(
-                                    bottom: 10,
-                                    left: 10,
+                        );
+                      },
+                      child: Container(
+                        height: 250,
+                        margin: const EdgeInsets.symmetric(horizontal: 20),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: _isLoadingLocation
+                              ? Container(
+                                  color: Colors.grey[200],
+                                  child: const Center(
                                     child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        // Zoom In Button
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black.withValues(
-                                                  alpha: 0.1,
-                                                ),
-                                                blurRadius: 4,
-                                              ),
-                                            ],
-                                          ),
-                                          child: IconButton(
-                                            icon: const Icon(
-                                              Icons.add,
-                                              color: Color(0xFF0D47A1),
-                                              size: 24,
-                                            ),
-                                            onPressed: () async {
-                                              final currentZoom =
-                                                  await _mapController
-                                                      ?.getZoomLevel() ??
-                                                  13;
-                                              _mapController?.animateCamera(
-                                                CameraUpdate.zoomTo(
-                                                  currentZoom + 1,
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        // Zoom Out Button
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black.withValues(
-                                                  alpha: 0.1,
-                                                ),
-                                                blurRadius: 4,
-                                              ),
-                                            ],
-                                          ),
-                                          child: IconButton(
-                                            icon: const Icon(
-                                              Icons.remove,
-                                              color: Color(0xFF0D47A1),
-                                              size: 24,
-                                            ),
-                                            onPressed: () async {
-                                              final currentZoom =
-                                                  await _mapController
-                                                      ?.getZoomLevel() ??
-                                                  13;
-                                              _mapController?.animateCamera(
-                                                CameraUpdate.zoomTo(
-                                                  currentZoom - 1,
-                                                ),
-                                              );
-                                            },
-                                          ),
+                                        CircularProgressIndicator(),
+                                        SizedBox(height: 10),
+                                        Text(
+                                          'Loading map...',
+                                          style: TextStyle(color: Colors.grey),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  // Recenter Button
-                                  if (_locationPermissionGranted)
+                                )
+                              : Stack(
+                                  children: [
+GoogleMap(
+  initialCameraPosition: CameraPosition(
+    target: _currentPosition,
+    zoom: 13,
+  ),
+  markers: _markers,
+  polylines: {..._polylines, ..._directionPolylines},  // ✅ নতুন (দুইটা combine)
+  myLocationEnabled: _locationPermissionGranted,
+  myLocationButtonEnabled: false,
+  zoomControlsEnabled: true,
+  zoomGesturesEnabled: true,
+  scrollGesturesEnabled: true,
+  tiltGesturesEnabled: true,
+  rotateGesturesEnabled: true,
+  mapType: MapType.normal,
+  onMapCreated: (controller) {
+    if (mounted) {
+      _mapController = controller;
+    }
+  },
+),
+                                    // Map Legend
                                     Positioned(
-                                      bottom: 10,
+                                      top: 10,
                                       right: 10,
                                       child: Container(
+                                        padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
                                           color: Colors.white,
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
+                                          borderRadius: BorderRadius.circular(8),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black.withValues(
-                                                alpha: 0.1,
-                                              ),
+                                              color: Colors.black.withOpacity(0.1),
                                               blurRadius: 4,
                                             ),
                                           ],
                                         ),
-                                        child: IconButton(
-                                          icon: const Icon(
-                                            Icons.my_location,
-                                            color: Color(0xFF0D47A1),
-                                            size: 24,
-                                          ),
-                                          onPressed: () async {
-                                            if (!_locationPermissionGranted) {
-                                              await _getCurrentLocation();
-                                            } else {
-                                              _mapController?.animateCamera(
-                                                CameraUpdate.newLatLngZoom(
-                                                  _currentPosition,
-                                                  14,
-                                                ),
-                                              );
-                                            }
-                                          },
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Distance',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF1B2C49),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            _buildLegendItem(Colors.green, '< 5 km'),
+                                            _buildLegendItem(Colors.lightGreen, '5-10 km'),
+                                            _buildLegendItem(Colors.orange, '10-15 km'),
+                                            _buildLegendItem(Colors.red, '> 15 km'),
+                                          ],
                                         ),
                                       ),
                                     ),
-                                ],
-                              ),
+                                    // Zoom Controls
+                                    Positioned(
+                                      bottom: 10,
+                                      left: 10,
+                                      child: Column(
+                                        children: [
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(8),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withValues(alpha: 0.1),
+                                                  blurRadius: 4,
+                                                ),
+                                              ],
+                                            ),
+                                            child: IconButton(
+                                              icon: const Icon(
+                                                Icons.add,
+                                                color: Color(0xFF0D47A1),
+                                                size: 24,
+                                              ),
+                                              onPressed: () async {
+                                                final currentZoom = await _mapController?.getZoomLevel() ?? 13;
+                                                _mapController?.animateCamera(
+                                                  CameraUpdate.zoomTo(currentZoom + 1),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(8),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withValues(alpha: 0.1),
+                                                  blurRadius: 4,
+                                                ),
+                                              ],
+                                            ),
+                                            child: IconButton(
+                                              icon: const Icon(
+                                                Icons.remove,
+                                                color: Color(0xFF0D47A1),
+                                                size: 24,
+                                              ),
+                                              onPressed: () async {
+                                                final currentZoom = await _mapController?.getZoomLevel() ?? 13;
+                                                _mapController?.animateCamera(
+                                                  CameraUpdate.zoomTo(currentZoom - 1),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    // Recenter Button
+                                    if (_locationPermissionGranted)
+                                      Positioned(
+                                        bottom: 10,
+                                        right: 10,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(8),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withValues(alpha: 0.1),
+                                                blurRadius: 4,
+                                              ),
+                                            ],
+                                          ),
+                                          child: IconButton(
+                                            icon: const Icon(
+                                              Icons.my_location,
+                                              color: Color(0xFF0D47A1),
+                                              size: 24,
+                                            ),
+                                            onPressed: () async {
+                                              if (!_locationPermissionGranted) {
+                                                await _getCurrentLocation();
+                                              } else {
+                                                _mapController?.animateCamera(
+                                                  CameraUpdate.newLatLngZoom(_currentPosition, 14),
+                                                );
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 25),
@@ -933,6 +1113,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                     const SizedBox(height: 15),
 
                     // Doctors List
+<<<<<<< HEAD
                     legacy_provider.Consumer<DoctorProvider>(
                       builder: (context, doctorProvider, child) {
                         if (doctorProvider.isLoading) {
@@ -943,63 +1124,76 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                             ),
                           );
                         }
+=======
+// Doctors List
+Consumer<DoctorProvider>(
+  builder: (context, doctorProvider, child) {
+    if (doctorProvider.isLoading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+>>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
 
-                        if (doctorProvider.error != null) {
-                          return Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(20.0),
-                              child: Text('Error: ${doctorProvider.error}'),
-                            ),
-                          );
-                        }
+    if (doctorProvider.error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Text('Error: ${doctorProvider.error}'),
+        ),
+      );
+    }
 
-                        // Filter doctors within 20km
-                        final nearbyDoctors = doctorProvider.nearbyDoctors
-                            .where((doctor) {
-                              if (doctor.latitude != null &&
-                                  doctor.longitude != null) {
-                                final doctorLocation = LatLng(
-                                  doctor.latitude!,
-                                  doctor.longitude!,
-                                );
-                                final distance = _calculateDistanceInKm(
-                                  _currentPosition,
-                                  doctorLocation,
-                                );
-                                return distance <= 20;
-                              }
-                              return true; // Include doctors without location
-                            })
-                            .toList();
+    // ✅ কোনো distance filter নেই, সব ডাক্তার দেখাবে
+    final nearbyDoctors = doctorProvider.nearbyDoctors;
 
-                        if (nearbyDoctors.isEmpty) {
-                          return const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(20.0),
-                              child: Text('No doctors found within 20km'),
-                            ),
-                          );
-                        }
+    if (nearbyDoctors.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20.0),
+          child: Text('No doctors found'),
+        ),
+      );
+    }
 
-                        return ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: nearbyDoctors.length,
-                          itemBuilder: (context, index) {
-                            return Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: 20,
-                                left: 20,
-                                right: 20,
-                              ),
-                              child: _buildCustomDoctorCard(
-                                nearbyDoctors[index],
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
+    // ✅ Distance অনুযায়ী sort করুন (যাদের location আছে তারা আগে)
+// ✅ Distance অনুযায়ী sort করুন (যাদের location আছে তারা আগে)
+nearbyDoctors.sort((a, b) {
+  if (a.latitude == null || a.longitude == null) return 1;
+  if (b.latitude == null || b.longitude == null) return -1;
+  
+  final distA = _calculateDistanceInKm(
+    _currentPosition,
+    LatLng(a.latitude!, a.longitude!),
+  );
+  final distB = _calculateDistanceInKm(
+    _currentPosition,
+    LatLng(b.latitude!, b.longitude!),
+  );
+  
+  return distA.compareTo(distB);
+});
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: nearbyDoctors.length,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.only(
+            bottom: 20,
+            left: 20,
+            right: 20,
+          ),
+          child: _buildCustomDoctorCard(nearbyDoctors[index]),
+        );
+      },
+    );
+  },
+),
 
                     const SizedBox(height: 40),
                   ],
@@ -1007,7 +1201,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
               ),
             ),
 
-            // if (_showLocationDialog)
+ // if (_showLocationDialog)
             //   Container(
             //     color: Colors.black54,
             //     child: LocationPermissionDialog(onDismiss: _dismissDialog),
@@ -1047,6 +1241,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
       return false;
     }
 
+<<<<<<< HEAD
     // Check if at least one day is active with slots
     for (var schedule in doctor.weeklySchedule!) {
       print(
@@ -1059,17 +1254,34 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
       }
     }
 
+=======
+    for (var schedule in doctor.weeklySchedule!) {
+      print('📅 ${doctor.fullName} - ${schedule.day}: active=${schedule.isActive}, slots=${schedule.slots.length}');
+      
+      if (schedule.isActive && schedule.slots.isNotEmpty) {
+        print('✅ ${doctor.fullName}: Available on ${schedule.day}');
+        return true;
+      }
+    }
+
+>>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
     print('❌ ${doctor.fullName}: No active days with slots');
     return false;
   }
 
   Widget _buildCustomDoctorCard(Doctor doctor) {
     final bool isAvailable = _isDoctorAvailable(doctor);
+<<<<<<< HEAD
     final bool hasVideoCall =
         doctor.isVideoCallAvailable; // ✅ This reads from model
     final String visitingHours = _getVisitingHours(doctor);
 
     // Debug log
+=======
+    final bool hasVideoCall = doctor.isVideoCallAvailable;
+    final String visitingHours = _getVisitingHours(doctor);
+
+>>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
     print('🏠 Home Card: ${doctor.fullName}');
     print('   - isVideoCallAvailable: $hasVideoCall');
     print('   - Raw data: ${doctor.toJson()}');
@@ -1146,7 +1358,10 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                     ),
                     const SizedBox(height: 6),
 
+<<<<<<< HEAD
                     // ✅ Video Consultation Badge
+=======
+>>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
                     if (hasVideoCall)
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -1181,6 +1396,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                           ],
                         ),
                       ),
+<<<<<<< HEAD
 
                     if (hasVideoCall) const SizedBox(height: 6),
 
@@ -1192,6 +1408,14 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                           size: 14,
                           color: Colors.grey[600],
                         ),
+=======
+                    
+                    if (hasVideoCall) const SizedBox(height: 6),
+
+                    Row(
+                      children: [
+                        Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+>>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
@@ -1207,7 +1431,10 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                     ),
                     const SizedBox(height: 6),
 
+<<<<<<< HEAD
                     // Rating & Distance
+=======
+>>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
                     Row(
                       children: [
                         const Icon(
@@ -1242,6 +1469,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                 child: ElevatedButton(
                   onPressed: isAvailable
                       ? () => Navigator.push(
+<<<<<<< HEAD
                           context,
                           MaterialPageRoute(
                             builder: (_) =>
@@ -1253,6 +1481,18 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                     backgroundColor: isAvailable
                         ? const Color(0xFF0D47A1)
                         : Colors.grey[300],
+=======
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => BookAppointmentScreen(doctor: doctor),
+                            ),
+                          )
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isAvailable 
+                      ? const Color(0xFF0D47A1) 
+                      : Colors.grey[300],
+>>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -1343,7 +1583,10 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     );
   }
 
+<<<<<<< HEAD
   /// ✅ Get visiting hours from doctor's schedule
+=======
+>>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
   String _getVisitingHours(Doctor doctor) {
     if (doctor.weeklySchedule == null || doctor.weeklySchedule!.isEmpty) {
       return 'No schedule set';
@@ -1352,10 +1595,16 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     List<String> activeDays = [];
     for (var schedule in doctor.weeklySchedule!) {
       if (schedule.isActive && schedule.slots.isNotEmpty) {
+<<<<<<< HEAD
         // Get first 3 characters of day name
         String dayShort = schedule.day.length >= 3
             ? schedule.day.substring(0, 3)
             : schedule.day;
+=======
+        String dayShort = schedule.day.length >= 3 
+          ? schedule.day.substring(0, 3) 
+          : schedule.day;
+>>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
         activeDays.add(dayShort);
       }
     }
@@ -1364,7 +1613,6 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
       return 'No schedule set';
     }
 
-    // Show first and last day
     if (activeDays.length == 1) {
       return activeDays[0];
     } else if (activeDays.length <= 3) {
@@ -1373,4 +1621,8 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
       return '${activeDays.first}-${activeDays.last}';
     }
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
