@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../../providers/notification_provider.dart';
-import '../../../providers/appointment_provider.dart';
-import '../../../models/notification_model.dart';
+import 'package:provider/provider.dart' as legacy_provider;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:docmobi/providers/notification_provider.dart';
+import 'package:docmobi/providers/appointment_provider.dart';
+import 'package:docmobi/models/notification_model.dart';
 import '../../patient/home/upcoming_appointment_card.dart';
 
-class NotificationScreen extends StatefulWidget {
+class NotificationScreen extends ConsumerStatefulWidget {
   const NotificationScreen({super.key});
 
   @override
-  State<NotificationScreen> createState() => _NotificationScreenState();
+  ConsumerState<NotificationScreen> createState() => _NotificationScreenState();
 }
 
-class _NotificationScreenState extends State<NotificationScreen> {
+class _NotificationScreenState extends ConsumerState<NotificationScreen> {
   @override
   Widget build(BuildContext context) {
+    final notificationAsync = ref.watch(notificationListProvider);
+    final apptProvider = legacy_provider.Provider.of<AppointmentProvider>(
+      context,
+    );
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -39,20 +45,22 @@ class _NotificationScreenState extends State<NotificationScreen> {
             icon: const Icon(Icons.done_all, color: Color(0xFF1664CD)),
             tooltip: 'Mark all as read',
             onPressed: () {
-              context.read<NotificationProvider>().markAllAsRead();
+              ref.read(notificationListProvider.notifier).markAllAsRead();
             },
           ),
         ],
       ),
-      body: Consumer2<NotificationProvider, AppointmentProvider>(
-        builder: (context, notifProvider, apptProvider, child) {
-          final notifications = notifProvider.notifications;
+      body: notificationAsync.when(
+        data: (notifications) {
           final unread = notifications.where((n) => !n.isRead).toList();
           final read = notifications.where((n) => n.isRead).toList();
 
           return RefreshIndicator(
             onRefresh: () async {
-              await apptProvider.fetchAppointments();
+              await Future.wait([
+                apptProvider.fetchAppointments(),
+                ref.refresh(notificationListProvider.future),
+              ]);
             },
             child: CustomScrollView(
               slivers: [
@@ -106,6 +114,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
             ),
           );
         },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Error: $err')),
       ),
     );
   }
@@ -193,85 +203,121 @@ class _NotificationScreenState extends State<NotificationScreen> {
         child: const Icon(Icons.delete, color: Colors.white),
       ),
       onDismissed: (direction) {
-        context.read<NotificationProvider>().deleteNotification(
-          notification.id,
-        );
+        ref
+            .read(notificationListProvider.notifier)
+            .deleteNotification(notification.id);
       },
       child: _buildNotificationCard(notification),
     );
   }
 
   Widget _buildNotificationCard(NotificationModel notification) {
+    final isRead = notification.isRead;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
+        color: isRead ? const Color(0xFFF8FAFF) : Colors.white,
         borderRadius: BorderRadius.circular(16),
+        boxShadow: isRead
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: InkWell(
         onTap: () {
-          if (!notification.isRead) {
-            context.read<NotificationProvider>().markAsRead(notification.id);
+          if (!isRead) {
+            ref
+                .read(notificationListProvider.notifier)
+                .markAsRead(notification.id);
           }
         },
         borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Icon Container
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: _getNotificationColor(
-                    notification.type,
-                  ).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+        child: Opacity(
+          opacity: isRead ? 0.7 : 1.0,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Icon Container
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: _getNotificationColor(
+                      notification.type,
+                    ).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    _getNotificationIcon(notification.type),
+                    color: _getNotificationColor(notification.type),
+                    size: 24,
+                  ),
                 ),
-                child: Icon(
-                  _getNotificationIcon(notification.type),
-                  color: _getNotificationColor(notification.type),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
+                const SizedBox(width: 16),
 
-              // Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      notification.title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1B2C49),
+                // Content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              notification.title,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: isRead
+                                    ? FontWeight.w500
+                                    : FontWeight.bold,
+                                color: const Color(0xFF1B2C49),
+                              ),
+                            ),
+                          ),
+                          if (!isRead)
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF1664CD),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      notification.message,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade700,
-                        height: 1.3,
+                      const SizedBox(height: 4),
+                      Text(
+                        notification.message,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isRead
+                              ? Colors.grey.shade600
+                              : Colors.grey.shade800,
+                          height: 1.3,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      notification.time,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
+                      const SizedBox(height: 8),
+                      Text(
+                        notification.time,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade500,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

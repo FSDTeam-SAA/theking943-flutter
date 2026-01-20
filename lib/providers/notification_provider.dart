@@ -1,129 +1,104 @@
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/notification_model.dart';
+import '../services/notification_service.dart';
 import '../services/notification_poller.dart';
 
-class NotificationProvider extends ChangeNotifier {
-  late final NotificationPoller _notificationPoller;
-
-  NotificationProvider() {
-    _notificationPoller = NotificationPoller();
-  }
-
-  // Expose unread counts ValueNotifiers
-  ValueNotifier<int> get unreadCount => _notificationPoller.unreadCount;
-  ValueNotifier<int> get generalUnreadCount =>
-      _notificationPoller.generalUnreadCount;
-  ValueNotifier<int> get messageUnreadCount =>
-      _notificationPoller.messageUnreadCount;
-
-  // Expose all notifications
-  List<NotificationModel> get notifications =>
-      _notificationPoller.allNotifications;
-
-  // Listen to unread count changes
-  void startListening() {
-    _notificationPoller.unreadCount.addListener(_onUnreadCountChanged);
-    _notificationPoller.generalUnreadCount.addListener(_onUnreadCountChanged);
-    _notificationPoller.messageUnreadCount.addListener(_onUnreadCountChanged);
-  }
-
-  // Stop listening
-  void stopListening() {
-    _notificationPoller.unreadCount.removeListener(_onUnreadCountChanged);
-    _notificationPoller.generalUnreadCount.removeListener(
-      _onUnreadCountChanged,
-    );
-    _notificationPoller.messageUnreadCount.removeListener(
-      _onUnreadCountChanged,
-    );
-  }
-
-  // Handle unread count changes
-  void _onUnreadCountChanged() {
-    notifyListeners();
-  }
-
-  // Start notification polling
-  Future<void> startPolling() async {
-    try {
-      await _notificationPoller.initialize();
-      _notificationPoller.startPolling();
-      startListening();
-    } catch (e) {
-      debugPrint('❌ Failed to start notification polling: $e');
-      // Don't rethrow - allow app to continue without notifications
-    }
-  }
-
-  // Stop notification polling
-  Future<void> stopPolling() async {
-    try {
-      _notificationPoller.stopPolling();
-      stopListening();
-    } catch (e) {
-      debugPrint('❌ Failed to stop notification polling: $e');
-      // Don't rethrow - allow app to continue without notifications
-    }
-  }
-
-  // Add a notification (manual/local)
-  Future<void> addNotification({
-    required String title,
-    required String message,
-    String type = 'general',
-  }) async {
-    final notification = NotificationModel(
-      id: 'local_${DateTime.now().millisecondsSinceEpoch}',
-      title: title,
-      message: message,
-      time: 'Just now', // Simplified for local
-      type: type,
-      isRead: false,
-    );
-    await _notificationPoller.addLocalNotification(notification);
-    notifyListeners();
-  }
-
-  // Delete notification (local hide)
-  Future<void> deleteNotification(String id) async {
-    await _notificationPoller.deleteNotificationLocally(id);
-    notifyListeners();
-  }
-
-  // Mark notification as read
-  Future<void> markAsRead(String notificationId) async {
-    try {
-      await _notificationPoller.markAsRead(notificationId);
-      notifyListeners();
-    } catch (e) {
-      debugPrint('❌ Failed to mark notification as read: $e');
-    }
-  }
-
-  // Mark all notifications as read
-  Future<void> markAllAsRead() async {
-    try {
-      await _notificationPoller.markAllAsRead();
-      notifyListeners();
-    } catch (e) {
-      debugPrint('❌ Failed to mark all notifications as read: $e');
-    }
-  }
-
-  // Clear notifications (for testing or logout)
-  Future<void> clearNotifications() async {
-    try {
-      await _notificationPoller.clearLastNotificationId();
-      notifyListeners();
-    } catch (e) {
-      debugPrint('❌ Failed to clear notifications: $e');
-    }
-  }
-
+/// Notifier for the list of notifications
+class NotificationListNotifier extends AsyncNotifier<List<NotificationModel>> {
   @override
-  void dispose() {
-    stopPolling();
-    _notificationPoller.dispose();
-    super.dispose();
+  Future<List<NotificationModel>> build() async {
+    // Register callback in poller to refresh this provider when new notifications arrive
+    NotificationPoller().onNewNotifications = () {
+      ref.invalidateSelf();
+    };
+
+    return _fetch();
+  }
+
+  Future<List<NotificationModel>> _fetch() async {
+    // 1. Fetch latest from backend
+    final backendNotifications = await NotificationService.getNotifications();
+
+    // 2. Update the poller's internal state
+    NotificationPoller().setPolledNotifications(backendNotifications);
+
+    // 3. Return the filtered and merged results from the poller
+    return NotificationPoller().allNotifications;
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => _fetch());
+  }
+
+  Future<void> markAsRead(String id) async {
+    await NotificationPoller().markAsRead(id);
+    await refresh();
+  }
+
+  Future<void> markAllAsRead() async {
+    await NotificationPoller().markAllAsRead();
+    await refresh();
+  }
+
+  Future<void> deleteNotification(String id) async {
+    await NotificationPoller().deleteNotification(id);
+    await refresh();
   }
 }
+
+/// Provider for the full list of notifications
+final notificationListProvider =
+    AsyncNotifierProvider<NotificationListNotifier, List<NotificationModel>>(
+      () {
+        return NotificationListNotifier();
+      },
+    );
+
+/// Provider for the total unread count
+final unreadCountProvider = Provider<int>((ref) {
+  final notifications = ref.watch(notificationListProvider).value ?? [];
+  return notifications.where((n) => !n.isRead).length;
+});
+
+/// Provider for general unread count (non-message)
+final generalUnreadCountProvider = Provider<int>((ref) {
+  final notifications = ref.watch(notificationListProvider).value ?? [];
+  return notifications
+      .where((n) => !n.isRead && n.type.toLowerCase() != 'message')
+      .length;
+});
+
+/// Provider for message unread count
+final messageUnreadCountProvider = Provider<int>((ref) {
+  final notifications = ref.watch(notificationListProvider).value ?? [];
+  return notifications
+      .where((n) => !n.isRead && n.type.toLowerCase() == 'message')
+      .length;
+});
+
+/// Provider for appointment unread count
+final appointmentUnreadCountProvider = Provider<int>((ref) {
+  final notifications = ref.watch(notificationListProvider).value ?? [];
+  return notifications
+      .where(
+        (n) =>
+            !n.isRead &&
+            (n.type.toLowerCase().contains('appointment') ||
+                n.type.toLowerCase() == 'doctor_signup' ||
+                n.type.toLowerCase() == 'doctor_approved'),
+      )
+      .length;
+});
+
+// Logic to start polling - this can be called from main.dart or after login
+final notificationPollingProvider = Provider<void>((ref) {
+  final poller = NotificationPoller();
+
+  // Start polling if not already started
+  poller.startPolling();
+
+  ref.onDispose(() {
+    poller.stopPolling();
+  });
+});

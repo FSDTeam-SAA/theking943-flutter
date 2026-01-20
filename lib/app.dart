@@ -1,26 +1,29 @@
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:docmobi/screens/patient/profile/add_dependents_screen.dart';
 import 'package:docmobi/screens/patient/profile/edit_dependent_screen.dart';
 import 'package:docmobi/screens/patient/profile/dependents_list_screen.dart';
 import 'package:docmobi/services/call_manager_service.dart';
 import 'package:docmobi/services/socket_service.dart';
-import 'package:docmobi/screens/patient/notification/notification_screen.dart';
+import 'package:docmobi/screens/patient/notification/patient_notification_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart';
 import 'package:docmobi/screens/doctor/navigation/doctor_main_navigation.dart';
 import 'package:docmobi/screens/splash/splash_screen.dart';
 import 'package:docmobi/services/api_service.dart';
-import 'package:docmobi/providers/notification_provider.dart';
-import 'package:provider/provider.dart';
+import 'package:docmobi/services/notification_poller.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:docmobi/providers/locale_provider.dart';
 
-class MyApp extends StatefulWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends ConsumerState<MyApp> {
   bool _isLoggedIn = false;
   bool _isLoading = true;
   String? _userRole;
@@ -120,9 +123,20 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    final currentLocale = ref.watch(localeProvider);
+
     return MaterialApp(
       navigatorKey: _navigatorKey, // ✅ ADDED for CallManager
       title: 'Docmobi',
+      locale: currentLocale,
+      localizationsDelegates: [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+
+      supportedLocales: const [Locale('en'), Locale('ar')],
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: true,
@@ -289,12 +303,8 @@ class _MyAppState extends State<MyApp> {
       debugPrint('🔄 Logging out user...');
 
       // Stop notification polling
-      final notificationProvider = Provider.of<NotificationProvider>(
-        context,
-        listen: false,
-      );
-      notificationProvider.stopPolling();
-      await notificationProvider.clearNotifications();
+      NotificationPoller().stopPolling();
+      await NotificationPoller().clearAllData();
       debugPrint('✅ Notification polling stopped');
 
       // ✅ Dispose CallManager

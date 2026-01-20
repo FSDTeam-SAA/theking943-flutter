@@ -1,26 +1,27 @@
-import 'package:docmobi/screens/doctor/home/notifications/notifications.dart';
+import 'package:docmobi/screens/doctor/home/notifications/doctor_notifications.dart';
 import 'package:docmobi/screens/doctor/messages/doctor_messages_list_screen.dart';
 import 'package:docmobi/screens/doctor/posts/doctor_create_post_screen.dart';
 import 'package:docmobi/screens/doctor/profile/doctor_profile_screen.dart';
 import 'package:docmobi/widgets/post_card.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart' as legacy_provider;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:docmobi/services/api_service.dart';
 import 'package:docmobi/screens/auth/sign_in_screen.dart';
 import 'package:docmobi/models/post_model.dart';
-import 'package:provider/provider.dart';
 import '../../../providers/user_provider.dart';
 import 'dart:async';
 import '../../../providers/notification_provider.dart';
 import '../../../widgets/custom_image.dart';
 
-class DoctorHomeScreen extends StatefulWidget {
+class DoctorHomeScreen extends ConsumerStatefulWidget {
   const DoctorHomeScreen({super.key});
 
   @override
-  State<DoctorHomeScreen> createState() => _DoctorHomeScreenState();
+  ConsumerState<DoctorHomeScreen> createState() => _DoctorHomeScreenState();
 }
 
-class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
+class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -199,7 +200,10 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
 
   Future<void> _loadUserData() async {
     try {
-      await context.read<UserProvider>().fetchUserProfile();
+      await legacy_provider.Provider.of<UserProvider>(
+        context,
+        listen: false,
+      ).fetchUserProfile();
     } catch (e) {
       debugPrint('⚠️ Error loading user data: $e');
     }
@@ -283,7 +287,10 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   }
 
   Future<void> _refreshData() async {
-    await context.read<UserProvider>().fetchUserProfile();
+    await legacy_provider.Provider.of<UserProvider>(
+      context,
+      listen: false,
+    ).fetchUserProfile();
     _currentPage = 1;
     await _loadPosts();
   }
@@ -304,7 +311,10 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
       context,
       MaterialPageRoute(builder: (context) => const DoctorProfileScreen()),
     ).then((_) {
-      context.read<UserProvider>().fetchUserProfile();
+      legacy_provider.Provider.of<UserProvider>(
+        context,
+        listen: false,
+      ).fetchUserProfile();
     });
   }
 
@@ -367,9 +377,12 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
           slivers: [
             // ========== HEADER WITH SEARCH ==========
             SliverToBoxAdapter(
-              child: Consumer<UserProvider>(
+              child: legacy_provider.Consumer<UserProvider>(
                 builder: (context, userProvider, child) {
                   final user = userProvider.user;
+                  final generalUnreadCountValue = ref.watch(
+                    generalUnreadCountProvider,
+                  );
 
                   return Container(
                     padding: const EdgeInsets.fromLTRB(20, 50, 20, 16),
@@ -394,8 +407,8 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                                 width: 56,
                                 height: 56,
                                 shape: BoxShape.circle,
-                                placeholderAsset:
-                                    'assets/images/doctor_booking.png',
+                                // placeholderAsset:
+                                //     'assets/images/doctor_booking.png',
                               ),
                             ),
 
@@ -452,32 +465,23 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                                     );
                                   },
                                 ),
-                                ValueListenableBuilder<int>(
-                                  valueListenable: context
-                                      .read<NotificationProvider>()
-                                      .generalUnreadCount,
-                                  builder: (context, count, child) {
-                                    if (count == 0) {
-                                      return const SizedBox.shrink();
-                                    }
-                                    return Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: Container(
-                                        width: 10,
-                                        height: 10,
-                                        decoration: BoxDecoration(
-                                          color: Colors.red,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.white,
-                                            width: 2,
-                                          ),
+                                if (generalUnreadCountValue > 0)
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: Container(
+                                      width: 10,
+                                      height: 10,
+                                      decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2,
                                         ),
                                       ),
-                                    );
-                                  },
-                                ),
+                                    ),
+                                  ),
                               ],
                             ),
                           ],
@@ -960,7 +964,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   }
 
   Widget _buildCreatePostBox() {
-    return Consumer<UserProvider>(
+    return legacy_provider.Consumer<UserProvider>(
       builder: (context, userProvider, child) {
         final user = userProvider.user;
 

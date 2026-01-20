@@ -1,3 +1,4 @@
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:docmobi/screens/patient/appointments/patient_appointments_screen.dart';
 import 'package:docmobi/screens/patient/profile/dependents_list_screen.dart';
 import 'package:flutter/material.dart';
@@ -5,19 +6,22 @@ import 'package:docmobi/screens/patient/profile/personal_info_screen.dart';
 import 'package:docmobi/screens/patient/profile/change_password_screen.dart';
 import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart';
 
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart' as legacy_provider;
 import '../../../providers/user_provider.dart';
 import '../../../services/auth_service.dart';
 import '../../../screens/auth/sign_in_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:docmobi/providers/locale_provider.dart';
 
-class PatientProfileScreen extends StatefulWidget {
+class PatientProfileScreen extends ConsumerStatefulWidget {
   const PatientProfileScreen({super.key});
 
   @override
-  State<PatientProfileScreen> createState() => _PatientProfileScreenState();
+  ConsumerState<PatientProfileScreen> createState() =>
+      _PatientProfileScreenState();
 }
 
-class _PatientProfileScreenState extends State<PatientProfileScreen> {
+class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
   String selectedLanguage = 'English';
 
   @override
@@ -25,12 +29,18 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<UserProvider>().fetchUserProfile();
+      legacy_provider.Provider.of<UserProvider>(
+        context,
+        listen: false,
+      ).fetchUserProfile();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final currentLocale = ref.watch(localeProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -52,16 +62,16 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
             }
           },
         ),
-        title: const Text(
-          'My Profile',
-          style: TextStyle(
+        title: Text(
+          l10n.appTitle,
+          style: const TextStyle(
             color: Color(0xFF0B3267),
             fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
       ),
-      body: Consumer<UserProvider>(
+      body: legacy_provider.Consumer<UserProvider>(
         builder: (context, userProvider, child) {
           // Get user data
           final user = userProvider.user;
@@ -204,56 +214,66 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                 ),
 
                 /// Language Selector
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 15,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.language, color: Color(0xFF1664CD)),
-                        const SizedBox(width: 15),
-                        const Expanded(
-                          child: Text(
-                            'Language',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Color(0xFF0B3267),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        DropdownButton<String>(
-                          value: selectedLanguage,
-                          underline: const SizedBox(),
-                          icon: const Icon(Icons.keyboard_arrow_down),
-                          items: ['English', 'Arabic']
-                              .map(
-                                (value) => DropdownMenuItem(
-                                  value: value,
-                                  child: Text(value),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              selectedLanguage = value!;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                // Padding(
+                //   padding: const EdgeInsets.symmetric(
+                //     horizontal: 20,
+                //     vertical: 10,
+                //   ),
+                //   child: Container(
+                //     padding: const EdgeInsets.symmetric(
+                //       horizontal: 15,
+                //       vertical: 5,
+                //     ),
+                //     decoration: BoxDecoration(
+                //       border: Border.all(color: Colors.grey[300]!),
+                //       borderRadius: BorderRadius.circular(10),
+                //     ),
+                //     child: Row(
+                //       children: [
+                //         const Icon(Icons.language, color: Color(0xFF1664CD)),
+                //         const SizedBox(width: 15),
+                //         const Expanded(
+                //           child: Text(
+                //             'Language',
+                //             style: TextStyle(
+                //               fontSize: 16,
+                //               color: Color(0xFF0B3267),
+                //               fontWeight: FontWeight.w500,
+                //             ),
+                //           ),
+                //         ),
+                //         DropdownButton<String>(
+                //           value: currentLocale.languageCode == 'en'
+                //               ? 'English'
+                //               : 'Arabic',
+                //           underline: const SizedBox(),
+                //           icon: const Icon(Icons.keyboard_arrow_down),
+                //           items: [
+                //             DropdownMenuItem(
+                //               value: 'English',
+                //               child: Text(l10n.english),
+                //             ),
+                //             DropdownMenuItem(
+                //               value: 'Arabic',
+                //               child: Text(l10n.arabic),
+                //             ),
+                //           ],
+                //           onChanged: (value) {
+                //             if (value == 'English') {
+                //               ref
+                //                   .read(localeProvider.notifier)
+                //                   .setLocale(const Locale('en'));
+                //             } else {
+                //               ref
+                //                   .read(localeProvider.notifier)
+                //                   .setLocale(const Locale('ar'));
+                //             }
+                //           },
+                //         ),
+                //       ],
+                //     ),
+                //   ),
+                // ),
 
                 // _buildMenuItem(
                 //   icon: Icons.help_outline,
@@ -337,7 +357,10 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
               );
 
               await AuthService().logout();
-              context.read<UserProvider>().clearUser();
+              legacy_provider.Provider.of<UserProvider>(
+                context,
+                listen: false,
+              ).clearUser();
 
               if (mounted) {
                 Navigator.of(context).pushAndRemoveUntil(

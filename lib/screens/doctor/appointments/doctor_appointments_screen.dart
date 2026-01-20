@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:docmobi/models/appointment_model.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
-import 'package:docmobi/providers/notification_provider.dart';
 import 'package:docmobi/screens/doctor/appointments/session_holder_screen.dart';
 import 'package:docmobi/utils/api_config.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -1140,11 +1139,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
         Navigator.pop(context); // Dismiss loading
 
         if (success) {
-          context.read<NotificationProvider>().addNotification(
-            title: 'Appointment Accepted',
-            message: 'You have accepted the appointment request.',
-            type: 'appointment_accepted',
-          );
+          debugPrint('Appointment accepted: $appointmentId');
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1199,11 +1194,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                   Navigator.pop(context); // Dismiss loading
 
                   if (success) {
-                    context.read<NotificationProvider>().addNotification(
-                      title: 'Appointment Cancelled',
-                      message: 'You have cancelled the appointment.',
-                      type: 'appointment_cancel',
-                    );
+                    debugPrint('Appointment cancelled: $appointmentId');
                   }
 
                   ScaffoldMessenger.of(context).showSnackBar(

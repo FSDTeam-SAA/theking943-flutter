@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:docmobi/screens/patient/home/patient_home_screen.dart';
 import 'package:docmobi/screens/patient/appointments/patient_appointments_screen.dart';
 import 'package:docmobi/screens/patient/reels/patient_reels_screen.dart';
 import 'package:docmobi/screens/patient/messages/patient_messages_list_screen.dart';
 import 'package:docmobi/screens/patient/profile/patient_profile_screen.dart';
 import 'package:docmobi/providers/notification_provider.dart';
-import 'package:provider/provider.dart';
-
 import 'package:docmobi/services/call_manager_service.dart';
 
-class PatientMainNavigation extends StatefulWidget {
+class PatientMainNavigation extends ConsumerStatefulWidget {
   const PatientMainNavigation({super.key});
 
   @override
-  State<PatientMainNavigation> createState() => _PatientMainNavigationState();
+  ConsumerState<PatientMainNavigation> createState() =>
+      _PatientMainNavigationState();
 }
 
-class _PatientMainNavigationState extends State<PatientMainNavigation> {
+class _PatientMainNavigationState extends ConsumerState<PatientMainNavigation> {
   int _currentIndex = 0;
 
   @override
@@ -42,14 +42,15 @@ class _PatientMainNavigationState extends State<PatientMainNavigation> {
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
+        padding: const EdgeInsets.only(top: 10, bottom: 10),
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.2),
+              color: Colors.black.withOpacity(0.05),
               spreadRadius: 1,
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+              blurRadius: 15,
+              offset: const Offset(0, -5),
             ),
           ],
         ),
@@ -62,9 +63,13 @@ class _PatientMainNavigationState extends State<PatientMainNavigation> {
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
+          elevation: 10,
           selectedItemColor: const Color(0xFF1664CD),
-          unselectedItemColor: Colors.grey,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          unselectedItemColor: const Color(0xFF4B5563),
+          selectedLabelStyle: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
           items: [
             const BottomNavigationBarItem(
               icon: Padding(
@@ -77,14 +82,14 @@ class _PatientMainNavigationState extends State<PatientMainNavigation> {
               ),
               label: 'Home',
             ),
-            const BottomNavigationBarItem(
-              icon: Padding(
-                padding: EdgeInsets.only(bottom: 5),
-                child: Icon(Icons.calendar_today_outlined, size: 26),
+            BottomNavigationBarItem(
+              icon: _buildBadgeIcon(
+                Icons.calendar_today_outlined,
+                appointmentUnreadCountProvider,
               ),
-              activeIcon: Padding(
-                padding: EdgeInsets.only(bottom: 5),
-                child: Icon(Icons.calendar_today, size: 26),
+              activeIcon: _buildBadgeIcon(
+                Icons.calendar_today,
+                appointmentUnreadCountProvider,
               ),
               label: 'Appointments',
             ),
@@ -100,10 +105,14 @@ class _PatientMainNavigationState extends State<PatientMainNavigation> {
               label: 'Reels',
             ),
             BottomNavigationBarItem(
-              icon: _buildNotificationIcon(
+              icon: _buildBadgeIcon(
                 Icons.mail_outline,
-              ), // Inactive state
-              activeIcon: _buildNotificationIcon(Icons.mail), // Active state
+                messageUnreadCountProvider,
+              ),
+              activeIcon: _buildBadgeIcon(
+                Icons.mail,
+                messageUnreadCountProvider,
+              ),
               label: 'Messages',
             ),
             const BottomNavigationBarItem(
@@ -122,44 +131,35 @@ class _PatientMainNavigationState extends State<PatientMainNavigation> {
       ),
     );
   }
-}
 
-Widget _buildNotificationIcon(IconData iconData) {
-  return Consumer<NotificationProvider>(
-    builder: (context, notificationProvider, child) {
-      final unreadCount = notificationProvider.messageUnreadCount.value;
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // This applies your specific styling (padding & size) to whatever icon is passed in
-          Padding(
-            padding: const EdgeInsets.only(bottom: 5),
-            child: Icon(iconData, size: 26),
-          ),
-          if (unreadCount > 0)
-            Positioned(
-              right: -8,
-              top: -8,
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                child: Text(
-                  unreadCount > 99 ? '99+' : unreadCount.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+  Widget _buildBadgeIcon(IconData iconData, dynamic provider) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final unreadCount = ref.watch(provider);
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 5),
+              child: Icon(iconData, size: 26),
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1664CD), // Blue dot
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
                   ),
-                  textAlign: TextAlign.center,
                 ),
               ),
-            ),
-        ],
-      );
-    },
-  );
+          ],
+        );
+      },
+    );
+  }
 }

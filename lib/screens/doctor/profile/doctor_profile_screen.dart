@@ -1,24 +1,30 @@
 // screens/doctor/profile/doctor_profile_screen.dart
 // ✅ UPDATED with Video Call Save Functionality
 
+import 'package:docmobi/l10n/app_localizations.dart';
+import 'package:docmobi/screens/doctor/navigation/doctor_main_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/doctor/profile/doctor_personal_info_screen.dart';
 import 'package:docmobi/screens/doctor/profile/doctor_my_schedule_screen.dart';
 import 'package:docmobi/screens/doctor/profile/doctor_earnigs.dart';
 import 'package:docmobi/screens/patient/profile/change_password_screen.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart' as legacy_provider;
 import '../../../providers/user_provider.dart';
 import '../../../services/auth_service.dart';
 import '../../auth/sign_in_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:docmobi/providers/locale_provider.dart';
+// import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-class DoctorProfileScreen extends StatefulWidget {
+class DoctorProfileScreen extends ConsumerStatefulWidget {
   const DoctorProfileScreen({super.key});
 
   @override
-  State<DoctorProfileScreen> createState() => _DoctorProfileScreenState();
+  ConsumerState<DoctorProfileScreen> createState() =>
+      _DoctorProfileScreenState();
 }
 
-class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
+class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
   bool _isSaving = false; // Track save state
   bool isVoiceVideoCallActive = false;
   String selectedLanguage = 'English';
@@ -32,11 +38,17 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
   }
 
   Future<void> _loadProfile() async {
-    await context.read<UserProvider>().fetchUserProfile();
+    await legacy_provider.Provider.of<UserProvider>(
+      context,
+      listen: false,
+    ).fetchUserProfile();
   }
 
   Future<void> _refreshProfile() async {
-    await context.read<UserProvider>().fetchUserProfile();
+    await legacy_provider.Provider.of<UserProvider>(
+      context,
+      listen: false,
+    ).fetchUserProfile();
   }
 
   /// ✅ Save video call availability to backend
@@ -46,18 +58,21 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
     });
 
     try {
-      final userProvider = context.read<UserProvider>();
-      
-      print('🔄 Toggling video call to: $value');
-      
+      final userProvider = legacy_provider.Provider.of<UserProvider>(
+        context,
+        listen: false,
+      );
+
+      debugPrint('🔄 Toggling video call to: $value');
+
       // ✅ FIXED: Pass the video call parameter
       final success = await userProvider.updateUserProfile(
         isVideoCallAvailable: value,
       );
 
       if (success) {
-        print('✅ Video call setting saved successfully');
-        
+        debugPrint('✅ Video call setting saved successfully');
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -69,9 +84,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    value
-                        ? 'Video calls enabled ✅'
-                        : 'Video calls disabled ❌',
+                    value ? 'Video calls enabled ✅' : 'Video calls disabled ❌',
                   ),
                 ],
               ),
@@ -81,32 +94,31 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
           );
         }
       } else {
-        print('❌ Failed to save video call setting');
-        
+        debugPrint('❌ Failed to save video call setting');
+
         // Revert to previous state on failure
         await _refreshProfile();
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Failed to update: ${userProvider.error ?? "Unknown error"}'),
+              content: Text(
+                'Failed to update: ${userProvider.error ?? "Unknown error"}',
+              ),
               backgroundColor: Colors.red,
             ),
           );
         }
       }
     } catch (e) {
-      print('❌ Error updating video call setting: $e');
-      
+      debugPrint('❌ Error updating video call setting: $e');
+
       // Revert to previous state on error
       await _refreshProfile();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -120,15 +132,34 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final currentLocale = ref.watch(localeProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(0, 255, 255, 255),
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF0B3267)),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DoctorMainNavigation(),
+                ),
+                (route) => false,
+              );
+            }
+          },
+        ),
         automaticallyImplyLeading: false,
-        title: const Text(
-          'My Profile',
-          style: TextStyle(
+        title: Text(
+          l10n.appTitle, // Using localized title
+          style: const TextStyle(
             color: Color(0xFF1B2C49),
             fontWeight: FontWeight.bold,
             fontSize: 22,
@@ -136,7 +167,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
         ),
         centerTitle: true,
       ),
-      body: Consumer<UserProvider>(
+      body: legacy_provider.Consumer<UserProvider>(
         builder: (context, userProvider, child) {
           final user = userProvider.user;
           final isLoading = userProvider.isLoading;
@@ -281,11 +312,9 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                       );
                     },
                   ),
-                  
-                
-                  
+
                   _buildProfileItem(
-                    icon: Icons.attach_money_outlined,
+                    assetIconPath: 'assets/images/algerian.png',
                     title: 'My Earning',
                     onTap: () {
                       Navigator.push(
@@ -298,49 +327,60 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                   ),
 
                   /// Language Selector
-                  _buildProfileItem(
-                    icon: Icons.language,
-                    title: 'Language',
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Select Language'),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ListTile(
-                                leading: const Icon(Icons.abc),
-                                title: const Text('English'),
-                                onTap: () {
-                                  setState(() {
-                                    selectedLanguage = 'English';
-                                  });
-                                  Navigator.pop(context);
-                                },
-                              ),
-                              ListTile(
-                                leading: Text(
-                                  'ع',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                title: const Text('Arabic'),
-                                onTap: () {
-                                  setState(() {
-                                    selectedLanguage = 'Arabic';
-                                  });
-                                  Navigator.pop(context);
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                  // _buildProfileItem(
+                  //   icon: Icons.language,
+                  //   title: l10n.changeLanguage,
+                  //   trailing: Text(
+                  //     currentLocale.languageCode == 'en'
+                  //         ? l10n.english
+                  //         : l10n.arabic,
+                  //     style: const TextStyle(
+                  //       color: Color(0xFF1664CD),
+                  //       fontWeight: FontWeight.bold,
+                  //     ),
+                  //   ),
+                  //   onTap: () {
+                  //     showDialog(
+                  //       context: context,
+                  //       builder: (context) => AlertDialog(
+                  //         title: Text(l10n.selectLanguage),
+                  //         content: Column(
+                  //           mainAxisSize: MainAxisSize.min,
+                  //           children: [
+                  //             ListTile(
+                  //               leading: const Icon(Icons.abc),
+                  //               title: Text(l10n.english),
+                  //               selected: currentLocale.languageCode == 'en',
+                  //               onTap: () {
+                  //                 ref
+                  //                     .read(localeProvider.notifier)
+                  //                     .setLocale(const Locale('en'));
+                  //                 Navigator.pop(context);
+                  //               },
+                  //             ),
+                  //             ListTile(
+                  //               leading: const Text(
+                  //                 'ع',
+                  //                 style: TextStyle(
+                  //                   fontSize: 24,
+                  //                   fontWeight: FontWeight.bold,
+                  //                 ),
+                  //               ),
+                  //               title: Text(l10n.arabic),
+                  //               selected: currentLocale.languageCode == 'ar',
+                  //               onTap: () {
+                  //                 ref
+                  //                     .read(localeProvider.notifier)
+                  //                     .setLocale(const Locale('ar'));
+                  //                 Navigator.pop(context);
+                  //               },
+                  //             ),
+                  //           ],
+                  //         ),
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
                   _buildProfileItem(
                     icon: Icons.lock_outline,
                     title: 'Change Password',
@@ -393,7 +433,8 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
   }
 
   Widget _buildProfileItem({
-    required IconData icon,
+    IconData? icon,
+    String? assetIconPath,
     required String title,
     Widget? trailing,
     VoidCallback? onTap,
@@ -413,7 +454,14 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
             color: Colors.white,
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: const Color(0xFF1B2C49), size: 22),
+          child: icon != null
+              ? Icon(icon, color: const Color(0xFF1B2C49), size: 22)
+              : Image.asset(
+                  assetIconPath!,
+                  width: 22,
+                  height: 22,
+                  fit: BoxFit.contain,
+                ),
         ),
         title: Text(
           title,
@@ -456,7 +504,11 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                     const Center(child: CircularProgressIndicator()),
               );
               await AuthService().logout();
-              context.read<UserProvider>().clearUser();
+              legacy_provider.Provider.of<UserProvider>(
+                context,
+                listen: false,
+              ).clearUser();
+
               if (mounted) {
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(

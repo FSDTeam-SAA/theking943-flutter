@@ -29,9 +29,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
   void _handleBackPress() {
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(
-        builder: (context) => const PatientMainNavigation(),
-      ),
+      MaterialPageRoute(builder: (context) => const PatientMainNavigation()),
       (route) => false,
     );
   }
@@ -56,8 +54,12 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                     child: Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Color(0xFF1A1A1A)),
-                          onPressed: _handleBackPress,
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color: Color(0xFF1A1A1A),
+                          ),
+                          // onPressed: _handleBackPress,
+                          onPressed: () => Navigator.pop(context),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
@@ -81,7 +83,8 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                   child: Row(
                     children: [
                       _buildTab(
-                        title: "Up Coming (${appointmentProvider.upcomingAppointments.length})",
+                        title:
+                            "Up Coming (${appointmentProvider.upcomingAppointments.length})",
                         active: isUpcoming,
                         onTap: () => setState(() => isUpcoming = true),
                       ),
@@ -96,9 +99,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                 ),
                 const SizedBox(height: 10),
 
-                Expanded(
-                  child: _buildContent(appointmentProvider),
-                ),
+                Expanded(child: _buildContent(appointmentProvider)),
               ],
             );
           },
@@ -134,7 +135,10 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0D53C1),
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 30,
+                  vertical: 12,
+                ),
               ),
               child: const Text('Retry', style: TextStyle(color: Colors.white)),
             ),
@@ -152,10 +156,16 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.calendar_today_outlined, size: 80, color: Colors.grey[400]),
+            Icon(
+              Icons.calendar_today_outlined,
+              size: 80,
+              color: Colors.grey[400],
+            ),
             const SizedBox(height: 16),
             Text(
-              isUpcoming ? 'No upcoming appointments' : 'No completed appointments',
+              isUpcoming
+                  ? 'No upcoming appointments'
+                  : 'No completed appointments',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],
@@ -218,31 +228,30 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
     Color statusBg = isCompleted
         ? const Color(0xFFD4F4DD)
         : (isCancelled
-            ? const Color(0xFFFFE5E5)
-            : (isAccepted
-                ? const Color(0xFFD4F4DD)
-                : const Color(0xFFFFF4E5)));
-    
+              ? const Color(0xFFFFE5E5)
+              : (isAccepted
+                    ? const Color(0xFFD4F4DD)
+                    : const Color(0xFFFFF4E5)));
+
     Color statusText = isCompleted
         ? const Color(0xFF27AE60)
         : (isCancelled
-            ? Colors.red
-            : (isAccepted
-                ? const Color(0xFF27AE60)
-                : const Color(0xFFFFA726)));
-    
+              ? Colors.red
+              : (isAccepted
+                    ? const Color(0xFF27AE60)
+                    : const Color(0xFFFFA726)));
+
     String statusLabel = isCompleted
         ? 'Completed'
-        : (isCancelled
-            ? 'Cancelled'
-            : (isAccepted ? 'Accepted' : 'Pending'));
+        : (isCancelled ? 'Cancelled' : (isAccepted ? 'Accepted' : 'Pending'));
 
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => AppointmentDetailScreen(appointment: appointment),
+            builder: (context) =>
+                AppointmentDetailScreen(appointment: appointment),
           ),
         );
       },
@@ -308,17 +317,27 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                       ),
                       Text(
                         appointment.specialty ?? 'Specialist',
-                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
                       ),
-                      
-                      if (appointment.bookedFor != null && appointment.bookedFor!.type == 'dependent') ...[
+
+                      if (appointment.bookedFor != null &&
+                          appointment.bookedFor!.type == 'dependent') ...[
                         const SizedBox(height: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFE3F2FD),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: const Color(0xFF2196F3), width: 1),
+                            border: Border.all(
+                              color: const Color(0xFF2196F3),
+                              width: 1,
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -357,13 +376,18 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _infoRow(Icons.calendar_month_outlined, appointment.formattedDate),
+                  _infoRow(
+                    Icons.calendar_month_outlined,
+                    appointment.formattedDate,
+                  ),
                   _infoRow(Icons.access_time, appointment.appointmentTime),
                   _infoRow(
-                    appointment.appointmentType == 'video' 
-                      ? Icons.videocam 
-                      : Icons.apartment,
-                    appointment.appointmentType == 'video' ? 'Video' : 'Physical',
+                    appointment.appointmentType == 'video'
+                        ? Icons.videocam
+                        : Icons.apartment,
+                    appointment.appointmentType == 'video'
+                        ? 'Video'
+                        : 'Physical',
                   ),
                 ],
               ),
@@ -387,7 +411,8 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: InkWell(
-                      onTap: () => _handleCancel(context, appointment, provider),
+                      onTap: () =>
+                          _handleCancel(context, appointment, provider),
                       child: _buttonDesign(
                         'Cancel',
                         const Color(0xFFD93B41),
@@ -445,9 +470,8 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      ),
+      builder: (context) =>
+          const Center(child: CircularProgressIndicator(color: Colors.white)),
     );
 
     try {
@@ -511,10 +535,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
       if (mounted) Navigator.pop(context);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -544,240 +565,246 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
 
   /// ✅ Show review dialog for completed appointments
   // ✅ FIXED: Review loading & editing
-void _showReviewDialog(BuildContext context, AppointmentModel appointment) async {
-  int selectedRating = 0;
-  bool isLoadingExisting = true;
-  
-  // ✅ Fetch existing review if any
-  try {
-    final existingReview = await ApiService.get(
-      '/api/v1/doctor-review/me',
-    );
-    
-    if (existingReview['success'] == true) {
-      final reviews = existingReview['data'] as List;
-      
-      // Find review for this appointment or doctor
-      final thisReview = reviews.firstWhere(
-        (r) => r['appointment']?['_id'] == appointment.id || 
-               r['appointment'] == appointment.id ||
-               (r['doctor']?['_id'] == appointment.doctorId && r['appointment'] == null),
-        orElse: () => null,
-      );
-      
-      if (thisReview != null) {
-        selectedRating = thisReview['rating'] ?? 0;
-        print('✅ Found existing review with rating: $selectedRating');
+  void _showReviewDialog(
+    BuildContext context,
+    AppointmentModel appointment,
+  ) async {
+    int selectedRating = 0;
+    bool isLoadingExisting = true;
+
+    // ✅ Fetch existing review if any
+    try {
+      final existingReview = await ApiService.get('/api/v1/doctor-review/me');
+
+      if (existingReview['success'] == true) {
+        final reviews = existingReview['data'] as List;
+
+        // Find review for this appointment or doctor
+        final thisReview = reviews.firstWhere(
+          (r) =>
+              r['appointment']?['_id'] == appointment.id ||
+              r['appointment'] == appointment.id ||
+              (r['doctor']?['_id'] == appointment.doctorId &&
+                  r['appointment'] == null),
+          orElse: () => null,
+        );
+
+        if (thisReview != null) {
+          selectedRating = thisReview['rating'] ?? 0;
+          print('✅ Found existing review with rating: $selectedRating');
+        }
       }
+    } catch (e) {
+      print('⚠️ No existing review found: $e');
+    } finally {
+      isLoadingExisting = false;
     }
-  } catch (e) {
-    print('⚠️ No existing review found: $e');
-  } finally {
-    isLoadingExisting = false;
-  }
 
-  if (!context.mounted) return;
+    if (!context.mounted) return;
 
-  showDialog(
-    context: context,
-    builder: (dialogContext) => StatefulBuilder(
-      builder: (dialogContext, setDialogState) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  selectedRating > 0 ? 'Update Your Review' : 'Rate Your Experience',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1B2C49),
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    selectedRating > 0
+                        ? 'Update Your Review'
+                        : 'Rate Your Experience',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1B2C49),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'with ${appointment.doctorName}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
+                  const SizedBox(height: 8),
+                  Text(
+                    'with ${appointment.doctorName}',
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
-                ),
-                const SizedBox(height: 24),
-                
-                // ✅ Star Rating with existing review support
-                isLoadingExisting
-                  ? const CircularProgressIndicator()
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(5, (index) {
-                        return GestureDetector(
-                          onTap: () {
-                            setDialogState(() {
-                              selectedRating = index + 1;
-                            });
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Icon(
-                              index < selectedRating ? Icons.star : Icons.star_border,
-                              size: 40,
-                              color: index < selectedRating 
-                                ? Colors.amber 
-                                : Colors.grey[400],
+                  const SizedBox(height: 24),
+
+                  // ✅ Star Rating with existing review support
+                  isLoadingExisting
+                      ? const CircularProgressIndicator()
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(5, (index) {
+                            return GestureDetector(
+                              onTap: () {
+                                setDialogState(() {
+                                  selectedRating = index + 1;
+                                });
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                                child: Icon(
+                                  index < selectedRating
+                                      ? Icons.star
+                                      : Icons.star_border,
+                                  size: 40,
+                                  color: index < selectedRating
+                                      ? Colors.amber
+                                      : Colors.grey[400],
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+
+                  const SizedBox(height: 32),
+
+                  // Action Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        );
-                      }),
-                    ),
-                
-                const SizedBox(height: 32),
-                
-                // Action Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(dialogContext),
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: selectedRating > 0
+                              ? () async {
+                                  // ✅ Close dialog immediately
+                                  Navigator.pop(dialogContext);
+
+                                  // ✅ Then submit review
+                                  await _submitReview(
+                                    context,
+                                    appointment,
+                                    selectedRating,
+                                  );
+                                }
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1664CD),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            'Submit',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: selectedRating > 0
-                          ? () async {
-                              // ✅ Close dialog immediately
-                              Navigator.pop(dialogContext);
-                              
-                              // ✅ Then submit review
-                              await _submitReview(
-                                context,
-                                appointment,
-                                selectedRating,
-                              );
-                            }
-                          : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1664CD),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: const Text(
-                          'Submit',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
-    ),
-  );
-}
-
-/// ✅ FIXED: Submit review with proper dialog handling
-Future<void> _submitReview(
-  BuildContext context,
-  AppointmentModel appointment,
-  int rating,
-) async {
-  // ✅ Show loading overlay
-  final overlay = OverlayEntry(
-    builder: (context) => Container(
-      color: Colors.black54,
-      child: const Center(
-        child: CircularProgressIndicator(color: Colors.white),
+          );
+        },
       ),
-    ),
-  );
-  
-  Overlay.of(context).insert(overlay);
+    );
+  }
 
-  try {
-    print('📤 Submitting review:');
-    print('   - Doctor ID: ${appointment.doctorId}');
-    print('   - Appointment ID: ${appointment.id}');
-    print('   - Rating: $rating');
-
-    final response = await ApiService.post(
-      '/api/v1/doctor-review',
-      {
-        'doctorId': appointment.doctorId,
-        'appointmentId': appointment.id,
-        'rating': rating,
-      },
-    ).timeout(
-      const Duration(seconds: 10),
-      onTimeout: () => throw Exception('Request timeout'),
+  /// ✅ FIXED: Submit review with proper dialog handling
+  Future<void> _submitReview(
+    BuildContext context,
+    AppointmentModel appointment,
+    int rating,
+  ) async {
+    // ✅ Show loading overlay
+    final overlay = OverlayEntry(
+      builder: (context) => Container(
+        color: Colors.black54,
+        child: const Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
+      ),
     );
 
-    print('📥 Review Response: $response');
+    Overlay.of(context).insert(overlay);
 
-    // ✅ Remove overlay
-    overlay.remove();
+    try {
+      print('📤 Submitting review:');
+      print('   - Doctor ID: ${appointment.doctorId}');
+      print('   - Appointment ID: ${appointment.id}');
+      print('   - Rating: $rating');
 
-    // ✅ Show result
-    if (context.mounted) {
-      if (response['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 12),
-                Text('Review submitted successfully! ⭐'),
-              ],
+      final response =
+          await ApiService.post('/api/v1/doctor-review', {
+            'doctorId': appointment.doctorId,
+            'appointmentId': appointment.id,
+            'rating': rating,
+          }).timeout(
+            const Duration(seconds: 10),
+            onTimeout: () => throw Exception('Request timeout'),
+          );
+
+      print('📥 Review Response: $response');
+
+      // ✅ Remove overlay
+      overlay.remove();
+
+      // ✅ Show result
+      if (context.mounted) {
+        if (response['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 12),
+                  Text('Review submitted successfully! ⭐'),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
             ),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      } else {
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['message'] ?? 'Failed to submit review'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Review submission error: $e');
+
+      // ✅ Remove overlay on error
+      overlay.remove();
+
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(response['message'] ?? 'Failed to submit review'),
+            content: Text(
+              'Error: ${e.toString().replaceAll('Exception:', '').trim()}',
+            ),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
     }
-  } catch (e) {
-    print('❌ Review submission error: $e');
-    
-    // ✅ Remove overlay on error
-    overlay.remove();
-    
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString().replaceAll('Exception:', '').trim()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
   }
-}
 
   Widget _buildDoctorImage(String? imageUrl) {
     if (imageUrl != null &&
@@ -795,7 +822,9 @@ Future<void> _submitReview(
             width: 60,
             height: 60,
             color: Colors.grey[200],
-            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            child: const Center(
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
           );
         },
       );
@@ -825,7 +854,10 @@ Future<void> _submitReview(
       children: [
         Icon(icon, size: 16, color: Colors.black87),
         const SizedBox(width: 5),
-        Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+        Text(
+          text,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        ),
       ],
     );
   }
@@ -840,7 +872,11 @@ Future<void> _submitReview(
       alignment: Alignment.center,
       child: Text(
         title,
-        style: TextStyle(color: text, fontWeight: FontWeight.bold, fontSize: 14),
+        style: TextStyle(
+          color: text,
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+        ),
       ),
     );
   }

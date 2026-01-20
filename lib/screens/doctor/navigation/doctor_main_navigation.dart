@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:docmobi/providers/notification_provider.dart';
 import 'package:docmobi/screens/doctor/home/doctor_home_screen.dart';
 import 'package:docmobi/screens/doctor/appointments/doctor_appointments_screen.dart';
 import 'package:docmobi/screens/doctor/reels/doctor_reels_screen.dart';
 import 'package:docmobi/screens/doctor/profile/doctor_profile_screen.dart';
 import 'package:docmobi/screens/doctor/messages/doctor_messages_list_screen.dart';
-
 import 'package:docmobi/services/call_manager_service.dart';
 
-class DoctorMainNavigation extends StatefulWidget {
+class DoctorMainNavigation extends ConsumerStatefulWidget {
   const DoctorMainNavigation({super.key});
 
   @override
-  State<DoctorMainNavigation> createState() => _DoctorMainNavigationState();
+  ConsumerState<DoctorMainNavigation> createState() =>
+      _DoctorMainNavigationState();
 }
 
-class _DoctorMainNavigationState extends State<DoctorMainNavigation> {
+class _DoctorMainNavigationState extends ConsumerState<DoctorMainNavigation> {
   int _currentIndex = 0;
 
   @override
@@ -69,7 +71,7 @@ class _DoctorMainNavigationState extends State<DoctorMainNavigation> {
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
-          elevation: 0,
+          elevation: 10,
           selectedItemColor: const Color(0xFF1664CD),
           unselectedItemColor: const Color(0xFF4B5563),
           selectedLabelStyle: const TextStyle(
@@ -92,14 +94,14 @@ class _DoctorMainNavigationState extends State<DoctorMainNavigation> {
               ),
               label: 'Home',
             ),
-            const BottomNavigationBarItem(
-              icon: Padding(
-                padding: EdgeInsets.only(bottom: 5),
-                child: Icon(Icons.calendar_today_outlined, size: 26),
+            BottomNavigationBarItem(
+              icon: _buildBadgeIcon(
+                Icons.calendar_today_outlined,
+                appointmentUnreadCountProvider,
               ),
-              activeIcon: Padding(
-                padding: EdgeInsets.only(bottom: 5),
-                child: Icon(Icons.calendar_today, size: 26),
+              activeIcon: _buildBadgeIcon(
+                Icons.calendar_today,
+                appointmentUnreadCountProvider,
               ),
               label: 'Appointments',
             ),
@@ -114,14 +116,14 @@ class _DoctorMainNavigationState extends State<DoctorMainNavigation> {
               ),
               label: 'Reels',
             ),
-            const BottomNavigationBarItem(
-              icon: Padding(
-                padding: EdgeInsets.only(bottom: 5),
-                child: Icon(Icons.mail_outline, size: 26),
+            BottomNavigationBarItem(
+              icon: _buildBadgeIcon(
+                Icons.mail_outline,
+                messageUnreadCountProvider,
               ),
-              activeIcon: Padding(
-                padding: EdgeInsets.only(bottom: 5),
-                child: Icon(Icons.mail, size: 26),
+              activeIcon: _buildBadgeIcon(
+                Icons.mail,
+                messageUnreadCountProvider,
               ),
               label: 'Messages',
             ),
@@ -139,6 +141,33 @@ class _DoctorMainNavigationState extends State<DoctorMainNavigation> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildBadgeIcon(IconData iconData, dynamic provider) {
+    final unreadCount = ref.watch(provider);
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 5),
+          child: Icon(iconData, size: 26),
+        ),
+        if (unreadCount > 0)
+          Positioned(
+            right: -2,
+            top: -2,
+            child: Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1664CD), // Blue dot
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.5),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

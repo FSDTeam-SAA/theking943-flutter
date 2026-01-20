@@ -1,10 +1,10 @@
 import 'dart:convert';
 
-import 'package:docmobi/screens/patient/home/dialog/location_permission_dialog.dart';
 import 'package:docmobi/screens/patient/home/upcoming_appointment_card.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart' as legacy_provider;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:docmobi/models/doctor_model.dart';
 import 'package:docmobi/providers/doctor_provider.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
@@ -13,7 +13,7 @@ import 'package:docmobi/providers/notification_provider.dart';
 import 'package:docmobi/screens/patient/home/see_all_doctors_screen.dart';
 import 'package:docmobi/screens/patient/doctor/doctor_detail_screen.dart';
 import 'package:docmobi/screens/patient/doctor/book_appointment_screen.dart';
-import 'package:docmobi/screens/patient/notification/notification_screen.dart';
+import 'package:docmobi/screens/patient/notification/patient_notification_screen.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../services/location_service.dart';
 import '../../../utils/marker_factory.dart';
@@ -21,14 +21,14 @@ import 'package:docmobi/screens/patient/profile/patient_profile_screen.dart';
 import '../../../widgets/custom_image.dart';
 import 'dart:async'; // For Timer
 
-class PatientHomeScreen extends StatefulWidget {
+class PatientHomeScreen extends ConsumerStatefulWidget {
   const PatientHomeScreen({super.key});
 
   @override
-  State<PatientHomeScreen> createState() => _PatientHomeScreenState();
+  ConsumerState<PatientHomeScreen> createState() => _PatientHomeScreenState();
 }
 
-class _PatientHomeScreenState extends State<PatientHomeScreen> {
+class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   final LocationService _locationService = LocationService();
   final MarkerFactory _markerFactory = MarkerFactory();
   final TextEditingController _searchController = TextEditingController();
@@ -63,8 +63,14 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   Future<void> _initializeScreen() async {
     try {
       await Future.wait([
-        context.read<DoctorProvider>().fetchNearbyDoctors(),
-        context.read<AppointmentProvider>().fetchAppointments(),
+        legacy_provider.Provider.of<DoctorProvider>(
+          context,
+          listen: false,
+        ).fetchNearbyDoctors(),
+        legacy_provider.Provider.of<AppointmentProvider>(
+          context,
+          listen: false,
+        ).fetchAppointments(),
       ]);
 
       // Delay location request to avoid crash
@@ -296,7 +302,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
   void _addDoctorMarkers() {
     try {
-      final doctors = context.read<DoctorProvider>().nearbyDoctors;
+      final doctors = legacy_provider.Provider.of<DoctorProvider>(
+        context,
+        listen: false,
+      ).nearbyDoctors;
       Set<Marker> markers = {};
       Set<Polyline> polylines = {};
 
@@ -394,9 +403,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     _mapController?.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100));
 
     // Find doctor and navigate to details
-    final doctor = context.read<DoctorProvider>().nearbyDoctors.firstWhere(
-      (d) => d.id == doctorId,
-    );
+    final doctor = legacy_provider.Provider.of<DoctorProvider>(
+      context,
+      listen: false,
+    ).nearbyDoctors.firstWhere((d) => d.id == doctorId);
 
     Navigator.push(
       context,
@@ -406,8 +416,14 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
   Future<void> _onRefresh() async {
     await Future.wait([
-      context.read<DoctorProvider>().fetchNearbyDoctors(),
-      context.read<AppointmentProvider>().fetchAppointments(),
+      legacy_provider.Provider.of<DoctorProvider>(
+        context,
+        listen: false,
+      ).fetchNearbyDoctors(),
+      legacy_provider.Provider.of<AppointmentProvider>(
+        context,
+        listen: false,
+      ).fetchAppointments(),
     ]);
     _addDoctorMarkers();
   }
@@ -436,7 +452,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final userProvider = context.watch<UserProvider>();
+    final userProvider = legacy_provider.Provider.of<UserProvider>(context);
+    final generalUnreadCountValue = ref.watch(generalUnreadCountProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F6FF),
@@ -525,6 +542,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                                   ),
                                 ),
                               ),
+                              Expanded(
+                                child: Container(), // Dummy for space
+                              ),
                               GestureDetector(
                                 onTap: () => Navigator.push(
                                   context,
@@ -539,9 +559,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                                     borderRadius: BorderRadius.circular(12),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.05,
-                                        ),
+                                        color: Colors.black.withOpacity(0.05),
                                         blurRadius: 10,
                                       ),
                                     ],
@@ -554,32 +572,23 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                                         size: 28,
                                         color: Colors.black87,
                                       ),
-                                      ValueListenableBuilder<int>(
-                                        valueListenable: context
-                                            .read<NotificationProvider>()
-                                            .generalUnreadCount,
-                                        builder: (context, count, child) {
-                                          if (count == 0) {
-                                            return const SizedBox.shrink();
-                                          }
-                                          return Positioned(
-                                            top: 0,
-                                            right: 0,
-                                            child: Container(
-                                              width: 10,
-                                              height: 10,
-                                              decoration: BoxDecoration(
-                                                color: Colors.red,
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  color: Colors.white,
-                                                  width: 2,
-                                                ),
+                                      if (generalUnreadCountValue > 0)
+                                        Positioned(
+                                          top: 0,
+                                          right: 0,
+                                          child: Container(
+                                            width: 10,
+                                            height: 10,
+                                            decoration: BoxDecoration(
+                                              color: Colors.red,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: Colors.white,
+                                                width: 2,
                                               ),
                                             ),
-                                          );
-                                        },
-                                      ),
+                                          ),
+                                        ),
                                     ],
                                   ),
                                 ),
@@ -841,7 +850,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     const SizedBox(height: 25),
 
                     // Upcoming Appointment
-                    Consumer<AppointmentProvider>(
+                    legacy_provider.Consumer<AppointmentProvider>(
                       builder: (context, aptProvider, child) {
                         final now = DateTime.now();
                         final today = DateTime(now.year, now.month, now.day);
@@ -924,7 +933,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     const SizedBox(height: 15),
 
                     // Doctors List
-                    Consumer<DoctorProvider>(
+                    legacy_provider.Consumer<DoctorProvider>(
                       builder: (context, doctorProvider, child) {
                         if (doctorProvider.isLoading) {
                           return const Center(
@@ -1032,254 +1041,257 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     );
   }
 
- 
+  bool _isDoctorAvailable(Doctor doctor) {
+    if (doctor.weeklySchedule == null || doctor.weeklySchedule!.isEmpty) {
+      print('❌ ${doctor.fullName}: No weeklySchedule');
+      return false;
+    }
 
+    // Check if at least one day is active with slots
+    for (var schedule in doctor.weeklySchedule!) {
+      print(
+        '📅 ${doctor.fullName} - ${schedule.day}: active=${schedule.isActive}, slots=${schedule.slots.length}',
+      );
 
- bool _isDoctorAvailable(Doctor doctor) {
-  if (doctor.weeklySchedule == null || doctor.weeklySchedule!.isEmpty) {
-    print('❌ ${doctor.fullName}: No weeklySchedule');
+      if (schedule.isActive && schedule.slots.isNotEmpty) {
+        print('✅ ${doctor.fullName}: Available on ${schedule.day}');
+        return true;
+      }
+    }
+
+    print('❌ ${doctor.fullName}: No active days with slots');
     return false;
   }
 
-  // Check if at least one day is active with slots
-  for (var schedule in doctor.weeklySchedule!) {
-    print('📅 ${doctor.fullName} - ${schedule.day}: active=${schedule.isActive}, slots=${schedule.slots.length}');
-    
-    if (schedule.isActive && schedule.slots.isNotEmpty) {
-      print('✅ ${doctor.fullName}: Available on ${schedule.day}');
-      return true;
-    }
-  }
+  Widget _buildCustomDoctorCard(Doctor doctor) {
+    final bool isAvailable = _isDoctorAvailable(doctor);
+    final bool hasVideoCall =
+        doctor.isVideoCallAvailable; // ✅ This reads from model
+    final String visitingHours = _getVisitingHours(doctor);
 
-  print('❌ ${doctor.fullName}: No active days with slots');
-  return false;
-}
+    // Debug log
+    print('🏠 Home Card: ${doctor.fullName}');
+    print('   - isVideoCallAvailable: $hasVideoCall');
+    print('   - Raw data: ${doctor.toJson()}');
 
-
-Widget _buildCustomDoctorCard(Doctor doctor) {
-  final bool isAvailable = _isDoctorAvailable(doctor);
-  final bool hasVideoCall = doctor.isVideoCallAvailable; // ✅ This reads from model
-  final String visitingHours = _getVisitingHours(doctor);
-
-  // Debug log
-  print('🏠 Home Card: ${doctor.fullName}');
-  print('   - isVideoCallAvailable: $hasVideoCall');
-  print('   - Raw data: ${doctor.toJson()}');
-
-  return Container(
-    padding: const EdgeInsets.all(15),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(15),
-      border: Border.all(color: Colors.blue.withOpacity(0.1)),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.02),
-          blurRadius: 10,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Column(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(15),
-              child: _buildDoctorImage(doctor.image),
-            ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          doctor.fullName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.blue.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: _buildDoctorImage(doctor.image),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            doctor.fullName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isAvailable
+                                ? const Color(0xFFE8F5E9)
+                                : const Color(0xFFFFF3E0),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            isAvailable ? 'Available' : 'No Schedule',
+                            style: TextStyle(
+                              color: isAvailable
+                                  ? Colors.green[700]
+                                  : Colors.orange[700],
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      doctor.specialty,
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                    const SizedBox(height: 6),
+
+                    // ✅ Video Consultation Badge
+                    if (hasVideoCall)
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: isAvailable
-                              ? const Color(0xFFE8F5E9)
-                              : const Color(0xFFFFF3E0),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          isAvailable ? 'Available' : 'No Schedule',
-                          style: TextStyle(
-                            color: isAvailable
-                                ? Colors.green[700]
-                                : Colors.orange[700],
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
+                          color: const Color(0xFFE3F2FD),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: const Color(0xFF2196F3),
+                            width: 1,
                           ),
                         ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.videocam,
+                              size: 14,
+                              color: Color(0xFF1976D2),
+                            ),
+                            const SizedBox(width: 4),
+                            const Text(
+                              'Video Consultation',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF1565C0),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    doctor.specialty,
-                    style: const TextStyle(color: Colors.grey, fontSize: 14),
-                  ),
-                  const SizedBox(height: 6),
 
-                  // ✅ Video Consultation Badge
-                  if (hasVideoCall)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE3F2FD),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: const Color(0xFF2196F3),
-                          width: 1,
+                    if (hasVideoCall) const SizedBox(height: 6),
+
+                    // Visiting hours
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          size: 14,
+                          color: Colors.grey[600],
                         ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.videocam,
-                            size: 14,
-                            color: Color(0xFF1976D2),
-                          ),
-                          const SizedBox(width: 4),
-                          const Text(
-                            'Video Consultation',
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            visitingHours,
                             style: TextStyle(
                               fontSize: 11,
-                              color: Color(0xFF1565C0),
-                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[600],
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  
-                  if (hasVideoCall) const SizedBox(height: 6),
+                    const SizedBox(height: 6),
 
-                  // Visiting hours
-                  Row(
-                    children: [
-                      Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          visitingHours,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey[600],
+                    // Rating & Distance
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.star,
+                          size: 16,
+                          color: Colors.orangeAccent,
+                        ),
+                        Text(
+                          ' ${doctor.rating}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 15),
+                        Icon(Icons.location_on, size: 16, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            _calculateDistance(doctor),
+                            style: const TextStyle(fontSize: 12),
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-
-                  // Rating & Distance
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.star,
-                        size: 16,
-                        color: Colors.orangeAccent,
-                      ),
-                      Text(
-                        ' ${doctor.rating}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(width: 15),
-                      Icon(Icons.location_on, size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          _calculateDistance(doctor),
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 15),
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton(
-                onPressed: isAvailable
-                    ? () => Navigator.push(
+            ],
+          ),
+          const SizedBox(height: 15),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: isAvailable
+                      ? () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => BookAppointmentScreen(doctor: doctor),
+                            builder: (_) =>
+                                BookAppointmentScreen(doctor: doctor),
                           ),
                         )
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isAvailable 
-                    ? const Color(0xFF0D47A1) 
-                    : Colors.grey[300],
-                  shape: RoundedRectangleBorder(
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isAvailable
+                        ? const Color(0xFF0D47A1)
+                        : Colors.grey[300],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    isAvailable ? 'Book Now' : 'Not Available',
+                    style: TextStyle(
+                      color: isAvailable ? Colors.white : Colors.grey[600],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => DoctorDetailsScreen(doctor: doctor),
+                  ),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F6FF),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-                child: Text(
-                  isAvailable ? 'Book Now' : 'Not Available',
-                  style: TextStyle(
-                    color: isAvailable ? Colors.white : Colors.grey[600],
-                    fontWeight: FontWeight.bold,
+                  child: const Icon(
+                    Icons.info_outline,
+                    color: Color(0xFF0D47A1),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 10),
-            GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => DoctorDetailsScreen(doctor: doctor),
-                ),
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F6FF),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.info_outline,
-                  color: Color(0xFF0D47A1),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildDoctorImage(String? imageUrl) {
     if (imageUrl != null &&
@@ -1331,9 +1343,7 @@ Widget _buildCustomDoctorCard(Doctor doctor) {
     );
   }
 
-
-
-/// ✅ Get visiting hours from doctor's schedule
+  /// ✅ Get visiting hours from doctor's schedule
   String _getVisitingHours(Doctor doctor) {
     if (doctor.weeklySchedule == null || doctor.weeklySchedule!.isEmpty) {
       return 'No schedule set';
@@ -1343,9 +1353,9 @@ Widget _buildCustomDoctorCard(Doctor doctor) {
     for (var schedule in doctor.weeklySchedule!) {
       if (schedule.isActive && schedule.slots.isNotEmpty) {
         // Get first 3 characters of day name
-        String dayShort = schedule.day.length >= 3 
-          ? schedule.day.substring(0, 3) 
-          : schedule.day;
+        String dayShort = schedule.day.length >= 3
+            ? schedule.day.substring(0, 3)
+            : schedule.day;
         activeDays.add(dayShort);
       }
     }
@@ -1363,5 +1373,4 @@ Widget _buildCustomDoctorCard(Doctor doctor) {
       return '${activeDays.first}-${activeDays.last}';
     }
   }
-
 }

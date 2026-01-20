@@ -208,13 +208,13 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: const Color(0xFF2D5AF0),
+                // backgroundColor: const Color.fromARGB(255, 248, 248, 3),
                 radius: 25,
                 child: Image.asset(
                   'assets/images/algerian.png',
-                  width: 30,
-                  height: 30,
-                  color: Colors.white,
+                  width: 50,
+                  height: 50,
+                  // color: Colors.white,
                   fit: BoxFit.contain,
                 ),
               ),
@@ -255,7 +255,7 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
             Expanded(
               child: _buildSmallCard(
                 'Physical',
-                '\$${physicalEarnings.toDouble().toStringAsFixed(1)}',
+                '${physicalEarnings.toDouble().toStringAsFixed(1)}',
                 '$physicalCount sessions',
                 Icons.location_on_outlined,
               ),
@@ -264,7 +264,7 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
             Expanded(
               child: _buildSmallCard(
                 'Video',
-                '\$${videoEarnings.toDouble().toStringAsFixed(1)}',
+                videoEarnings.toDouble().toStringAsFixed(1),
                 '$videoCount sessions',
                 Icons.videocam_outlined,
               ),
@@ -338,6 +338,45 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
     );
   }
 
+  // Widget _buildSmallCard(
+  //   String title,
+  //   String amount,
+  //   String subtitle,
+  //   IconData icon,
+  // ) {
+  //   return Container(
+  //     padding: const EdgeInsets.all(15),
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       borderRadius: BorderRadius.circular(12),
+  //       boxShadow: [
+  //         BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5),
+  //       ],
+  //     ),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         CircleAvatar(
+  //           radius: 14,
+  //           backgroundColor: const Color(0xFFF1F4FF),
+  //           child: Icon(icon, size: 16, color: const Color(0xFF2D5AF0)),
+  //         ),
+  //         const SizedBox(height: 12),
+  //         Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+  //         const SizedBox(height: 4),
+  //         Text(
+  //           amount,
+  //           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+  //         ),
+  //         const SizedBox(height: 4),
+  //         Text(
+  //           subtitle,
+  //           style: const TextStyle(color: Colors.green, fontSize: 11),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
   Widget _buildSmallCard(
     String title,
     String amount,
@@ -356,22 +395,48 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 14,
-            backgroundColor: const Color(0xFFF1F4FF),
-            child: Icon(icon, size: 16, color: const Color(0xFF2D5AF0)),
+          // 🔥 Icon + Title Row
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: const Color(0xFFF1F4FF),
+                child: Icon(icon, size: 28, color: const Color(0xFF2D5AF0)),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1B2C49),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          const SizedBox(height: 4),
-          Text(
-            amount,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+
+          const SizedBox(height: 14),
+
+          // 💰 Amount with money icon
+          Row(
+            children: [
+              const Icon(Icons.money, size: 18, color: Color(0xFF2D5AF0)),
+              const SizedBox(width: 8),
+              Text(
+                amount,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
+
+          const SizedBox(height: 6),
+
           Text(
             subtitle,
-            style: const TextStyle(color: Colors.green, fontSize: 11),
+            style: const TextStyle(color: Colors.green, fontSize: 12),
           ),
         ],
       ),

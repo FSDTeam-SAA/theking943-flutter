@@ -4,8 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/notification_model.dart';
-import '../utils/api_config.dart';
-import '../services/api_service.dart';
+import '../services/notification_service.dart';
 
 class NotificationPoller {
   static final NotificationPoller _instance = NotificationPoller._internal();
@@ -16,10 +15,13 @@ class NotificationPoller {
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  // ValueNotifiers for separate unread counts
+  // ValueNotifiers for separate unread counts (Keep for now to support legacy, but Riverpod will take over)
   final ValueNotifier<int> unreadCount = ValueNotifier<int>(0);
   final ValueNotifier<int> generalUnreadCount = ValueNotifier<int>(0);
   final ValueNotifier<int> messageUnreadCount = ValueNotifier<int>(0);
+
+  // Callback to notify Riverpod provider when new notifications arrive
+  VoidCallback? onNewNotifications;
 
   // Local storage for notifications and deleted IDs
   List<NotificationModel> _localNotifications = [];
@@ -164,54 +166,39 @@ class NotificationPoller {
       final prefs = await SharedPreferences.getInstance();
       final lastNotificationId = prefs.getString(_lastNotificationIdKey);
 
-      // Get notifications from API
-      final response = await ApiService.get(ApiConfig.notifications);
+      // Get notifications from API Service
+      final notifications = await NotificationService.getNotifications();
+      _polledNotifications = notifications;
 
-      if (response['success'] == true && response['data'] != null) {
-        // Handle case where data is { items: [...] } or just [...]
-        List<dynamic> notificationsData = [];
-        if (response['data'] is Map && response['data']['items'] is List) {
-          notificationsData = response['data']['items'];
-        } else if (response['data'] is List) {
-          notificationsData = response['data'];
-        }
+      if (notifications.isNotEmpty) {
+        final latestNotification = notifications.first;
 
-        final notifications = notificationsData
-            .map((json) => NotificationModel.fromJson(json))
-            .toList();
+        // Check if this is a new notification
+        if (lastNotificationId == null ||
+            (latestNotification.id.isNotEmpty &&
+                latestNotification.id != lastNotificationId)) {
+          // Show notification for each new notification
+          final newNotifications = lastNotificationId == null
+              ? notifications
+              : notifications
+                    .takeWhile((n) => n.id != lastNotificationId)
+                    .toList();
 
-        _polledNotifications = notifications;
-
-        if (notifications.isNotEmpty) {
-          final latestNotification = notifications.first;
-
-          // Check if this is a new notification
-          if (lastNotificationId == null ||
-              (latestNotification.id.isNotEmpty &&
-                  latestNotification.id != lastNotificationId)) {
-            // Show notification for each new notification
-            final newNotifications = lastNotificationId == null
-                ? notifications
-                : notifications
-                      .takeWhile((n) => n.id != lastNotificationId)
-                      .toList();
-
-            for (final notification in newNotifications.reversed) {
-              if (!notification.isRead &&
-                  !_deletedIds.contains(notification.id)) {
-                await _showLocalNotification(notification);
-              }
+          for (final notification in newNotifications.reversed) {
+            if (!notification.isRead &&
+                !_deletedIds.contains(notification.id)) {
+              await _showLocalNotification(notification);
             }
-
-            // Update last notification ID
-            await prefs.setString(
-              _lastNotificationIdKey,
-              latestNotification.id,
-            );
           }
+
+          // Update last notification ID
+          await prefs.setString(_lastNotificationIdKey, latestNotification.id);
         }
-        _notifyUpdate();
       }
+      _notifyUpdate();
+
+      // Trigger Riverpod refresh if callback is set
+      onNewNotifications?.call();
     } catch (e) {
       debugPrint('Error checking for new notifications: $e');
     }
@@ -268,18 +255,12 @@ class NotificationPoller {
 
   // Handle notification navigation based on type
   void _handleNotificationTap(String? id, String? type) {
-    // You can implement navigation logic here
-    // This would typically navigate to the appropriate screen
-    // based on the notification type
     debugPrint('Notification tapped: id=$id, type=$type');
   }
 
   // Combined list of notifications (filtered and merged)
   List<NotificationModel> get allNotifications {
     final combined = [..._localNotifications, ..._polledNotifications];
-    // Filter out deleted ones and sort by time (roughly, if time is comparable)
-    // Note: Since time is a String, we might need a better way to sort.
-    // Assuming they are ordered by backend/insertion for now.
     return combined.where((n) => !_deletedIds.contains(n.id)).toList();
   }
 
@@ -305,12 +286,30 @@ class NotificationPoller {
     _notifyUpdate();
   }
 
-  // Delete notification locally
-  Future<void> deleteNotificationLocally(String id) async {
-    _deletedIds.add(id);
-    _localNotifications.removeWhere((n) => n.id == id);
-    await _savePersistentData();
+  // Update polled notifications from external source (like Riverpod)
+  void setPolledNotifications(List<NotificationModel> notifications) {
+    _polledNotifications = notifications;
     _notifyUpdate();
+  }
+
+  // Delete notification (locally and backend if applicable)
+  Future<void> deleteNotification(String id) async {
+    try {
+      // 1. Mark as deleted locally so it immediately disappears from UI
+      _deletedIds.add(id);
+      _localNotifications.removeWhere((n) => n.id == id);
+      await _savePersistentData();
+      _notifyUpdate();
+
+      // 2. Try to delete from backend if it's not a local-only notification
+      // (We check _polledNotifications to see if it came from backend)
+      final isBackend = _polledNotifications.any((n) => n.id == id);
+      if (isBackend) {
+        await NotificationService.deleteNotification(id);
+      }
+    } catch (e) {
+      debugPrint('Error deleting notification: $e');
+    }
   }
 
   // Manually refresh notifications
@@ -341,10 +340,7 @@ class NotificationPoller {
       }
 
       // If it's a backend notification
-      await ApiService.patch(
-        '${ApiConfig.markAsRead}/$notificationId/read',
-        {},
-      );
+      await NotificationService.markAsRead(notificationId);
       await refreshNotifications(); // Refresh to update unread count
     } catch (e) {
       debugPrint('Error marking notification as read: $e');
@@ -371,7 +367,7 @@ class NotificationPoller {
       await _savePersistentData();
 
       // Mark backend ones as read
-      await ApiService.post(ApiConfig.markAllAsRead, {});
+      await NotificationService.markAllAsRead();
       await refreshNotifications(); // Refresh to update unread count
     } catch (e) {
       debugPrint('Error marking all notifications as read: $e');
@@ -379,7 +375,7 @@ class NotificationPoller {
   }
 
   // Clear the last notification ID (for testing or logout)
-  Future<void> clearLastNotificationId() async {
+  Future<void> clearAllData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_lastNotificationIdKey);
     await prefs.remove(_localNotificationsKey);

@@ -1,6 +1,5 @@
 import 'package:docmobi/screens/onboarding/profile/select_profile_screen.dart';
 import 'package:docmobi/services/socket_service.dart';
-import 'package:docmobi/providers/notification_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart';
 import 'package:docmobi/screens/doctor/navigation/doctor_main_navigation.dart';
@@ -11,7 +10,6 @@ import 'package:docmobi/widgets/custom_text_field.dart';
 import 'package:docmobi/services/api_service.dart';
 import 'package:docmobi/services/agora_chat_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:provider/provider.dart';
 
 class SignInScreen extends StatefulWidget {
   final String userType;
@@ -29,20 +27,9 @@ class _SignInScreenState extends State<SignInScreen> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
-  NotificationProvider? _notificationProvider;
-
   @override
   void initState() {
     super.initState();
-    // Initialize notification provider
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _notificationProvider = Provider.of<NotificationProvider>(
-          context,
-          listen: false,
-        );
-      }
-    });
   }
 
   @override
@@ -90,15 +77,9 @@ class _SignInScreenState extends State<SignInScreen> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('user_id', userId);
 
-          // ✅ Connect socket
+          // ✅ Socket connected after login
           await SocketService.instance.connect(userId);
           debugPrint('✅ Socket connected after login');
-
-          // ✅ Start notification polling
-          if (_notificationProvider != null) {
-            await _notificationProvider!.startPolling();
-            debugPrint('✅ Notification polling started after login');
-          }
 
           // ✅ Initialize and login to Agora Chat
           try {

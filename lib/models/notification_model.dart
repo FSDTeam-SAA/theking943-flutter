@@ -17,10 +17,10 @@ class NotificationModel {
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
-      id: json['id']?.toString() ?? '',
+      id: (json['_id'] ?? json['id'])?.toString() ?? '',
       title: json['title']?.toString() ?? '',
-      message: json['message']?.toString() ?? '',
-      time: json['time']?.toString() ?? '',
+      message: (json['content'] ?? json['message'])?.toString() ?? '',
+      time: (json['createdAt'] ?? json['time'])?.toString() ?? '',
       type: json['type']?.toString() ?? 'general',
       isRead: json['isRead'] ?? false,
     );

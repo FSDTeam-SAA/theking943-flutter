@@ -11,7 +11,6 @@ import 'package:docmobi/models/dependent_model.dart';
 import 'package:docmobi/models/appointment_model.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
 import 'package:docmobi/providers/dependent_provider.dart';
-import 'package:docmobi/providers/notification_provider.dart';
 import 'package:docmobi/utils/api_config.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
@@ -403,46 +402,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         if (mounted) {
-          final message = widget.isReschedule
-              ? 'Appointment rescheduled successfully!'
-              : 'Appointment booked with Dr. $doctorName!';
-
-          // Trigger local notification
-          final notifProvider = context.read<NotificationProvider>();
-          if (widget.isReschedule) {
-            notifProvider.addNotification(
-              title: 'Appointment Rescheduled',
-              message:
-                  'Your appointment with Dr. $doctorName has been rescheduled to ${DateFormat('MMM dd, yyyy').format(selectedDate!)} at ${selectedTimeSlot!.start}.',
-              type: 'appointment_rescheduled',
-            );
-          } else {
-            notifProvider.addNotification(
-              title: 'Appointment Booked',
-              message:
-                  'You have successfully booked an appointment with Dr. $doctorName for ${DateFormat('MMM dd, yyyy').format(selectedDate!)} at ${selectedTimeSlot!.start}.',
-              type: 'appointment_created',
-            );
-          }
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.white),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text(message)),
-                ],
-              ),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          );
-
+          // Optimization: Trigger appointment fetch
           context.read<AppointmentProvider>().fetchAppointments();
+          if (!mounted) return;
           Navigator.pop(context);
         }
       } else {
