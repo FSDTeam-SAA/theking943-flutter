@@ -76,9 +76,25 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
       _degreeController.text = user.medicalLicenseNumber ?? '';
       _currentImageUrl = user.profileImage;
 
-      // Load location if available
-      // _latitude = user.latitude;
-      // _longitude = user.longitude;
+      // ✅ Load location - check if your User model has latitude/longitude properties
+      // Option 1: If user has latitude and longitude properties directly
+      _latitude = user.latitude;
+      _longitude = user.longitude;
+      
+      // Option 2: If user has a location object with lat/lng properties
+      // _latitude = user.location?.lat;
+      // _longitude = user.location?.lng;
+      
+      // Option 3: If location is a Map<String, dynamic>
+      // if (user.location != null && user.location is Map) {
+      //   final locationMap = user.location as Map<String, dynamic>;
+      //   _latitude = locationMap['lat'] != null 
+      //       ? double.tryParse(locationMap['lat'].toString()) 
+      //       : null;
+      //   _longitude = locationMap['lng'] != null 
+      //       ? double.tryParse(locationMap['lng'].toString()) 
+      //       : null;
+      // }
     }
   }
 
@@ -101,9 +117,9 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
     } catch (e) {
       debugPrint('❌ Error picking image: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick image: $e')),
+        );
       }
     }
   }
@@ -177,14 +193,19 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
         _addressController.text = _locationAddress ?? '';
         _hasChanges = true;
       });
+      
+      debugPrint('📍 Location selected:');
+      debugPrint('   - Latitude: $_latitude');
+      debugPrint('   - Longitude: $_longitude');
+      debugPrint('   - Address: $_locationAddress');
     }
   }
 
   Future<void> _saveProfile() async {
     if (!_hasChanges) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('No changes to save')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No changes to save')),
+      );
       return;
     }
 
@@ -193,6 +214,20 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
     try {
       final userProvider = context.read<UserProvider>();
 
+      debugPrint('💾 Saving profile with location:');
+      debugPrint('   - Latitude: $_latitude');
+      debugPrint('   - Longitude: $_longitude');
+      debugPrint('   - Address: ${_addressController.text}');
+
+      // ✅ Create location map if both lat and lng are available
+      Map<String, dynamic>? locationData;
+      if (_latitude != null && _longitude != null) {
+        locationData = {
+          'lat': _latitude.toString(),
+          'lng': _longitude.toString(),
+        };
+      }
+
       final success = await userProvider.updateUserProfile(
         fullName: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
@@ -200,8 +235,8 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
         bio: _bioController.text.trim(),
         specialty: _specialtyController.text.trim(),
         profileImage: _selectedImage,
-        latitude: _latitude, // ✅ ADD THIS
-        longitude: _longitude, // ✅ ADD THIS
+        latitude: _latitude,  // ✅ Pass as separate parameters
+        longitude: _longitude, // ✅ Pass as separate parameters
       );
 
       setState(() => _isLoading = false);
@@ -233,7 +268,10 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('❌ Error: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -302,12 +340,11 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
                               backgroundImage: _selectedImage != null
                                   ? FileImage(_selectedImage!)
                                   : (_currentImageUrl != null &&
-                                            _currentImageUrl!.isNotEmpty
-                                        ? NetworkImage(_currentImageUrl!)
-                                        : const AssetImage(
-                                                'assets/images/doctor_booking.png',
-                                              )
-                                              as ImageProvider),
+                                          _currentImageUrl!.isNotEmpty
+                                      ? NetworkImage(_currentImageUrl!)
+                                      : const AssetImage(
+                                          'assets/images/doctor_booking.png',
+                                        ) as ImageProvider),
                             ),
                             Positioned(
                               bottom: 0,
