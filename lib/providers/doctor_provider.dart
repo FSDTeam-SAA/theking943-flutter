@@ -13,14 +13,17 @@ class DoctorProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  Future<bool> fetchNearbyDoctors() async {
+  Future<bool> fetchNearbyDoctors({double? lat, double? lng}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
       print('📡 Fetching doctors from API...');
-      final response = await _doctorService.getNearbyDoctors();
+      final response = await _doctorService.getNearbyDoctors(
+        lat: lat,
+        lng: lng,
+      );
 
       print('📥 API Response:');
       print('   - Success: ${response['success']}');
@@ -28,32 +31,13 @@ class DoctorProvider with ChangeNotifier {
 
       if (response['success'] == true) {
         final List<dynamic> data = response['data'] ?? [];
-        
-        // ✅ Debug each doctor BEFORE parsing
-        print('\n🔍 Raw Doctor Data:');
-        for (var json in data) {
-          print('   Doctor: ${json['fullName']}');
-          print('      - _id: ${json['_id']}');
-          print('      - specialty: ${json['specialty']}');
-          print('      - isVideoCallAvailable: ${json['isVideoCallAvailable']}');
-          print('      - weeklySchedule: ${json['weeklySchedule']?.length ?? 0} days');
-          print('      - avatar: ${json['avatar']}');
-          print('---');
-        }
+
+        print('✅ Fetched ${data.length} doctors raw data');
 
         // Parse to Doctor objects
         _nearbyDoctors = data.map((json) => Doctor.fromJson(json)).toList();
-        
-        // ✅ Debug AFTER parsing
-        print('\n✅ Parsed Doctors:');
-        for (var doctor in _nearbyDoctors) {
-          print('   ${doctor.fullName}:');
-          print('      - ID: ${doctor.id}');
-          print('      - Video Call: ${doctor.isVideoCallAvailable}');
-          print('      - Has Schedule: ${doctor.weeklySchedule != null}');
-          print('      - Schedule Days: ${doctor.weeklySchedule?.length ?? 0}');
-          print('---');
-        }
+
+        print('✅ Successfully parsed ${_nearbyDoctors.length} doctors');
 
         _isLoading = false;
         notifyListeners();

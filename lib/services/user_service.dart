@@ -31,9 +31,9 @@ class UserService {
     String? visitingHoursText,
     String? medicalLicenseNumber,
     File? profileImage,
-    double? latitude,      // ✅ ADDED: Latitude parameter
-    double? longitude,   
-    bool? isVideoCallAvailable,  // ✅ ADDED: Video call availability 
+    double? latitude, // ✅ ADDED: Latitude parameter
+    double? longitude,
+    bool? isVideoCallAvailable, // ✅ ADDED: Video call availability
   }) async {
     try {
       debugPrint('📤 Updating user profile...');
@@ -58,22 +58,23 @@ class UserService {
       if (degrees != null) body['degrees'] = degrees;
       if (fees != null) body['fees'] = fees;
       if (weeklySchedule != null) body['weeklySchedule'] = weeklySchedule;
-      if (visitingHoursText != null) body['visitingHoursText'] = visitingHoursText;
-      if (medicalLicenseNumber != null) body['medicalLicenseNumber'] = medicalLicenseNumber;
+      if (visitingHoursText != null)
+        body['visitingHoursText'] = visitingHoursText;
+      if (medicalLicenseNumber != null)
+        body['medicalLicenseNumber'] = medicalLicenseNumber;
 
       if (isVideoCallAvailable != null) {
         body['isVideoCallAvailable'] = isVideoCallAvailable;
         print('✅ Adding isVideoCallAvailable: $isVideoCallAvailable');
       }
 
-      // ✅ ADDED: Location fields
-      if (latitude != null) {
-        body['latitude'] = latitude;
-        debugPrint('📍 Latitude: $latitude');
-      }
-      if (longitude != null) {
-        body['longitude'] = longitude;
-        debugPrint('📍 Longitude: $longitude');
+      // ✅ ADDED: Location fields formatted for Backend
+      if (latitude != null && longitude != null) {
+        body['location'] = {
+          'lat': latitude.toString(),
+          'lng': longitude.toString(),
+        };
+        debugPrint('📍 Location Object: ${body['location']}');
       }
 
       // ✅ Convert image to base64 if provided

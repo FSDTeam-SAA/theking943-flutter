@@ -59,7 +59,16 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                             color: Color(0xFF1A1A1A),
                           ),
                           // onPressed: _handleBackPress,
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const PatientMainNavigation(),
+                              ),
+                              (route) => false,
+                            );
+                          },
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),

@@ -4,12 +4,21 @@ import '../utils/api_config.dart';
 import 'api_service.dart';
 
 class DoctorService {
-  Future<Map<String, dynamic>> getNearbyDoctors() async {
+  Future<Map<String, dynamic>> getNearbyDoctors({
+    double? lat,
+    double? lng,
+    double radiusKm = 50,
+  }) async {
     try {
-      final response = await ApiService.get(
-        ApiConfig.doctors,
-        requiresAuth: true,
-      );
+      String endpoint = ApiConfig.doctors;
+
+      // ✅ Use new optimized endpoint if location is available
+      if (lat != null && lng != null) {
+        endpoint =
+            '${ApiConfig.nearbyDoctors}?lat=$lat&lng=$lng&radiusKm=$radiusKm';
+      }
+
+      final response = await ApiService.get(endpoint, requiresAuth: true);
       return response;
     } catch (e) {
       debugPrint('❌ Get Nearby Doctors Error: $e');

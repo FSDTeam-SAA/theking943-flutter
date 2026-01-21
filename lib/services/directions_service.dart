@@ -33,10 +33,6 @@ class DirectionsService {
             route['overview_polyline']['points'],
           );
 
-          debugPrint('✅ Directions fetched: ${polylinePoints.length} points');
-          debugPrint('📏 Distance: ${route['legs'][0]['distance']['text']}');
-          debugPrint('⏱️ Duration: ${route['legs'][0]['duration']['text']}');
-
           return {
             'polylinePoints': polylinePoints,
             'distance': route['legs'][0]['distance']['text'],
@@ -45,9 +41,6 @@ class DirectionsService {
           };
         } else {
           debugPrint('❌ Directions API Status: ${data['status']}');
-          if (data['status'] == 'REQUEST_DENIED') {
-            debugPrint('⚠️ Directions API is not enabled. Ask client to enable it.');
-          }
           return null;
         }
       } else {

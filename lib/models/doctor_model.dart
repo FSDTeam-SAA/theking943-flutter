@@ -15,12 +15,12 @@ class Doctor {
   final List<WeeklySchedule>? weeklySchedule;
   final bool isAvailable;
   final String distance;
-  
+
   // ✅ Location fields
   final double? latitude;
   final double? longitude;
   final String? address;
-  
+
   // ✅ Dynamic fields from backend
   final String? bio;
   final bool isVideoCallAvailable;
@@ -52,13 +52,13 @@ class Doctor {
     // ✅ Safely extract image URL from avatar object
     String imageUrl = '';
     final avatar = json['avatar'];
-    
+
     if (avatar != null && avatar is Map<String, dynamic>) {
       imageUrl = avatar['url'] ?? '';
     } else if (avatar is String) {
       imageUrl = avatar;
     }
-    
+
     if (imageUrl.isEmpty) {
       imageUrl = 'assets/images/doctor_booking.png';
     }
@@ -83,40 +83,33 @@ class Doctor {
     // ✅ Parse location (lat/lng from backend)
     double? lat;
     double? lng;
-    
+
     // Check if location is a Map object
     if (json['location'] != null && json['location'] is Map) {
       final locationMap = json['location'] as Map<String, dynamic>;
-      lat = locationMap['lat'] != null 
-          ? double.tryParse(locationMap['lat'].toString()) 
+      lat = locationMap['lat'] != null
+          ? double.tryParse(locationMap['lat'].toString())
           : null;
-      lng = locationMap['lng'] != null 
-          ? double.tryParse(locationMap['lng'].toString()) 
+      lng = locationMap['lng'] != null
+          ? double.tryParse(locationMap['lng'].toString())
           : null;
     }
     // Or check if latitude/longitude are direct fields
     else if (json['latitude'] != null || json['longitude'] != null) {
-      lat = json['latitude'] != null 
-          ? double.tryParse(json['latitude'].toString()) 
+      lat = json['latitude'] != null
+          ? double.tryParse(json['latitude'].toString())
           : null;
-      lng = json['longitude'] != null 
-          ? double.tryParse(json['longitude'].toString()) 
+      lng = json['longitude'] != null
+          ? double.tryParse(json['longitude'].toString())
           : null;
     }
 
-    // 🔥 FALLBACK: If no location, generate random location in Dhaka
-    // This ensures doctors without location are still visible on map
+    // ❌ REMOVED FALLBACK: Do not generate random locations.
+    // Only show doctors with valid real locations.
     if (lat == null || lng == null) {
-      // Use doctor ID hash for consistent location per doctor
-      final doctorId = json['_id'] ?? json['id'] ?? '';
-      final seed = doctorId.hashCode.abs();
-      
-      // Dhaka area bounds: 23.7-23.9 (North-South), 90.3-90.5 (East-West)
-      // This covers major areas: Gulshan, Dhanmondi, Mirpur, Uttara, etc.
-      lat = 23.7 + ((seed % 200) / 1000.0); // 23.700 - 23.900
-      lng = 90.3 + (((seed ~/ 200) % 200) / 1000.0); // 90.300 - 90.500
-      
-      print('⚠️ ${json['fullName']}: No location set, using fallback: $lat, $lng');
+      print(
+        '⚠️ ${json['fullName']}: No valid location found. Skipping map coordinates.',
+      );
     }
 
     return Doctor(
@@ -127,25 +120,29 @@ class Doctor {
       image: imageUrl,
       rating: ratingValue,
       reviews: reviewsCount,
-      experience: json['experience']?.toString() ?? 
-                 json['experienceYears']?.toString() ?? '0',
-      location: json['location']?.toString() ?? 
-               json['address']?.toString() ?? 
-               json['hospital'] ?? '',
+      experience:
+          json['experience']?.toString() ??
+          json['experienceYears']?.toString() ??
+          '0',
+      location:
+          json['location']?.toString() ??
+          json['address']?.toString() ??
+          json['hospital'] ??
+          '',
       fees: json['fees'],
       weeklySchedule: json['weeklySchedule'] != null
           ? (json['weeklySchedule'] as List)
-              .map((e) => WeeklySchedule.fromJson(e))
-              .toList()
+                .map((e) => WeeklySchedule.fromJson(e))
+                .toList()
           : null,
       isAvailable: json['isAvailable'] ?? true,
       distance: json['distance']?.toString() ?? 'N/A',
-      
+
       // ✅ Location fields (guaranteed to have values now)
       latitude: lat,
       longitude: lng,
       address: json['address'],
-      
+
       // ✅ Dynamic fields
       bio: json['bio'],
       isVideoCallAvailable: json['isVideoCallAvailable'] ?? false,
@@ -163,10 +160,7 @@ class Doctor {
       'avatar': {'url': image},
       'image': image,
       'rating': rating,
-      'ratingSummary': {
-        'avgRating': rating,
-        'totalReviews': reviews,
-      },
+      'ratingSummary': {'avgRating': rating, 'totalReviews': reviews},
       'reviews': reviews,
       'experience': experience,
       'experienceYears': experience,
@@ -175,21 +169,18 @@ class Doctor {
       'fees': fees,
       'isAvailable': isAvailable,
       'distance': distance,
-      
+
       // ✅ Location as both formats
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       if (latitude != null && longitude != null)
-        'location': {
-          'lat': latitude.toString(),
-          'lng': longitude.toString(),
-        },
-      
+        'location': {'lat': latitude.toString(), 'lng': longitude.toString()},
+
       // ✅ Dynamic fields
       if (bio != null) 'bio': bio,
       'isVideoCallAvailable': isVideoCallAvailable,
       if (visitingHoursText != null) 'visitingHoursText': visitingHoursText,
-      if (weeklySchedule != null) 
+      if (weeklySchedule != null)
         'weeklySchedule': weeklySchedule!.map((e) => e.toJson()).toList(),
     };
   }
@@ -211,9 +202,7 @@ class WeeklySchedule {
       day: json['day'] ?? '',
       isActive: json['isActive'] ?? false,
       slots: json['slots'] != null
-          ? (json['slots'] as List)
-              .map((e) => TimeSlot.fromJson(e))
-              .toList()
+          ? (json['slots'] as List).map((e) => TimeSlot.fromJson(e)).toList()
           : [],
     );
   }
@@ -232,11 +221,7 @@ class TimeSlot {
   final String end;
   final bool? isBooked;
 
-  TimeSlot({
-    required this.start,
-    required this.end,
-    this.isBooked,
-  });
+  TimeSlot({required this.start, required this.end, this.isBooked});
 
   factory TimeSlot.fromJson(Map<String, dynamic> json) {
     return TimeSlot(

@@ -1,10 +1,6 @@
 import 'dart:convert';
 
-<<<<<<< HEAD
-=======
-import 'package:docmobi/screens/patient/home/dialog/location_permission_dialog.dart';
 import 'package:docmobi/screens/patient/home/full_map_screen.dart';
->>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
 import 'package:docmobi/screens/patient/home/upcoming_appointment_card.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -21,7 +17,7 @@ import 'package:docmobi/screens/patient/doctor/book_appointment_screen.dart';
 import 'package:docmobi/screens/patient/notification/patient_notification_screen.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../services/location_service.dart';
-import '../../../services/directions_service.dart';  // ✅ Add this line
+import '../../../services/directions_service.dart'; // ✅ Add this line
 import '../../../utils/marker_factory.dart';
 import 'package:docmobi/screens/patient/profile/patient_profile_screen.dart';
 import '../../../widgets/custom_image.dart';
@@ -37,14 +33,11 @@ class PatientHomeScreen extends ConsumerStatefulWidget {
 class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   final LocationService _locationService = LocationService();
   final MarkerFactory _markerFactory = MarkerFactory();
-  final DirectionsService _directionsService = DirectionsService();  // ✅ Add
+  final DirectionsService _directionsService = DirectionsService(); // ✅ Add
 
   final TextEditingController _searchController = TextEditingController();
   GoogleMapController? _mapController;
   Timer? _socketCheckTimer;
-
-  static bool _hasShownLocationDialog = false;
-  late bool _showLocationDialog;
 
   // Default location (Dhaka, Bangladesh)
   LatLng _currentPosition = const LatLng(23.8103, 90.4125);
@@ -52,15 +45,12 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   bool _locationPermissionGranted = false;
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
-  Set<Polyline> _directionPolylines = {};  // ✅ Already added
-  String? _selectedDoctorId;  // ✅ Already added
-
-
+  Set<Polyline> _directionPolylines = {};
+  String? _selectedDoctorId;
 
   @override
   void initState() {
     super.initState();
-    _showLocationDialog = !_hasShownLocationDialog;
 
     // Start periodic check for socket status
     _socketCheckTimer = Timer.periodic(const Duration(seconds: 2), (_) {
@@ -74,20 +64,31 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
   Future<void> _initializeScreen() async {
     try {
-      await Future.wait([
-        legacy_provider.Provider.of<DoctorProvider>(
-          context,
-          listen: false,
-        ).fetchNearbyDoctors(),
-        legacy_provider.Provider.of<AppointmentProvider>(
-          context,
-          listen: false,
-        ).fetchAppointments(),
-      ]);
+      // 1. Fetch appointments first (doesn't depend on location)
+      await legacy_provider.Provider.of<AppointmentProvider>(
+        context,
+        listen: false,
+      ).fetchAppointments();
 
-      // Delay location request to avoid crash
-      await Future.delayed(const Duration(milliseconds: 500));
+      // 2. Get Location immediately to optimize doctor fetch
       await _getCurrentLocation();
+
+      // 3. Fetch doctors using the location we just got
+      if (mounted) {
+        double? lat = _currentPosition.latitude;
+        double? lng = _currentPosition.longitude;
+
+        // If location is default (0,0), don't pass it to avoid issues
+        if (lat == 0 && lng == 0) {
+          lat = null;
+          lng = null;
+        }
+
+        await legacy_provider.Provider.of<DoctorProvider>(
+          context,
+          listen: false,
+        ).fetchNearbyDoctors(lat: lat, lng: lng);
+      }
     } catch (e) {
       debugPrint('Error initializing screen: $e');
       setState(() {
@@ -98,17 +99,10 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
   @override
   void dispose() {
-    _socketCheckTimer?.cancel(); // Cancel timer
+    _socketCheckTimer?.cancel();
     _searchController.dispose();
     _mapController?.dispose();
     super.dispose();
-  }
-
-  void _dismissDialog() {
-    setState(() {
-      _showLocationDialog = false;
-      _hasShownLocationDialog = true;
-    });
   }
 
   Future<void> _getCurrentLocation() async {
@@ -281,19 +275,10 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
         'longitude': position.longitude,
         'timestamp': DateTime.now().toIso8601String(),
       };
-
-      debugPrint('');
-      debugPrint('📍 ==========================================');
-      debugPrint('📍 CURRENT LOCATION (প্রতি 10 সেকেন্ডে update)');
-      debugPrint('📍 ==========================================');
       debugPrint('Latitude : ${position.latitude}');
       debugPrint('Longitude: ${position.longitude}');
       debugPrint('Timestamp: ${DateTime.now().toIso8601String()}');
-      debugPrint('📍 ==========================================');
-      debugPrint('📍 JSON FORMAT (Backend Developer এর জন্য):');
       debugPrint(json.encode(locationData));
-      debugPrint('📍 ==========================================');
-      debugPrint('');
     } catch (e) {
       debugPrint('❌ Location নিতে error: $e');
     }
@@ -312,268 +297,146 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     }
   }
 
-<<<<<<< HEAD
-  void _addDoctorMarkers() {
+  Future<void> _addDoctorMarkers() async {
     try {
-      final doctors = legacy_provider.Provider.of<DoctorProvider>(
-        context,
-        listen: false,
-      ).nearbyDoctors;
+      final doctors = context.read<DoctorProvider>().nearbyDoctors;
       Set<Marker> markers = {};
       Set<Polyline> polylines = {};
-=======
-void _addDoctorMarkers() {
-  try {
-    final doctors = context.read<DoctorProvider>().nearbyDoctors;
-    Set<Marker> markers = {};
-    Set<Polyline> polylines = {};
->>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
 
-    // Add user location marker
-    markers.add(_markerFactory.createUserMarker(_currentPosition));
+      // Add user location marker
+      markers.add(_markerFactory.createUserMarker(_currentPosition));
+      debugPrint('📍 DOCTOR MARKERS - সম্পূর্ণ তথ্য');
+      debugPrint(
+        '📍 Patient Location: ${_currentPosition.latitude}, ${_currentPosition.longitude}',
+      );
+      debugPrint('📍 Total Doctors: ${doctors.length}');
 
-    debugPrint('📍 ==========================================');
-    debugPrint('📍 DOCTOR MARKERS - সম্পূর্ণ তথ্য');
-    debugPrint('📍 Patient Location: ${_currentPosition.latitude}, ${_currentPosition.longitude}');
-    debugPrint('📍 Total Doctors: ${doctors.length}');
-    debugPrint('📍 ==========================================');
+      for (int i = 0; i < doctors.length; i++) {
+        final doctor = doctors[i];
 
-    for (int i = 0; i < doctors.length; i++) {
-      final doctor = doctors[i];
-      
-      // ✅ Backend থেকে আসা location check করুন
-      if (doctor.latitude != null && doctor.longitude != null) {
-        final doctorLocation = LatLng(doctor.latitude!, doctor.longitude!);
+        // ✅ Backend থেকে আসা location check করুন
+        if (doctor.latitude != null && doctor.longitude != null) {
+          final doctorLocation = LatLng(doctor.latitude!, doctor.longitude!);
 
-        // Calculate distance
-        double distanceKm = _locationService.calculateDistanceInKm(
-          _currentPosition,
-          doctorLocation,
-        );
+          // Calculate distance
+          double distanceKm = _locationService.calculateDistanceInKm(
+            _currentPosition,
+            doctorLocation,
+          );
 
-        debugPrint('');
-        debugPrint('👨‍⚕️ Doctor #${i + 1}: ${doctor.fullName}');
-        debugPrint('   - Specialty: ${doctor.specialty}');
-        debugPrint('   - Latitude: ${doctor.latitude}');
-        debugPrint('   - Longitude: ${doctor.longitude}');
-        debugPrint('   - Address: ${doctor.address ?? "N/A"}');
-        debugPrint('   - Distance: ${distanceKm.toStringAsFixed(2)} km');
-        debugPrint('   - Video Call: ${doctor.isVideoCallAvailable}');
-
-        // ✅ Marker add করুন (কোনো km limit নেই)
-        markers.add(
-          _markerFactory.createDoctorMarker(
+          // ✅ Marker add করুন (Async with custom image)
+          final marker = await _markerFactory.createCustomDoctorMarker(
             doctor: doctor,
             distanceKm: distanceKm,
             onTap: () {
               _showDoctorRoute(doctor.id, doctorLocation, distanceKm);
             },
-          ),
-        );
+          );
+          markers.add(marker);
 
-        // ✅ Polyline route add করুন
-        Color routeColor = _getRouteColor(distanceKm);
+          // ✅ Polyline route add করুন
+          Color routeColor = _getRouteColor(distanceKm);
 
-        polylines.add(
+          polylines.add(
+            Polyline(
+              polylineId: PolylineId('route_${doctor.id}'),
+              points: [_currentPosition, doctorLocation],
+              color: routeColor,
+              width: 4,
+              startCap: Cap.roundCap,
+              endCap: Cap.roundCap,
+              geodesic: true,
+              patterns: distanceKm > 15
+                  ? [PatternItem.dash(20), PatternItem.gap(10)]
+                  : [],
+            ),
+          );
+        }
+      }
+      debugPrint('📍 SUMMARY:');
+      debugPrint('   - Total Markers: ${markers.length}');
+      debugPrint('   - Total Routes: ${polylines.length}');
+
+      if (mounted) {
+        setState(() {
+          _markers = markers;
+          _polylines = polylines;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Error adding doctor markers: $e');
+    }
+  }
+
+  void _showDoctorRoute(
+    String doctorId,
+    LatLng doctorLocation,
+    double distance,
+  ) async {
+    // Set selected doctor
+    if (mounted) {
+      setState(() {
+        _selectedDoctorId = doctorId;
+      });
+    }
+
+    debugPrint('🗺️ Fetching street-level directions...');
+
+    // Show loading snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+            SizedBox(width: 12),
+            Text('Loading route...'),
+          ],
+        ),
+        duration: Duration(seconds: 2),
+        backgroundColor: Colors.blue,
+      ),
+    );
+
+    // Fetch directions from Google Maps Directions API
+    final directions = await _directionsService.getDirections(
+      origin: _currentPosition,
+      destination: doctorLocation,
+    );
+
+    if (directions != null && mounted) {
+      final polylinePoints = directions['polylinePoints'] as List<LatLng>;
+
+      debugPrint('✅ Street route loaded with ${polylinePoints.length} points');
+      debugPrint('📏 Distance via road: ${directions['distance']}');
+      debugPrint('⏱️ Estimated time: ${directions['duration']}');
+
+      setState(() {
+        // Clear old direction polylines
+        _directionPolylines.clear();
+
+        // Add new street-level direction polyline
+        _directionPolylines.add(
           Polyline(
-            polylineId: PolylineId('route_${doctor.id}'),
-            points: [_currentPosition, doctorLocation],
-            color: routeColor,
-            width: 4,
+            polylineId: PolylineId('direction_$doctorId'),
+            points: polylinePoints,
+            color: Colors.blue,
+            width: 6,
             startCap: Cap.roundCap,
             endCap: Cap.roundCap,
             geodesic: true,
-            patterns: distanceKm > 15
-                ? [PatternItem.dash(20), PatternItem.gap(10)]
-                : [],
+            patterns: [],
           ),
         );
-      } else {
-        debugPrint('');
-        debugPrint('⚠️ Doctor #${i + 1}: ${doctor.fullName}');
-        debugPrint('   - NO LOCATION DATA');
-        debugPrint('   - latitude: ${doctor.latitude}');
-        debugPrint('   - longitude: ${doctor.longitude}');
-      }
-    }
-
-    debugPrint('');
-    debugPrint('📍 ==========================================');
-    debugPrint('📍 SUMMARY:');
-    debugPrint('   - Total Markers: ${markers.length}');
-    debugPrint('   - Total Routes: ${polylines.length}');
-    debugPrint('📍 ==========================================');
-
-    if (mounted) {
-      setState(() {
-        _markers = markers;
-        _polylines = polylines;
       });
-    }
-  } catch (e) {
-    debugPrint('❌ Error adding doctor markers: $e');
-  }
-}
 
-void _showDoctorRoute(
-  String doctorId,
-  LatLng doctorLocation,
-  double distance,
-) async {
-  // Set selected doctor
-  if (mounted) {
-    setState(() {
-      _selectedDoctorId = doctorId;
-    });
-  }
-
-  debugPrint('🗺️ Fetching street-level directions...');
-
-  // Show loading snackbar
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Row(
-        children: [
-          SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          ),
-          SizedBox(width: 12),
-          Text('Loading route...'),
-        ],
-      ),
-      duration: Duration(seconds: 2),
-      backgroundColor: Colors.blue,
-    ),
-  );
-
-  // Fetch directions from Google Maps Directions API
-  final directions = await _directionsService.getDirections(
-    origin: _currentPosition,
-    destination: doctorLocation,
-  );
-
-  if (directions != null && mounted) {
-    final polylinePoints = directions['polylinePoints'] as List<LatLng>;
-
-    debugPrint('✅ Street route loaded with ${polylinePoints.length} points');
-    debugPrint('📏 Distance via road: ${directions['distance']}');
-    debugPrint('⏱️ Estimated time: ${directions['duration']}');
-
-    setState(() {
-      // Clear old direction polylines
-      _directionPolylines.clear();
-
-      // Add new street-level direction polyline
-      _directionPolylines.add(
-        Polyline(
-          polylineId: PolylineId('direction_$doctorId'),
-          points: polylinePoints,
-          color: Colors.blue,
-          width: 6,
-          startCap: Cap.roundCap,
-          endCap: Cap.roundCap,
-          geodesic: true,
-          patterns: [],
-        ),
-      );
-    });
-
-    // Zoom to show both user and doctor location
-    LatLngBounds bounds = LatLngBounds(
-      southwest: LatLng(
-        _currentPosition.latitude < doctorLocation.latitude
-            ? _currentPosition.latitude
-            : doctorLocation.latitude,
-        _currentPosition.longitude < doctorLocation.longitude
-            ? _currentPosition.longitude
-            : doctorLocation.longitude,
-      ),
-      northeast: LatLng(
-        _currentPosition.latitude > doctorLocation.latitude
-            ? _currentPosition.latitude
-            : doctorLocation.latitude,
-        _currentPosition.longitude > doctorLocation.longitude
-            ? _currentPosition.longitude
-            : doctorLocation.longitude,
-      ),
-    );
-
-    _mapController?.animateCamera(
-      CameraUpdate.newLatLngBounds(bounds, 100),
-    );
-
-    // Show distance and duration info
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.directions_car, color: Colors.white, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              '${directions['distance']} • ${directions['duration']}',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-        duration: const Duration(seconds: 4),
-        backgroundColor: Colors.blue,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-
-    // Navigate to doctor details after showing route
-    await Future.delayed(const Duration(milliseconds: 500));
-
-<<<<<<< HEAD
-    // Find doctor and navigate to details
-    final doctor = legacy_provider.Provider.of<DoctorProvider>(
-      context,
-      listen: false,
-    ).nearbyDoctors.firstWhere((d) => d.id == doctorId);
-=======
-    final doctor = context.read<DoctorProvider>().nearbyDoctors.firstWhere(
-      (d) => d.id == doctorId,
-    );
->>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
-
-    if (mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => DoctorDetailsScreen(doctor: doctor),
-        ),
-      );
-    }
-  } else {
-    debugPrint('⚠️ Could not fetch street directions, using straight line');
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Directions API not enabled. Using straight line route.',
-                  style: TextStyle(fontSize: 13),
-                ),
-              ),
-            ],
-          ),
-          duration: Duration(seconds: 4),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-
-      // Still zoom to location
+      // Zoom to show both user and doctor location
       LatLngBounds bounds = LatLngBounds(
         southwest: LatLng(
           _currentPosition.latitude < doctorLocation.latitude
@@ -593,24 +456,108 @@ void _showDoctorRoute(
         ),
       );
 
-      _mapController?.animateCamera(
-        CameraUpdate.newLatLngBounds(bounds, 100),
-      );
+      _mapController?.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100));
 
-      // Navigate to doctor details
-      final doctor = context.read<DoctorProvider>().nearbyDoctors.firstWhere(
-        (d) => d.id == doctorId,
-      );
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => DoctorDetailsScreen(doctor: doctor),
+      // Show distance and duration info
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.directions_car, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                '${directions['distance']} • ${directions['duration']}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          duration: const Duration(seconds: 4),
+          backgroundColor: Colors.blue,
+          behavior: SnackBarBehavior.floating,
         ),
       );
+
+      // Navigate to doctor details after showing route
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      if (mounted) {
+        final doctor = context.read<DoctorProvider>().nearbyDoctors.firstWhere(
+          (d) => d.id == doctorId,
+        );
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DoctorDetailsScreen(doctor: doctor),
+          ),
+        );
+      }
+    } else {
+      debugPrint('⚠️ Could not fetch street directions, using straight line');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Directions API not enabled. Using straight line route.',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+            duration: Duration(seconds: 4),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+
+        // Still zoom to location
+        LatLngBounds bounds = LatLngBounds(
+          southwest: LatLng(
+            _currentPosition.latitude < doctorLocation.latitude
+                ? _currentPosition.latitude
+                : doctorLocation.latitude,
+            _currentPosition.longitude < doctorLocation.longitude
+                ? _currentPosition.longitude
+                : doctorLocation.longitude,
+          ),
+          northeast: LatLng(
+            _currentPosition.latitude > doctorLocation.latitude
+                ? _currentPosition.latitude
+                : doctorLocation.latitude,
+            _currentPosition.longitude > doctorLocation.longitude
+                ? _currentPosition.longitude
+                : doctorLocation.longitude,
+          ),
+        );
+
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLngBounds(bounds, 100),
+        );
+
+        // Navigate to doctor details
+        final doctor = context.read<DoctorProvider>().nearbyDoctors.firstWhere(
+          (d) => d.id == doctorId,
+        );
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DoctorDetailsScreen(doctor: doctor),
+          ),
+        );
+      }
     }
   }
-}
 
   Future<void> _onRefresh() async {
     await Future.wait([
@@ -623,7 +570,7 @@ void _showDoctorRoute(
         listen: false,
       ).fetchAppointments(),
     ]);
-    _addDoctorMarkers();
+    await _addDoctorMarkers();
   }
 
   String _calculateDistance(Doctor doctor) {
@@ -823,7 +770,7 @@ void _showDoctorRoute(
 
                     // Google Map with Routes
 
-// Google Map with Routes
+                    // Google Map with Routes
                     GestureDetector(
                       onTap: () {
                         Navigator.push(
@@ -857,7 +804,8 @@ void _showDoctorRoute(
                                   color: Colors.grey[200],
                                   child: const Center(
                                     child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         CircularProgressIndicator(),
                                         SizedBox(height: 10),
@@ -871,27 +819,31 @@ void _showDoctorRoute(
                                 )
                               : Stack(
                                   children: [
-GoogleMap(
-  initialCameraPosition: CameraPosition(
-    target: _currentPosition,
-    zoom: 13,
-  ),
-  markers: _markers,
-  polylines: {..._polylines, ..._directionPolylines},  // ✅ নতুন (দুইটা combine)
-  myLocationEnabled: _locationPermissionGranted,
-  myLocationButtonEnabled: false,
-  zoomControlsEnabled: true,
-  zoomGesturesEnabled: true,
-  scrollGesturesEnabled: true,
-  tiltGesturesEnabled: true,
-  rotateGesturesEnabled: true,
-  mapType: MapType.normal,
-  onMapCreated: (controller) {
-    if (mounted) {
-      _mapController = controller;
-    }
-  },
-),
+                                    GoogleMap(
+                                      initialCameraPosition: CameraPosition(
+                                        target: _currentPosition,
+                                        zoom: 13,
+                                      ),
+                                      markers: _markers,
+                                      polylines: {
+                                        ..._polylines,
+                                        ..._directionPolylines,
+                                      }, // ✅ নতুন (দুইটা combine)
+                                      myLocationEnabled:
+                                          _locationPermissionGranted,
+                                      myLocationButtonEnabled: false,
+                                      zoomControlsEnabled: true,
+                                      zoomGesturesEnabled: true,
+                                      scrollGesturesEnabled: true,
+                                      tiltGesturesEnabled: true,
+                                      rotateGesturesEnabled: true,
+                                      mapType: MapType.normal,
+                                      onMapCreated: (controller) {
+                                        if (mounted) {
+                                          _mapController = controller;
+                                        }
+                                      },
+                                    ),
                                     // Map Legend
                                     Positioned(
                                       top: 10,
@@ -900,16 +852,21 @@ GoogleMap(
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
                                           color: Colors.white,
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black.withOpacity(0.1),
+                                              color: Colors.black.withOpacity(
+                                                0.1,
+                                              ),
                                               blurRadius: 4,
                                             ),
                                           ],
                                         ),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             const Text(
                                               'Distance',
@@ -920,10 +877,22 @@ GoogleMap(
                                               ),
                                             ),
                                             const SizedBox(height: 4),
-                                            _buildLegendItem(Colors.green, '< 5 km'),
-                                            _buildLegendItem(Colors.lightGreen, '5-10 km'),
-                                            _buildLegendItem(Colors.orange, '10-15 km'),
-                                            _buildLegendItem(Colors.red, '> 15 km'),
+                                            _buildLegendItem(
+                                              Colors.green,
+                                              '< 5 km',
+                                            ),
+                                            _buildLegendItem(
+                                              Colors.lightGreen,
+                                              '5-10 km',
+                                            ),
+                                            _buildLegendItem(
+                                              Colors.orange,
+                                              '10-15 km',
+                                            ),
+                                            _buildLegendItem(
+                                              Colors.red,
+                                              '> 15 km',
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -937,10 +906,12 @@ GoogleMap(
                                           Container(
                                             decoration: BoxDecoration(
                                               color: Colors.white,
-                                              borderRadius: BorderRadius.circular(8),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: Colors.black.withValues(alpha: 0.1),
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.1),
                                                   blurRadius: 4,
                                                 ),
                                               ],
@@ -952,9 +923,14 @@ GoogleMap(
                                                 size: 24,
                                               ),
                                               onPressed: () async {
-                                                final currentZoom = await _mapController?.getZoomLevel() ?? 13;
+                                                final currentZoom =
+                                                    await _mapController
+                                                        ?.getZoomLevel() ??
+                                                    13;
                                                 _mapController?.animateCamera(
-                                                  CameraUpdate.zoomTo(currentZoom + 1),
+                                                  CameraUpdate.zoomTo(
+                                                    currentZoom + 1,
+                                                  ),
                                                 );
                                               },
                                             ),
@@ -963,10 +939,12 @@ GoogleMap(
                                           Container(
                                             decoration: BoxDecoration(
                                               color: Colors.white,
-                                              borderRadius: BorderRadius.circular(8),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: Colors.black.withValues(alpha: 0.1),
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.1),
                                                   blurRadius: 4,
                                                 ),
                                               ],
@@ -978,9 +956,14 @@ GoogleMap(
                                                 size: 24,
                                               ),
                                               onPressed: () async {
-                                                final currentZoom = await _mapController?.getZoomLevel() ?? 13;
+                                                final currentZoom =
+                                                    await _mapController
+                                                        ?.getZoomLevel() ??
+                                                    13;
                                                 _mapController?.animateCamera(
-                                                  CameraUpdate.zoomTo(currentZoom - 1),
+                                                  CameraUpdate.zoomTo(
+                                                    currentZoom - 1,
+                                                  ),
                                                 );
                                               },
                                             ),
@@ -996,10 +979,14 @@ GoogleMap(
                                         child: Container(
                                           decoration: BoxDecoration(
                                             color: Colors.white,
-                                            borderRadius: BorderRadius.circular(8),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: Colors.black.withValues(alpha: 0.1),
+                                                color: Colors.black.withValues(
+                                                  alpha: 0.1,
+                                                ),
                                                 blurRadius: 4,
                                               ),
                                             ],
@@ -1015,7 +1002,10 @@ GoogleMap(
                                                 await _getCurrentLocation();
                                               } else {
                                                 _mapController?.animateCamera(
-                                                  CameraUpdate.newLatLngZoom(_currentPosition, 14),
+                                                  CameraUpdate.newLatLngZoom(
+                                                    _currentPosition,
+                                                    14,
+                                                  ),
                                                 );
                                               }
                                             },
@@ -1113,7 +1103,6 @@ GoogleMap(
                     const SizedBox(height: 15),
 
                     // Doctors List
-<<<<<<< HEAD
                     legacy_provider.Consumer<DoctorProvider>(
                       builder: (context, doctorProvider, child) {
                         if (doctorProvider.isLoading) {
@@ -1124,76 +1113,68 @@ GoogleMap(
                             ),
                           );
                         }
-=======
-// Doctors List
-Consumer<DoctorProvider>(
-  builder: (context, doctorProvider, child) {
-    if (doctorProvider.isLoading) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(20.0),
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
->>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
 
-    if (doctorProvider.error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Text('Error: ${doctorProvider.error}'),
-        ),
-      );
-    }
+                        if (doctorProvider.error != null) {
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: Text('Error: ${doctorProvider.error}'),
+                            ),
+                          );
+                        }
 
-    // ✅ কোনো distance filter নেই, সব ডাক্তার দেখাবে
-    final nearbyDoctors = doctorProvider.nearbyDoctors;
+                        // ✅ কোনো distance filter নেই, সব ডাক্তার দেখাবে
+                        final nearbyDoctors = doctorProvider.nearbyDoctors;
 
-    if (nearbyDoctors.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(20.0),
-          child: Text('No doctors found'),
-        ),
-      );
-    }
+                        if (nearbyDoctors.isEmpty) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: Text('No doctors found'),
+                            ),
+                          );
+                        }
 
-    // ✅ Distance অনুযায়ী sort করুন (যাদের location আছে তারা আগে)
-// ✅ Distance অনুযায়ী sort করুন (যাদের location আছে তারা আগে)
-nearbyDoctors.sort((a, b) {
-  if (a.latitude == null || a.longitude == null) return 1;
-  if (b.latitude == null || b.longitude == null) return -1;
-  
-  final distA = _calculateDistanceInKm(
-    _currentPosition,
-    LatLng(a.latitude!, a.longitude!),
-  );
-  final distB = _calculateDistanceInKm(
-    _currentPosition,
-    LatLng(b.latitude!, b.longitude!),
-  );
-  
-  return distA.compareTo(distB);
-});
+                        // ✅ Distance অনুযায়ী sort করুন (যাদের location আছে তারা আগে)
+                        nearbyDoctors.sort((a, b) {
+                          if (a.latitude == null || a.longitude == null) {
+                            return 1;
+                          }
+                          if (b.latitude == null || b.longitude == null) {
+                            return -1;
+                          }
 
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: nearbyDoctors.length,
-      itemBuilder: (context, index) {
-        return Padding(
-          padding: const EdgeInsets.only(
-            bottom: 20,
-            left: 20,
-            right: 20,
-          ),
-          child: _buildCustomDoctorCard(nearbyDoctors[index]),
-        );
-      },
-    );
-  },
-),
+                          final distA = _calculateDistanceInKm(
+                            _currentPosition,
+                            LatLng(a.latitude!, a.longitude!),
+                          );
+                          final distB = _calculateDistanceInKm(
+                            _currentPosition,
+                            LatLng(b.latitude!, b.longitude!),
+                          );
+
+                          return distA.compareTo(distB);
+                        });
+
+                        return ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: nearbyDoctors.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: const EdgeInsets.only(
+                                bottom: 20,
+                                left: 20,
+                                right: 20,
+                              ),
+                              child: _buildCustomDoctorCard(
+                                nearbyDoctors[index],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
 
                     const SizedBox(height: 40),
                   ],
@@ -1201,7 +1182,7 @@ nearbyDoctors.sort((a, b) {
               ),
             ),
 
- // if (_showLocationDialog)
+            // if (_showLocationDialog)
             //   Container(
             //     color: Colors.black54,
             //     child: LocationPermissionDialog(onDismiss: _dismissDialog),
@@ -1241,8 +1222,6 @@ nearbyDoctors.sort((a, b) {
       return false;
     }
 
-<<<<<<< HEAD
-    // Check if at least one day is active with slots
     for (var schedule in doctor.weeklySchedule!) {
       print(
         '📅 ${doctor.fullName} - ${schedule.day}: active=${schedule.isActive}, slots=${schedule.slots.length}',
@@ -1254,34 +1233,15 @@ nearbyDoctors.sort((a, b) {
       }
     }
 
-=======
-    for (var schedule in doctor.weeklySchedule!) {
-      print('📅 ${doctor.fullName} - ${schedule.day}: active=${schedule.isActive}, slots=${schedule.slots.length}');
-      
-      if (schedule.isActive && schedule.slots.isNotEmpty) {
-        print('✅ ${doctor.fullName}: Available on ${schedule.day}');
-        return true;
-      }
-    }
-
->>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
     print('❌ ${doctor.fullName}: No active days with slots');
     return false;
   }
 
   Widget _buildCustomDoctorCard(Doctor doctor) {
     final bool isAvailable = _isDoctorAvailable(doctor);
-<<<<<<< HEAD
-    final bool hasVideoCall =
-        doctor.isVideoCallAvailable; // ✅ This reads from model
-    final String visitingHours = _getVisitingHours(doctor);
-
-    // Debug log
-=======
     final bool hasVideoCall = doctor.isVideoCallAvailable;
     final String visitingHours = _getVisitingHours(doctor);
 
->>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
     print('🏠 Home Card: ${doctor.fullName}');
     print('   - isVideoCallAvailable: $hasVideoCall');
     print('   - Raw data: ${doctor.toJson()}');
@@ -1358,10 +1318,6 @@ nearbyDoctors.sort((a, b) {
                     ),
                     const SizedBox(height: 6),
 
-<<<<<<< HEAD
-                    // ✅ Video Consultation Badge
-=======
->>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
                     if (hasVideoCall)
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -1396,11 +1352,9 @@ nearbyDoctors.sort((a, b) {
                           ],
                         ),
                       ),
-<<<<<<< HEAD
 
                     if (hasVideoCall) const SizedBox(height: 6),
 
-                    // Visiting hours
                     Row(
                       children: [
                         Icon(
@@ -1408,14 +1362,6 @@ nearbyDoctors.sort((a, b) {
                           size: 14,
                           color: Colors.grey[600],
                         ),
-=======
-                    
-                    if (hasVideoCall) const SizedBox(height: 6),
-
-                    Row(
-                      children: [
-                        Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
->>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
@@ -1431,10 +1377,6 @@ nearbyDoctors.sort((a, b) {
                     ),
                     const SizedBox(height: 6),
 
-<<<<<<< HEAD
-                    // Rating & Distance
-=======
->>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
                     Row(
                       children: [
                         const Icon(
@@ -1469,7 +1411,6 @@ nearbyDoctors.sort((a, b) {
                 child: ElevatedButton(
                   onPressed: isAvailable
                       ? () => Navigator.push(
-<<<<<<< HEAD
                           context,
                           MaterialPageRoute(
                             builder: (_) =>
@@ -1481,18 +1422,6 @@ nearbyDoctors.sort((a, b) {
                     backgroundColor: isAvailable
                         ? const Color(0xFF0D47A1)
                         : Colors.grey[300],
-=======
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => BookAppointmentScreen(doctor: doctor),
-                            ),
-                          )
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isAvailable 
-                      ? const Color(0xFF0D47A1) 
-                      : Colors.grey[300],
->>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -1583,10 +1512,6 @@ nearbyDoctors.sort((a, b) {
     );
   }
 
-<<<<<<< HEAD
-  /// ✅ Get visiting hours from doctor's schedule
-=======
->>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
   String _getVisitingHours(Doctor doctor) {
     if (doctor.weeklySchedule == null || doctor.weeklySchedule!.isEmpty) {
       return 'No schedule set';
@@ -1595,16 +1520,9 @@ nearbyDoctors.sort((a, b) {
     List<String> activeDays = [];
     for (var schedule in doctor.weeklySchedule!) {
       if (schedule.isActive && schedule.slots.isNotEmpty) {
-<<<<<<< HEAD
-        // Get first 3 characters of day name
         String dayShort = schedule.day.length >= 3
             ? schedule.day.substring(0, 3)
             : schedule.day;
-=======
-        String dayShort = schedule.day.length >= 3 
-          ? schedule.day.substring(0, 3) 
-          : schedule.day;
->>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
         activeDays.add(dayShort);
       }
     }
@@ -1621,8 +1539,4 @@ nearbyDoctors.sort((a, b) {
       return '${activeDays.first}-${activeDays.last}';
     }
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 7f3f5fbc32e4cac01b4056a650b1e36cab4b3741
