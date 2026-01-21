@@ -1242,10 +1242,6 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     final bool hasVideoCall = doctor.isVideoCallAvailable;
     final String visitingHours = _getVisitingHours(doctor);
 
-    print('🏠 Home Card: ${doctor.fullName}');
-    print('   - isVideoCallAvailable: $hasVideoCall');
-    print('   - Raw data: ${doctor.toJson()}');
-
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
@@ -1385,7 +1381,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                           color: Colors.orangeAccent,
                         ),
                         Text(
-                          ' ${doctor.rating}',
+                          ' ${doctor.rating.toStringAsFixed(1)} ',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(width: 15),

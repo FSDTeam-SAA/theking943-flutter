@@ -1,4 +1,5 @@
 import 'package:docmobi/screens/doctor/messages/doctor_chat_screen.dart';
+import 'package:docmobi/screens/doctor/navigation/doctor_main_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/services/api_service.dart';
 import 'package:docmobi/services/agora_chat_service.dart';
@@ -359,7 +360,18 @@ class _DoctorMessagesListScreenState extends State<DoctorMessagesListScreen>
                 icon: const Icon(Icons.close, color: Colors.black),
                 onPressed: _cancelSelection,
               )
-            : null,
+            : IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                onPressed: () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const DoctorMainNavigation(),
+                    ),
+                    (route) => false,
+                  );
+                },
+              ),
         title: Text(
           _isSelectionMode
               ? "${_selectedConversationIds.length} selected"

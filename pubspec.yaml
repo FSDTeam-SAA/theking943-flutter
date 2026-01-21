@@ -72,22 +72,26 @@ flutter:
 
 
   assets:
-    - assets/images/icon.png
-    - assets/images/onboarding1.png
-    - assets/images/onboarding2.png
-    - assets/images/onboarding3.png
-    - assets/images/patient.png
-    - assets/images/doctor.png
-    - assets/images/doctors.png
-    - assets/images/map.png
-    - assets/images/profile.png
-    - assets/images/doctor_booking.png
-    - assets/images/doctor1.png
-    - assets/images/doctor2.png
-    - assets/images/doctor3.png
-    - assets/images/doctor4.png
-    - assets/images/doctor5.png
-    - assets/images/reelsviewdoctor.png
-    - assets/images/news.png
-    - assets/images/algerian.png
     - assets/icons/
+    - assets/images/
+
+        # - assets/images/icon.png
+    # - assets/images/onboarding1.png
+    # - assets/images/onboarding2.png
+    # - assets/images/onboarding3.png
+    # - assets/images/patient.png
+    # - assets/images/doctor.png
+    # - assets/images/doctors.png
+    # - assets/images/map.png
+    # - assets/images/profile.png
+    # - assets/images/doctor_booking.png
+    # - assets/images/doctor1.png
+    # - assets/images/doctor2.png
+    # - assets/images/doctor3.png
+    # - assets/images/doctor4.png
+    # - assets/images/doctor5.png
+    # - assets/images/reelsviewdoctor.png
+    # - assets/images/news.png
+    # - assets/images/algerian.png
+
+  

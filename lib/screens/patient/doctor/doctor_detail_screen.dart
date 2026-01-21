@@ -34,9 +34,9 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
 
     try {
       print('📥 Loading reviews for doctor: ${widget.doctor.id}');
-      
+
       final response = await ApiService.get(
-        '/api/v1/doctor-review/doctor/${widget.doctor.id}',  // ✅ Fixed: removed 's'
+        '/api/v1/doctor-review/doctor/${widget.doctor.id}', // ✅ Fixed: removed 's'
         requiresAuth: false,
       );
 
@@ -44,7 +44,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
 
       if (response['success'] == true && response['data'] != null) {
         final data = response['data'];
-        
+
         setState(() {
           _reviews = data['items'] ?? [];
           _avgRating = (data['summary']?['avgRating'] ?? 0.0).toDouble();
@@ -63,164 +63,163 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
     }
   }
 
- @override
-Widget build(BuildContext context) {
-  final bool hasVideoCall = widget.doctor.isVideoCallAvailable; // ✅ Read from model
+  @override
+  Widget build(BuildContext context) {
+    final bool hasVideoCall =
+        widget.doctor.isVideoCallAvailable; // ✅ Read from model
 
-  debugPrint(
-      '📄 Details Screen: ${widget.doctor.fullName}',
-    );
-  print('   - isVideoCallAvailable: $hasVideoCall');
+    debugPrint('📄 Details Screen: ${widget.doctor.fullName}');
+    print('   - isVideoCallAvailable: $hasVideoCall');
 
-  return Scaffold(
-    backgroundColor: Colors.white,
-    body: SafeArea(
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(15),
-                    child: widget.doctor.image.startsWith('http')
-                        ? Image.network(
-                            widget.doctor.image,
-                            height: 80,
-                            width: 80,
-                            fit: BoxFit.cover,
-                          )
-                        : Image.asset(
-                            widget.doctor.image,
-                            height: 80,
-                            width: 80,
-                            fit: BoxFit.cover,
-                          ),
-                  ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.doctor.fullName,
-                          style: const TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          widget.doctor.specialty,
-                          style: const TextStyle(fontSize: 18),
-                        ),
-                        const SizedBox(height: 8),
-                        
-                        // ✅ Video Call Badge (Cleaner Design)
-                        if (hasVideoCall)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: widget.doctor.image.startsWith('http')
+                          ? Image.network(
+                              widget.doctor.image,
+                              height: 80,
+                              width: 80,
+                              fit: BoxFit.cover,
+                            )
+                          : Image.asset(
+                              widget.doctor.image,
+                              height: 80,
+                              width: 80,
+                              fit: BoxFit.cover,
                             ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE3F2FD),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: const Color(0xFF2196F3),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.videocam,
-                                  color: Color(0xFF1976D2),
-                                  size: 18,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Video Consultation Available',
-                                  style: TextStyle(
-                                    color: Color(0xFF1565C0),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        else
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFF3E0),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: const Color(0xFFFFA726),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.location_on,
-                                  color: Color(0xFFF57C00),
-                                  size: 18,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  'In-Person Only',
-                                  style: TextStyle(
-                                    color: Color(0xFFE65100),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            const Icon(Icons.location_on, size: 16),
-                            Text(" ${widget.doctor.distance}"),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.star,
-                              size: 20,
-                              color: Colors.orange,
-                            ),
-                            Text(
-                              " ${_avgRating.toStringAsFixed(1)} ($_totalReviews reviews)",
-                            ),
-                          ],
-                        ),
-                      ],
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 35),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.doctor.fullName,
+                            style: const TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            widget.doctor.specialty,
+                            style: const TextStyle(fontSize: 18),
+                          ),
+                          const SizedBox(height: 8),
+
+                          // ✅ Video Call Badge (Cleaner Design)
+                          if (hasVideoCall)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE3F2FD),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: const Color(0xFF2196F3),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.videocam,
+                                    color: Color(0xFF1976D2),
+                                    size: 18,
+                                  ),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Video Consultation Available',
+                                    style: TextStyle(
+                                      color: Color(0xFF1565C0),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF3E0),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: const Color(0xFFFFA726),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.location_on,
+                                    color: Color(0xFFF57C00),
+                                    size: 18,
+                                  ),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'In-Person Only',
+                                    style: TextStyle(
+                                      color: Color(0xFFE65100),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.location_on, size: 16),
+                              Text(" ${widget.doctor.distance}"),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.star,
+                                size: 20,
+                                color: Colors.orange,
+                              ),
+                              Text(
+                                " ${_avgRating.toStringAsFixed(1)} ($_totalReviews reviews)",
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 35),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
 
                 const SizedBox(height: 25),
-                
+
                 // Bio
                 const Text(
                   "Bio",
@@ -228,8 +227,8 @@ Widget build(BuildContext context) {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  widget.doctor.bio ?? 
-                  "${widget.doctor.fullName} is a senior ${widget.doctor.specialty} with ${widget.doctor.experience} years of experience.",
+                  widget.doctor.bio ??
+                      "${widget.doctor.fullName} is a senior ${widget.doctor.specialty} with ${widget.doctor.experience} years of experience.",
                 ),
 
                 const SizedBox(height: 30),
@@ -272,22 +271,25 @@ Widget build(BuildContext context) {
                 ),
 
                 const SizedBox(height: 35),
-                
+
                 // Fees
                 Text(
-                  "Fees: ${widget.doctor.fees?['amount'] ?? 500} ${widget.doctor.fees?['currency'] ?? 'BDT'}",
+                  "Fees: ${widget.doctor.fees?['amount'] ?? 500} DZD",
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                
+
                 const SizedBox(height: 15),
-                
+
                 // Visiting hours
                 Text(
                   _getVisitingHours(),
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
 
                 const SizedBox(height: 30),
@@ -311,7 +313,10 @@ Widget build(BuildContext context) {
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF6C5CE7), width: 2),
+                      side: const BorderSide(
+                        color: Color(0xFF6C5CE7),
+                        width: 2,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
@@ -335,7 +340,8 @@ Widget build(BuildContext context) {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => BookAppointmentScreen(doctor: widget.doctor),
+                          builder: (_) =>
+                              BookAppointmentScreen(doctor: widget.doctor),
                         ),
                       );
                     },
@@ -381,7 +387,8 @@ Widget build(BuildContext context) {
   }
 
   String _getVisitingHours() {
-    if (widget.doctor.weeklySchedule == null || widget.doctor.weeklySchedule!.isEmpty) {
+    if (widget.doctor.weeklySchedule == null ||
+        widget.doctor.weeklySchedule!.isEmpty) {
       return 'Visiting Hours: Not set';
     }
 
@@ -471,7 +478,9 @@ Widget build(BuildContext context) {
                 doctorName: widget.doctor.fullName,
                 doctorAvatar:
                     doctorAvatar ??
-                    (widget.doctor.image.startsWith('http') ? widget.doctor.image : null),
+                    (widget.doctor.image.startsWith('http')
+                        ? widget.doctor.image
+                        : null),
                 doctorId: doctorId,
               ),
             ),
