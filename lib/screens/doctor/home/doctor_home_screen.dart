@@ -1,3 +1,4 @@
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:docmobi/screens/doctor/home/notifications/doctor_notifications.dart';
 import 'package:docmobi/screens/doctor/messages/doctor_messages_list_screen.dart';
 import 'package:docmobi/screens/doctor/posts/doctor_create_post_screen.dart';
@@ -145,10 +146,11 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
         _searchSuggestions.clear();
       });
 
+      final l10n = AppLocalizations.of(context)!;
       // Show error snackbar
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Search failed: ${e.toString()}'),
+          content: Text(l10n.searchFailed(e.toString())),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 2),
         ),
@@ -167,9 +169,10 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
 
   void _handleTokenMissing() {
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isLoading = false;
-      _errorMessage = 'Session expired. Please login again.';
+      _errorMessage = l10n.sessionExpiredMessageDoc;
     });
 
     Future.delayed(Duration.zero, () {
@@ -177,8 +180,8 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
-          title: const Text('Session Expired'),
-          content: const Text('Your session has expired. Please login again.'),
+          title: Text(l10n.sessionExpiredTitle),
+          content: Text(l10n.sessionExpiredMessageDoc),
           actions: [
             TextButton(
               onPressed: () {
@@ -190,7 +193,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                   (route) => false,
                 );
               },
-              child: const Text('OK'),
+              child: Text(l10n.ok),
             ),
           ],
         ),
@@ -211,6 +214,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
 
   Future<void> _loadPosts() async {
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
 
     setState(() {
       _isLoading = true;
@@ -244,14 +248,14 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = result['message'] ?? 'Failed to load posts';
+          _errorMessage = result['message'] ?? l10n.failedLoadPosts;
         });
       }
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Connection error. Please try again.';
+        _errorMessage = l10n.connectionError;
       });
     }
   }
@@ -368,6 +372,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       body: RefreshIndicator(
@@ -506,8 +511,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                               autofocus: true,
                               style: const TextStyle(fontSize: 15),
                               decoration: InputDecoration(
-                                hintText:
-                                    'Search doctors, posts, specialties...',
+                                hintText: l10n.searchHintDoctor,
                                 hintStyle: TextStyle(
                                   color: Colors.grey[400],
                                   fontSize: 14,
@@ -608,7 +612,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Suggestions',
+                              l10n.suggestions,
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -742,19 +746,20 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
   }
 
   Widget _buildContent() {
+    final l10n = AppLocalizations.of(context)!;
     // ✅ Show search results when searching
     if (_isSearching) {
       if (_isSearchLoading && _searchController.text.isNotEmpty) {
-        return const Center(
+        return Center(
           child: Padding(
-            padding: EdgeInsets.all(50.0),
+            padding: const EdgeInsets.all(50.0),
             child: Column(
               children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
                 Text(
-                  'Searching...',
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                  l10n.searching,
+                  style: const TextStyle(color: Colors.grey, fontSize: 14),
                 ),
               ],
             ),
@@ -780,9 +785,9 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Search for anything',
-                style: TextStyle(
+              Text(
+                l10n.searchAnything,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1B2C49),
@@ -790,7 +795,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Find doctors, posts, or specialties',
+                l10n.findEverything,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
@@ -817,9 +822,9 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'No results found',
-                style: TextStyle(
+              Text(
+                l10n.noResultsFound,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1B2C49),
@@ -827,7 +832,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Try searching with different keywords',
+                l10n.tryDifferentKeywords,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
@@ -847,7 +852,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                 const Icon(Icons.article, size: 20, color: Color(0xFF1664CD)),
                 const SizedBox(width: 8),
                 Text(
-                  'Posts (${_searchResults.length})',
+                  '${l10n.posts} (${_searchResults.length})',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -878,7 +883,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
       );
     }
 
-    // ✅ Show normal feed when not searching
+    //  Show normal feed when not searching
     if (_isLoading && _posts.isEmpty) {
       return const Center(
         child: Padding(
@@ -906,7 +911,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
               ElevatedButton.icon(
                 onPressed: _loadPosts,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
+                label: Text(l10n.retry),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1664CD),
                 ),
@@ -922,15 +927,15 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
         _buildCreatePostBox(),
 
         if (_posts.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(32.0),
+          Padding(
+            padding: const EdgeInsets.all(32.0),
             child: Column(
               children: [
-                Icon(Icons.post_add, size: 60, color: Colors.grey),
-                SizedBox(height: 16),
+                const Icon(Icons.post_add, size: 60, color: Colors.grey),
+                const SizedBox(height: 16),
                 Text(
-                  'No posts yet. Be the first to share!',
-                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                  l10n.noPostsYet,
+                  style: const TextStyle(color: Colors.grey, fontSize: 16),
                 ),
               ],
             ),
@@ -964,6 +969,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
   }
 
   Widget _buildCreatePostBox() {
+    final l10n = AppLocalizations.of(context)!;
     return legacy_provider.Consumer<UserProvider>(
       builder: (context, userProvider, child) {
         final user = userProvider.user;
@@ -1009,9 +1015,12 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                           color: const Color(0xFFF5F8FF),
                           borderRadius: BorderRadius.circular(25),
                         ),
-                        child: const Text(
-                          'Share your insights with fellow doctors...',
-                          style: TextStyle(color: Colors.grey, fontSize: 13),
+                        child: Text(
+                          l10n.shareInsights,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ),
@@ -1026,19 +1035,19 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                 children: [
                   _buildPostAction(
                     Icons.image_outlined,
-                    'Photo',
+                    l10n.photo,
                     Colors.brown,
                     _navigateToCreatePost,
                   ),
                   _buildPostAction(
                     Icons.videocam_outlined,
-                    'Video',
+                    l10n.video,
                     Colors.redAccent,
                     _navigateToCreatePost,
                   ),
                   _buildPostAction(
                     Icons.play_circle_outline,
-                    'Reels',
+                    l10n.reels,
                     Colors.blueAccent,
                     _navigateToCreatePost,
                   ),
@@ -1054,9 +1063,9 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: const Color(0xFF1664CD)),
                       ),
-                      child: const Text(
-                        'Create a Post',
-                        style: TextStyle(
+                      child: Text(
+                        l10n.createPost,
+                        style: const TextStyle(
                           color: Color(0xFF1664CD),
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -1103,11 +1112,12 @@ class DoctorInfoBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final String doctorName = doctor['fullName'] ?? 'Doctor';
     final String? doctorImage = doctor['avatar']?['url'];
     final String doctorId = doctor['_id'] ?? '';
     final String specialty = doctor['specialty'] ?? 'General Physician';
-    final String bio = doctor['bio'] ?? 'No bio available';
+    final String bio = doctor['bio'] ?? l10n.noBioAvailable;
     final int experienceYears = doctor['experienceYears'] ?? 0;
     final List degrees = doctor['degrees'] ?? [];
 
@@ -1169,7 +1179,7 @@ class DoctorInfoBottomSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '$experienceYears years of experience',
+                  l10n.yearsExperience(experienceYears),
                   style: const TextStyle(
                     fontSize: 14,
                     color: Color(0xFF1664CD),
@@ -1179,7 +1189,7 @@ class DoctorInfoBottomSheet extends StatelessWidget {
               ),
             const SizedBox(height: 16),
 
-            if (bio != 'No bio available')
+            if (bio != l10n.noBioAvailable)
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -1240,9 +1250,12 @@ class DoctorInfoBottomSheet extends StatelessWidget {
                   );
                 },
                 icon: const Icon(Icons.message_outlined),
-                label: const Text(
-                  'Message',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                label: Text(
+                  l10n.message,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1664CD),

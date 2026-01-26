@@ -2,6 +2,7 @@
 // 2️⃣ NEW: edit_dependent_screen.dart
 // ============================================
 
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -21,13 +22,13 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _contactController = TextEditingController();
   final TextEditingController _medicalNotesController = TextEditingController();
-  
+
   DateTime? _selectedDate;
   String? _selectedRelationship;
   String _selectedGender = 'Male';
   bool _isActive = true;
   bool _isSaving = false;
-  
+
   DependentModel? _dependent;
 
   final List<String> _relationships = [
@@ -39,7 +40,7 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
     'Sister',
     'Spouse',
     'Child',
-    'Other'
+    'Other',
   ];
 
   final Color _cardBackgroundColor = const Color.fromRGBO(229, 238, 255, 1);
@@ -49,7 +50,7 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
     colors: [Color(0xFF0B3267), Color(0xFF1664CD)],
     stops: [0.3016, 1.0],
   );
-  
+
   final Gradient _dangerButtonGradient = const LinearGradient(
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
@@ -59,7 +60,7 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
+
     if (_dependent == null) {
       _dependent = ModalRoute.of(context)!.settings.arguments as DependentModel;
       _populateFields();
@@ -119,14 +120,16 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
 
     if (_selectedRelationship == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select relationship')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.selectRelationship),
+        ),
       );
       return;
     }
 
     if (_selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select date of birth')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.selectDob)),
       );
       return;
     }
@@ -134,23 +137,25 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
     setState(() => _isSaving = true);
 
     final success = await context.read<DependentProvider>().updateDependent(
-          dependentId: _dependent!.id,
-          fullName: _nameController.text.trim(),
-          relationship: _selectedRelationship!,
-          dob: _selectedDate!,
-          gender: _selectedGender,
-          phone: _contactController.text.trim(),
-          notes: _medicalNotesController.text.trim(),
-          isActive: _isActive,
-        );
+      dependentId: _dependent!.id,
+      fullName: _nameController.text.trim(),
+      relationship: _selectedRelationship!,
+      dob: _selectedDate!,
+      gender: _selectedGender,
+      phone: _contactController.text.trim(),
+      notes: _medicalNotesController.text.trim(),
+      isActive: _isActive,
+    );
 
     setState(() => _isSaving = false);
 
     if (mounted) {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Dependent updated successfully!'),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.dependentUpdatedSuccess,
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -158,7 +163,10 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(context.read<DependentProvider>().error ?? 'Failed to update dependent'),
+            content: Text(
+              context.read<DependentProvider>().error ??
+                  AppLocalizations.of(context)!.failedToUpdateDependent,
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -169,9 +177,7 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
   @override
   Widget build(BuildContext context) {
     if (_dependent == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -183,9 +189,12 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "Edit Dependent",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        title: Text(
+          AppLocalizations.of(context)!.editDependent,
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
       ),
@@ -223,50 +232,54 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle("Basic Information"),
+          _buildSectionTitle(AppLocalizations.of(context)!.basicInformation),
           const SizedBox(height: 15),
-          
+
           _buildDropdownField(),
           const SizedBox(height: 15),
 
           _buildTextField(
             controller: _nameController,
-            label: "Full Name",
+            label: AppLocalizations.of(context)!.fullName,
             icon: Icons.person_outline,
-            validator: (v) => v!.isEmpty ? "Name is required" : null,
+            validator: (v) => v!.isEmpty
+                ? AppLocalizations.of(context)!.nameIsRequired
+                : null,
           ),
           const SizedBox(height: 15),
 
           _buildDatePickerField(),
           const SizedBox(height: 20),
 
-          _buildSectionTitle("Gender"),
+          _buildSectionTitle(AppLocalizations.of(context)!.genderLabel),
           const SizedBox(height: 10),
           _buildGenderSelector(),
           const SizedBox(height: 20),
 
-          _buildSectionTitle("Status"),
+          _buildSectionTitle('Status'),
           const SizedBox(height: 10),
           _buildStatusSelector(),
           const SizedBox(height: 20),
 
-          _buildSectionTitle("Contact Details"),
+          _buildSectionTitle(AppLocalizations.of(context)!.contactDetails),
           const SizedBox(height: 15),
 
           _buildTextField(
             controller: _contactController,
-            label: "Dependent's Contact (if applicable)",
+            label: AppLocalizations.of(context)!.dependentContactHint,
             icon: Icons.phone_outlined,
             keyboardType: TextInputType.phone,
           ),
-          
+
           const SizedBox(height: 20),
-          _buildSectionTitle("Additional Information"),
+          _buildSectionTitle(
+            AppLocalizations.of(context)!.additionalInformation,
+          ),
           const SizedBox(height: 15),
-          
+
           _buildTextField(
             controller: _medicalNotesController,
-            label: "Medical Notes / Allergies (Optional)",
+            label: AppLocalizations.of(context)!.medicalNotesHint,
             maxLines: 3,
             icon: null,
           ),
@@ -307,7 +320,9 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
         decoration: InputDecoration(
           hintText: label,
           hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-          prefixIcon: icon != null ? Icon(icon, color: const Color(0xFF0B3267), size: 20) : null,
+          prefixIcon: icon != null
+              ? Icon(icon, color: const Color(0xFF0B3267), size: 20)
+              : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Colors.transparent),
@@ -322,7 +337,10 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
           ),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
         ),
       ),
     );
@@ -340,7 +358,7 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
         child: DropdownButton<String>(
           value: _selectedRelationship,
           hint: Text(
-            "Relationship",
+            AppLocalizations.of(context)!.relationshipLabel,
             style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
           ),
           isExpanded: true,
@@ -348,7 +366,7 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
           items: _relationships.map((String value) {
             return DropdownMenuItem<String>(
               value: value,
-              child: Text(value),
+              child: Text(_getLocalizedRelationship(value)),
             );
           }).toList(),
           onChanged: (newValue) {
@@ -373,14 +391,20 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_outlined, color: Color(0xFF0B3267), size: 20),
+            const Icon(
+              Icons.calendar_today_outlined,
+              color: Color(0xFF0B3267),
+              size: 20,
+            ),
             const SizedBox(width: 12),
             Text(
               _selectedDate == null
-                  ? "Date of Birth"
+                  ? AppLocalizations.of(context)!.dateOfBirth
                   : DateFormat('dd MMM, yyyy').format(_selectedDate!),
               style: TextStyle(
-                color: _selectedDate == null ? Colors.grey.shade400 : Colors.black87,
+                color: _selectedDate == null
+                    ? Colors.grey.shade400
+                    : Colors.black87,
                 fontSize: 14,
               ),
             ),
@@ -404,18 +428,27 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
                 color: isSelected ? Colors.white : Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: isSelected ? const Color(0xFF0B3267) : Colors.grey.shade300,
+                  color: isSelected
+                      ? const Color(0xFF0B3267)
+                      : Colors.grey.shade300,
                   width: isSelected ? 1.5 : 1,
                 ),
                 boxShadow: isSelected
-                    ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)]
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 5,
+                        ),
+                      ]
                     : [],
               ),
               alignment: Alignment.center,
               child: Text(
-                gender,
+                _getLocalizedGender(gender),
                 style: TextStyle(
-                  color: isSelected ? const Color(0xFF0B3267) : Colors.grey.shade600,
+                  color: isSelected
+                      ? const Color(0xFF0B3267)
+                      : Colors.grey.shade600,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -442,12 +475,17 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
                   width: _isActive ? 1.5 : 1,
                 ),
                 boxShadow: _isActive
-                    ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)]
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 5,
+                        ),
+                      ]
                     : [],
               ),
               alignment: Alignment.center,
               child: Text(
-                'Active',
+                AppLocalizations.of(context)!.active,
                 style: TextStyle(
                   color: _isActive ? Colors.green : Colors.grey.shade600,
                   fontWeight: _isActive ? FontWeight.bold : FontWeight.normal,
@@ -470,12 +508,17 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
                   width: !_isActive ? 1.5 : 1,
                 ),
                 boxShadow: !_isActive
-                    ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)]
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 5,
+                        ),
+                      ]
                     : [],
               ),
               alignment: Alignment.center,
               child: Text(
-                'Inactive',
+                AppLocalizations.of(context)!.inactive,
                 style: TextStyle(
                   color: !_isActive ? Colors.orange : Colors.grey.shade600,
                   fontWeight: !_isActive ? FontWeight.bold : FontWeight.normal,
@@ -510,17 +553,23 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
             ),
             child: _isSaving
                 ? const CircularProgressIndicator(color: Colors.white)
-                : const Text(
-                    "Update Dependent",
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                : Text(
+                    AppLocalizations.of(context)!.updateDependent,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
           ),
         ),
-        
+
         const SizedBox(height: 15),
 
         Container(
@@ -542,15 +591,57 @@ class _EditDependentScreenState extends State<EditDependentScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
             ),
-            child: const Text(
-              "Cancel",
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+            child: Text(
+              AppLocalizations.of(context)!.cancel,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
       ],
     );
+  }
+
+  String _getLocalizedGender(String gender) {
+    if (context.mounted) {
+      final l10n = AppLocalizations.of(context)!;
+      if (gender.toLowerCase() == 'male') return l10n.male;
+      if (gender.toLowerCase() == 'female') return l10n.female;
+    }
+    return gender;
+  }
+
+  String _getLocalizedRelationship(String rel) {
+    if (context.mounted) {
+      final l10n = AppLocalizations.of(context)!;
+      switch (rel.toLowerCase()) {
+        case 'son':
+          return l10n.relSon;
+        case 'daughter':
+          return l10n.relDaughter;
+        case 'father':
+          return l10n.relFather;
+        case 'mother':
+          return l10n.relMother;
+        case 'brother':
+          return l10n.relBrother;
+        case 'sister':
+          return l10n.relSister;
+        case 'spouse':
+          return l10n.relSpouse;
+        case 'child':
+          return l10n.relChild;
+        default:
+          return l10n.relOther;
+      }
+    }
+    return rel;
   }
 }

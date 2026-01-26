@@ -1,3 +1,4 @@
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -56,17 +57,17 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       }
     } catch (e) {
       debugPrint('❌ Error picking image: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorMsg(e))),
+      );
     }
   }
 
   Future<void> _updateProfile() async {
     if (_nameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Name cannot be empty')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.nameEmptyError)),
+      );
       return;
     }
 
@@ -92,8 +93,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Profile updated successfully'),
+          SnackBar(
+            content: Text(
+              '✅ ${AppLocalizations.of(context)!.profileUpdatedSuccess}',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -107,16 +110,18 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(userProvider.error ?? 'Failed to update profile'),
+            content: Text(
+              userProvider.error ?? AppLocalizations.of(context)!.updateFailed,
+            ),
             backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e) {
       debugPrint('❌ Update error: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorMsg(e))),
+      );
     } finally {
       setState(() {
         _isUpdating = false;
@@ -138,9 +143,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           icon: const Icon(Icons.arrow_back, color: Color(0xFF0B3267)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Personal Info',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.personalInfo,
+          style: const TextStyle(
             color: Color(0xFF0B3267),
             fontWeight: FontWeight.bold,
           ),
@@ -189,23 +194,23 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
-              'Tap to Change your Picture',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+            Text(
+              AppLocalizations.of(context)!.tapToChangePicture,
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
             const SizedBox(height: 40),
 
             _buildInfoField(
               icon: Icons.person_outline,
               controller: _nameController,
-              label: 'Full Name',
+              label: AppLocalizations.of(context)!.fullName,
             ),
             const SizedBox(height: 20),
 
             _buildInfoField(
               icon: Icons.email_outlined,
               controller: _emailController,
-              label: 'Email',
+              label: AppLocalizations.of(context)!.emailAddress,
               enabled: false,
             ),
             const SizedBox(height: 20),
@@ -213,7 +218,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
             _buildInfoField(
               icon: Icons.phone_outlined,
               controller: _phoneController,
-              label: 'Phone Number',
+              label: AppLocalizations.of(context)!.phoneNumber,
               keyboardType: TextInputType.phone,
             ),
             const SizedBox(height: 20),
@@ -221,7 +226,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
             _buildInfoField(
               icon: Icons.location_on_outlined,
               controller: _addressController,
-              label: 'Address',
+              label: AppLocalizations.of(context)!.address,
             ),
             const SizedBox(height: 40),
 
@@ -247,9 +252,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                           ),
                         ),
                       )
-                    : const Text(
-                        'Update Profile',
-                        style: TextStyle(
+                    : Text(
+                        AppLocalizations.of(context)!.updateProfile,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,

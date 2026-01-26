@@ -1,3 +1,4 @@
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/services/api_service.dart';
 import 'package:docmobi/services/socket_service.dart';
@@ -214,18 +215,23 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Messages'),
+        title: Text(AppLocalizations.of(context)!.deleteMessages),
         content: Text(
-          'Are you sure you want to delete ${_selectedMessageIds.length} messages?',
+          AppLocalizations.of(
+            context,
+          )!.deleteMessagesConfirm(_selectedMessageIds.length),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(
+              AppLocalizations.of(context)!.deleteLabel,
+              style: const TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -244,15 +250,21 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
             _messages.removeWhere((m) => idsToDelete.contains(m['_id']));
             _cancelSelection();
           });
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Messages deleted')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.messagesDeleted),
+            ),
+          );
         }
       } catch (e) {
         debugPrint('❌ Failed to delete messages: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete messages: $e')),
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context)!.failedToDelete(e.toString()),
+              ),
+            ),
           );
         }
       }
@@ -306,7 +318,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
       'sender': {
         '_id': message.from,
         'fullName': message.from == _currentUserId
-            ? (_currentUserName ?? 'Me')
+            ? (_currentUserName ?? AppLocalizations.of(context)!.meLabel)
             : (_actualUserName ?? widget.userName),
         'avatar': {
           'url': message.from == _currentUserId
@@ -374,9 +386,11 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     } catch (e) {
       debugPrint('❌ [Doctor] Error sending message: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Failed to send message')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.failedToSendMessage),
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -412,8 +426,8 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     if (targetUserId == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cannot start call - user ID not found'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.cannotStartCallNoId),
             backgroundColor: Colors.red,
           ),
         );
@@ -489,7 +503,9 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to start call: $e'),
+            content: Text(
+              AppLocalizations.of(context)!.failedToStartCall(e.toString()),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -561,7 +577,9 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          _otherUserRole == 'doctor' ? 'Doctor' : 'Patient',
+                          _otherUserRole == 'doctor'
+                              ? AppLocalizations.of(context)!.doctorLabel
+                              : AppLocalizations.of(context)!.patientLabel,
                           style: const TextStyle(
                             color: Colors.grey,
                             fontSize: 12,
@@ -617,7 +635,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No messages yet',
+                          AppLocalizations.of(context)!.noMessagesYet,
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 16,
@@ -625,7 +643,9 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Start a conversation with ${widget.userName}',
+                          AppLocalizations.of(
+                            context,
+                          )!.startConversationWith(widget.userName),
                           style: TextStyle(
                             color: Colors.grey[500],
                             fontSize: 14,
@@ -745,11 +765,16 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
                       controller: _controller,
                       maxLines: null,
                       style: const TextStyle(fontSize: 15),
-                      decoration: const InputDecoration(
-                        hintText: "Type a message...",
-                        hintStyle: TextStyle(color: Colors.grey, fontSize: 15),
+                      decoration: InputDecoration(
+                        hintText: AppLocalizations.of(context)!.typeAMessage,
+                        hintStyle: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 15,
+                        ),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                        ),
                       ),
                       onSubmitted: (_) => _sendMessage(),
                     ),
@@ -1118,9 +1143,9 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
 
       String text;
       if (msgDate == today) {
-        text = 'Today';
+        text = AppLocalizations.of(context)!.todayLabel;
       } else if (msgDate == yesterday) {
-        text = 'Yesterday';
+        text = AppLocalizations.of(context)!.yesterday;
       } else {
         text = DateFormat('MMMM d, y').format(date);
       }

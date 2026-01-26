@@ -1,6 +1,7 @@
 import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:docmobi/screens/patient/appointments/patient_appointments_screen.dart';
 import 'package:docmobi/screens/patient/profile/dependents_list_screen.dart';
+import 'package:docmobi/screens/patient/profile/help_support_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/patient/profile/personal_info_screen.dart';
 import 'package:docmobi/screens/patient/profile/change_password_screen.dart';
@@ -73,6 +74,7 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
       ),
       body: legacy_provider.Consumer<UserProvider>(
         builder: (context, userProvider, child) {
+          final l10n = AppLocalizations.of(context)!;
           // Get user data
           final user = userProvider.user;
           final userName = user?.fullName ?? 'The king';
@@ -143,7 +145,7 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
                 /// Menu Items
                 _buildMenuItem(
                   icon: Icons.person_outline,
-                  title: 'Personal Info',
+                  title: l10n.personalInfo,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -156,7 +158,7 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
 
                 _buildMenuItem(
                   icon: Icons.calendar_today_outlined,
-                  title: 'My Appointment',
+                  title: l10n.myAppointment,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -166,20 +168,9 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
                     );
                   },
                 ),
-
-                // _buildMenuItem(
-                //   icon: Icons.group_add_outlined,
-                //   title: 'Add Dependents',
-                //   onTap: () {
-                //     Navigator.push(
-                //       context,
-                //       MaterialPageRoute(builder: (context) => const AddDependentScreen()),
-                //     );
-                //   },
-                // ),
                 _buildMenuItem(
                   icon: Icons.group_add_outlined,
-                  title: 'My Dependents',
+                  title: l10n.myDependents,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -189,20 +180,9 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
                     );
                   },
                 ),
-
-                // _buildMenuItem(
-                //   icon: Icons.favorite_outline,
-                //   title: 'My Wishlist',
-                //   onTap: () {
-                //     Navigator.push(
-                //       context,
-                //       MaterialPageRoute(builder: (context) => const MyWishlistScreen()),
-                //     );
-                //   },
-                // ),
                 _buildMenuItem(
                   icon: Icons.lock_outline,
-                  title: 'Change Password',
+                  title: l10n.changePasswordLabel,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -213,80 +193,134 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
                   },
                 ),
 
-                /// Language Selector
-                // Padding(
-                //   padding: const EdgeInsets.symmetric(
-                //     horizontal: 20,
-                //     vertical: 10,
-                //   ),
-                //   child: Container(
-                //     padding: const EdgeInsets.symmetric(
-                //       horizontal: 15,
-                //       vertical: 5,
-                //     ),
-                //     decoration: BoxDecoration(
-                //       border: Border.all(color: Colors.grey[300]!),
-                //       borderRadius: BorderRadius.circular(10),
-                //     ),
-                //     child: Row(
-                //       children: [
-                //         const Icon(Icons.language, color: Color(0xFF1664CD)),
-                //         const SizedBox(width: 15),
-                //         const Expanded(
-                //           child: Text(
-                //             'Language',
-                //             style: TextStyle(
-                //               fontSize: 16,
-                //               color: Color(0xFF0B3267),
-                //               fontWeight: FontWeight.w500,
-                //             ),
-                //           ),
-                //         ),
-                //         DropdownButton<String>(
-                //           value: currentLocale.languageCode == 'en'
-                //               ? 'English'
-                //               : 'Arabic',
-                //           underline: const SizedBox(),
-                //           icon: const Icon(Icons.keyboard_arrow_down),
-                //           items: [
-                //             DropdownMenuItem(
-                //               value: 'English',
-                //               child: Text(l10n.english),
-                //             ),
-                //             DropdownMenuItem(
-                //               value: 'Arabic',
-                //               child: Text(l10n.arabic),
-                //             ),
-                //           ],
-                //           onChanged: (value) {
-                //             if (value == 'English') {
-                //               ref
-                //                   .read(localeProvider.notifier)
-                //                   .setLocale(const Locale('en'));
-                //             } else {
-                //               ref
-                //                   .read(localeProvider.notifier)
-                //                   .setLocale(const Locale('ar'));
-                //             }
-                //           },
-                //         ),
-                //       ],
-                //     ),
-                //   ),
-                // ),
+                // Language Selector
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 15,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.language, color: Color(0xFF1664CD)),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: Text(
+                            l10n.changeLanguage,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Color(0xFF0B3267),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        // Replaced DropdownButton with an InkWell to show a custom dialog
+                        InkWell(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: Text(l10n.selectLanguage),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ListTile(
+                                        leading: const Icon(Icons.abc),
+                                        title: Text(l10n.english),
+                                        selected:
+                                            currentLocale.languageCode == 'en',
+                                        onTap: () {
+                                          ref
+                                              .read(localeProvider.notifier)
+                                              .setLocale(const Locale('en'));
+                                          Navigator.pop(context);
+                                        },
+                                      ),
+                                      ListTile(
+                                        leading: const Text(
+                                          'ع',
+                                          style: TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        title: Text(l10n.arabic),
+                                        selected:
+                                            currentLocale.languageCode == 'ar',
+                                        onTap: () {
+                                          ref
+                                              .read(localeProvider.notifier)
+                                              .setLocale(const Locale('ar'));
+                                          Navigator.pop(context);
+                                        },
+                                      ),
+                                      ListTile(
+                                        leading: const Text(
+                                          'Fr',
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        title: Text(l10n.french),
+                                        selected:
+                                            currentLocale.languageCode == 'fr',
+                                        onTap: () {
+                                          ref
+                                              .read(localeProvider.notifier)
+                                              .setLocale(const Locale('fr'));
+                                          Navigator.pop(context);
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                          child: Row(
+                            children: [
+                              Text(
+                                currentLocale.languageCode == 'en'
+                                    ? l10n.english
+                                    : currentLocale.languageCode == 'ar'
+                                    ? l10n.arabic
+                                    : l10n.french, // Display current language
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Color(0xFF0B3267),
+                                ),
+                              ),
+                              const Icon(Icons.keyboard_arrow_down),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
-                // _buildMenuItem(
-                //   icon: Icons.help_outline,
-                //   title: 'Help & Support',
-                //   onTap: () {
-                //     Navigator.push(
-                //       context,
-                //       MaterialPageRoute(
-                //         builder: (context) => const HelpSupportScreen(),
-                //       ),
-                //     );
-                //   },
-                // ),
+                _buildMenuItem(
+                  icon: Icons.help_outline,
+                  title: l10n.helpSupport,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const HelpSupportScreen(),
+                      ),
+                    );
+                  },
+                ),
                 const SizedBox(height: 20),
 
                 /// Logout Button with API Integration
@@ -303,14 +337,14 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
                         ),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.logout, color: Colors.white),
-                          SizedBox(width: 10),
+                          const Icon(Icons.logout, color: Colors.white),
+                          const SizedBox(width: 10),
                           Text(
-                            'Log Out',
-                            style: TextStyle(
+                            AppLocalizations.of(context)!.logOut,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -334,12 +368,12 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
   // Logout Dialog with API Integration
   // Logout Dialog with API Integration
   void _showLogoutConfirmationDialog(BuildContext context) {
-    // নতুন নাম
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: const Text('Logout'),
+        title: Text(l10n.logOut),
         content: const Text('Are you sure you want to log out?'),
         actions: [
           TextButton(
@@ -348,7 +382,9 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(context); // Pop confirmation dialog
+
+              // Show loading dialog
               showDialog(
                 context: context,
                 barrierDismissible: false,
@@ -357,12 +393,17 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
               );
 
               await AuthService().logout();
-              legacy_provider.Provider.of<UserProvider>(
-                context,
-                listen: false,
-              ).clearUser();
 
-              if (mounted) {
+              if (context.mounted) {
+                Navigator.pop(context); // Pop loading dialog explicitly
+              }
+
+              if (context.mounted) {
+                legacy_provider.Provider.of<UserProvider>(
+                  context,
+                  listen: false,
+                ).clearUser();
+
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(
                     builder: (context) =>
@@ -372,7 +413,7 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
                 );
               }
             },
-            child: const Text('Log Out', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.logOut, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),

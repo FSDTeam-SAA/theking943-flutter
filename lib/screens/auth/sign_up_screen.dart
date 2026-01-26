@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:docmobi/widgets/custom_button.dart';
 import 'package:docmobi/widgets/custom_text_field.dart';
 import 'package:docmobi/services/api_service.dart';
+import 'package:docmobi/l10n/app_localizations.dart';
 
 class SignUpScreen extends StatefulWidget {
   final String userType;
@@ -61,31 +62,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
 
     // Check password match
+    final l10n = AppLocalizations.of(context)!;
     if (_passwordController.text != _confirmPasswordController.text) {
-      _showSnackBar('Passwords do not match', isError: true);
+      _showSnackBar(l10n.passwordsDoNotMatch, isError: true);
       return false;
     }
 
     // Check password length
     if (_passwordController.text.length < 6) {
-      _showSnackBar('Password must be at least 6 characters', isError: true);
+      _showSnackBar(l10n.passwordAtLeast6, isError: true);
       return false;
     }
 
     // Doctor-specific validation
     if (widget.userType.toLowerCase() == 'doctor') {
       if (_licenseController.text.trim().isEmpty) {
-        _showSnackBar('Medical license number is required', isError: true);
+        _showSnackBar(l10n.licenseRequired, isError: true);
         return false;
       }
 
       if (_selectedSpecialty == null || _selectedSpecialty!.isEmpty) {
-        _showSnackBar('Please select a specialty', isError: true);
+        _showSnackBar(l10n.specialtyRequired, isError: true);
         return false;
       }
 
       if (_experienceController.text.trim().isEmpty) {
-        _showSnackBar('Years of experience is required', isError: true);
+        _showSnackBar(l10n.experienceRequired, isError: true);
         return false;
       }
     }
@@ -132,8 +134,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (result['success'] == true) {
         debugPrint('✅ Registration successful');
 
+        final l10n = AppLocalizations.of(context)!;
         _showSnackBar(
-          result['message'] ?? 'Registration successful!',
+          result['message'] ?? l10n.registrationSuccessful,
           isError: false,
         );
 
@@ -166,15 +169,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       setState(() => _isLoading = false);
 
-      String errorMessage = 'Connection error. ';
-      if (e.toString().contains('SocketException') ||
-          e.toString().contains('Connection')) {
-        errorMessage += 'Please check if the server is running';
-      } else {
-        errorMessage += e.toString();
-      }
-
-      _showSnackBar(errorMessage, isError: true);
+      final l10n = AppLocalizations.of(context)!;
+      _showSnackBar(l10n.connectionError, isError: true);
     }
   }
 
@@ -194,6 +190,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final bool isDoctor = widget.userType.toLowerCase() == 'doctor';
 
     return Scaffold(
@@ -236,7 +233,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   child: Column(
                     children: [
                       Text(
-                        'Create ${widget.userType} Account',
+                        l10n.createAccount(widget.userType),
                         style: const TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.bold,
@@ -244,9 +241,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Please fill in the details below',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      Text(
+                        l10n.fillDetails,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
                       ),
                     ],
                   ),
@@ -255,16 +255,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(height: 30),
 
                 // Full Name
-                const Text(
-                  "Full Name *",
-                  style: TextStyle(
+                Text(
+                  l10n.fullName,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF0B3267),
                   ),
                 ),
                 const SizedBox(height: 8),
                 CustomTextField(
-                  hintText: "Enter your full name",
+                  hintText: l10n.enterFullName,
                   controller: _nameController,
                   prefixIcon: const Icon(
                     Icons.person_outline,
@@ -272,7 +272,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your full name';
+                      return l10n.enterFullName;
                     }
                     return null;
                   },
@@ -281,16 +281,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(height: 15),
 
                 // Email
-                const Text(
-                  "Email Address *",
-                  style: TextStyle(
+                Text(
+                  l10n.emailAddressStar,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF0B3267),
                   ),
                 ),
                 const SizedBox(height: 8),
                 CustomTextField(
-                  hintText: "you@example.com",
+                  hintText: l10n.emailExample,
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   prefixIcon: const Icon(
@@ -299,10 +299,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
+                      return l10n.enterEmail;
                     }
                     if (!value.contains('@')) {
-                      return 'Please enter a valid email';
+                      return l10n.invalidEmail;
                     }
                     return null;
                   },
@@ -313,16 +313,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const SizedBox(height: 15),
 
                   // Medical License
-                  const Text(
-                    "Medical License Number *",
-                    style: TextStyle(
+                  Text(
+                    l10n.medicalLicenseNumber,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF0B3267),
                     ),
                   ),
                   const SizedBox(height: 8),
                   CustomTextField(
-                    hintText: "Enter License Number",
+                    hintText: l10n.enterLicenseNumber,
                     controller: _licenseController,
                     prefixIcon: const Icon(
                       Icons.badge_outlined,
@@ -333,9 +333,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const SizedBox(height: 15),
 
                   // Specialty
-                  const Text(
-                    "Medical Specialty *",
-                    style: TextStyle(
+                  Text(
+                    l10n.medicalSpecialty,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF0B3267),
                     ),
@@ -351,7 +351,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       child: DropdownButton<String>(
                         isExpanded: true,
                         value: _selectedSpecialty,
-                        hint: const Text("Select your specialty"),
+                        hint: Text(l10n.selectSpecialty),
                         icon: const Icon(
                           Icons.arrow_drop_down,
                           color: Color(0xFF1664CD),
@@ -376,16 +376,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const SizedBox(height: 15),
 
                   // Experience
-                  const Text(
-                    "Years of Experience *",
-                    style: TextStyle(
+                  Text(
+                    l10n.yearsExperienceStar,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF0B3267),
                     ),
                   ),
                   const SizedBox(height: 8),
                   CustomTextField(
-                    hintText: "e.g., 5",
+                    hintText: l10n.yearsExperienceExample,
                     controller: _experienceController,
                     keyboardType: TextInputType.number,
                     prefixIcon: const Icon(
@@ -398,16 +398,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(height: 15),
 
                 // Password
-                const Text(
-                  "Password *",
-                  style: TextStyle(
+                Text(
+                  l10n.passwordStar,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF0B3267),
                   ),
                 ),
                 const SizedBox(height: 8),
                 CustomTextField(
-                  hintText: "At least 6 characters",
+                  hintText: l10n.passwordLength,
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   prefixIcon: const Icon(
@@ -428,10 +428,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter a password';
+                      return l10n.passwordStar;
                     }
                     if (value.length < 6) {
-                      return 'Password must be at least 6 characters';
+                      return l10n.passwordAtLeast6;
                     }
                     return null;
                   },
@@ -440,16 +440,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(height: 15),
 
                 // Confirm Password
-                const Text(
-                  "Confirm Password *",
-                  style: TextStyle(
+                Text(
+                  l10n.confirmPasswordStar,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF0B3267),
                   ),
                 ),
                 const SizedBox(height: 8),
                 CustomTextField(
-                  hintText: "Re-enter your password",
+                  hintText: l10n.reenterPassword,
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
                   prefixIcon: const Icon(
@@ -470,10 +470,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please confirm your password';
+                      return l10n.confirmPasswordStar;
                     }
                     if (value != _passwordController.text) {
-                      return 'Passwords do not match';
+                      return l10n.passwordsDoNotMatch;
                     }
                     return null;
                   },
@@ -489,7 +489,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                       )
                     : CustomButton(
-                        text: "Create Account",
+                        text: l10n.createAccountBtn,
                         onPressed: _handleSignUp,
                       ),
 
@@ -499,15 +499,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Already have an account? ',
-                      style: TextStyle(color: Colors.grey),
+                    Text(
+                      l10n.alreadyHaveAccount,
+                      style: const TextStyle(color: Colors.grey),
                     ),
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
-                      child: const Text(
-                        'Sign In',
-                        style: TextStyle(
+                      child: Text(
+                        l10n.signInLabel,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF1664CD),
                         ),

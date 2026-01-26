@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:docmobi/screens/location/location_picker_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/user_provider.dart';
 
@@ -80,19 +81,19 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
       // Option 1: If user has latitude and longitude properties directly
       _latitude = user.latitude;
       _longitude = user.longitude;
-      
+
       // Option 2: If user has a location object with lat/lng properties
       // _latitude = user.location?.lat;
       // _longitude = user.location?.lng;
-      
+
       // Option 3: If location is a Map<String, dynamic>
       // if (user.location != null && user.location is Map) {
       //   final locationMap = user.location as Map<String, dynamic>;
-      //   _latitude = locationMap['lat'] != null 
-      //       ? double.tryParse(locationMap['lat'].toString()) 
+      //   _latitude = locationMap['lat'] != null
+      //       ? double.tryParse(locationMap['lat'].toString())
       //       : null;
-      //   _longitude = locationMap['lng'] != null 
-      //       ? double.tryParse(locationMap['lng'].toString()) 
+      //   _longitude = locationMap['lng'] != null
+      //       ? double.tryParse(locationMap['lng'].toString())
       //       : null;
       // }
     }
@@ -118,7 +119,7 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
       debugPrint('❌ Error picking image: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to pick image: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.errorMsg(e))),
         );
       }
     }
@@ -136,9 +137,9 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Select Specialty',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.selectSpecialty,
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1B2C49),
@@ -153,7 +154,7 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
                   final isSelected = _specialtyController.text == specialty;
 
                   return ListTile(
-                    title: Text(specialty),
+                    title: Text(_getLocalizedSpecialty(specialty)),
                     trailing: isSelected
                         ? const Icon(Icons.check, color: Color(0xFF1664CD))
                         : null,
@@ -193,7 +194,7 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
         _addressController.text = _locationAddress ?? '';
         _hasChanges = true;
       });
-      
+
       debugPrint('📍 Location selected:');
       debugPrint('   - Latitude: $_latitude');
       debugPrint('   - Longitude: $_longitude');
@@ -204,7 +205,7 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
   Future<void> _saveProfile() async {
     if (!_hasChanges) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No changes to save')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.noChangesToSave)),
       );
       return;
     }
@@ -235,7 +236,7 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
         bio: _bioController.text.trim(),
         specialty: _specialtyController.text.trim(),
         profileImage: _selectedImage,
-        latitude: _latitude,  // ✅ Pass as separate parameters
+        latitude: _latitude, // ✅ Pass as separate parameters
         longitude: _longitude, // ✅ Pass as separate parameters
       );
 
@@ -244,8 +245,10 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
       if (mounted) {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Profile updated successfully'),
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context)!.profileUpdatedSuccess,
+              ),
               backgroundColor: Colors.green,
             ),
           );
@@ -258,7 +261,9 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('❌ ${userProvider.error ?? "Update failed"}'),
+              content: Text(
+                '{userProvider.error ?? AppLocalizations.of(context)!.updateFailed}',
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -269,7 +274,7 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Error: $e'),
+            content: Text(AppLocalizations.of(context)!.errorMsg(e)),
             backgroundColor: Colors.red,
           ),
         );
@@ -288,19 +293,19 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
           icon: const Icon(Icons.arrow_back, color: Color(0xFF1B2C49)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Column(
+        title: Column(
           children: [
             Text(
-              'Personal Info',
-              style: TextStyle(
+              AppLocalizations.of(context)!.personalInfo,
+              style: const TextStyle(
                 color: Color(0xFF1B2C49),
                 fontWeight: FontWeight.bold,
                 fontSize: 20,
               ),
             ),
             Text(
-              'Edit Your Profile',
-              style: TextStyle(color: Colors.grey, fontSize: 14),
+              AppLocalizations.of(context)!.editYourProfile,
+              style: const TextStyle(color: Colors.grey, fontSize: 14),
             ),
           ],
         ),
@@ -325,9 +330,9 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
                     ),
                     child: Column(
                       children: [
-                        const Text(
-                          'Profile Picture',
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.of(context)!.profilePicture,
+                          style: const TextStyle(
                             color: Color(0xFF1B2C49),
                             fontWeight: FontWeight.w500,
                           ),
@@ -340,11 +345,12 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
                               backgroundImage: _selectedImage != null
                                   ? FileImage(_selectedImage!)
                                   : (_currentImageUrl != null &&
-                                          _currentImageUrl!.isNotEmpty
-                                      ? NetworkImage(_currentImageUrl!)
-                                      : const AssetImage(
-                                          'assets/images/doctor_booking.png',
-                                        ) as ImageProvider),
+                                            _currentImageUrl!.isNotEmpty
+                                        ? NetworkImage(_currentImageUrl!)
+                                        : const AssetImage(
+                                                'assets/images/doctor_booking.png',
+                                              )
+                                              as ImageProvider),
                             ),
                             Positioned(
                               bottom: 0,
@@ -365,9 +371,12 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        const Text(
-                          'Tap to Change your Profile Picture',
-                          style: TextStyle(color: Colors.grey, fontSize: 13),
+                        Text(
+                          AppLocalizations.of(context)!.tapToChangePicture,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 13,
+                          ),
                         ),
                       ],
                     ),
@@ -376,9 +385,9 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
                 const SizedBox(height: 25),
 
                 // Bio Section
-                const Text(
-                  'Add Bio',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.addBio,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF1B2C49),
@@ -399,9 +408,12 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
                       fontSize: 14,
                       color: Color(0xFF1B2C49),
                     ),
-                    decoration: const InputDecoration(
-                      hintText: 'Tell us about yourself...',
-                      hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
+                    decoration: InputDecoration(
+                      hintText: AppLocalizations.of(context)!.bioHint,
+                      hintStyle: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey,
+                      ),
                       border: InputBorder.none,
                     ),
                   ),
@@ -412,19 +424,19 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
                 _buildInfoCard(
                   icon: Icons.person_outline,
                   controller: _nameController,
-                  hint: 'Enter your full name',
+                  hint: AppLocalizations.of(context)!.enterFullName,
                 ),
                 _buildSpecialtyCard(),
                 _buildInfoCard(
                   icon: Icons.school_outlined,
                   controller: _degreeController,
-                  hint: 'MBBS, MD, etc.',
+                  hint: AppLocalizations.of(context)!.degreeHint,
                 ),
                 _buildInfoCard(
                   icon: Icons.email_outlined,
                   controller: _emailController,
                   enabled: false,
-                  hint: 'Email cannot be changed',
+                  hint: AppLocalizations.of(context)!.emailLockedNote,
                 ),
 
                 // Location Card with Map Icon
@@ -433,7 +445,7 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
                 _buildInfoCard(
                   icon: Icons.phone_outlined,
                   controller: _phoneController,
-                  hint: 'Contact number',
+                  hint: AppLocalizations.of(context)!.contactNumberHint,
                 ),
 
                 const SizedBox(height: 30),
@@ -461,9 +473,9 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
                               strokeWidth: 2.5,
                             ),
                           )
-                        : const Text(
-                            'Update Profile',
-                            style: TextStyle(
+                        : Text(
+                            AppLocalizations.of(context)!.updateProfile,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -517,10 +529,10 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
             color: Color(0xFF1B2C49),
             fontWeight: FontWeight.w500,
           ),
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             border: InputBorder.none,
-            hintText: 'Set your clinic location',
-            hintStyle: TextStyle(color: Colors.grey),
+            hintText: AppLocalizations.of(context)!.clinicLocationHint,
+            hintStyle: const TextStyle(color: Colors.grey),
           ),
         ),
         trailing: IconButton(
@@ -566,10 +578,10 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
             color: Color(0xFF1B2C49),
             fontWeight: FontWeight.w500,
           ),
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             border: InputBorder.none,
-            hintText: 'Select your specialty',
-            hintStyle: TextStyle(color: Colors.grey),
+            hintText: AppLocalizations.of(context)!.selectSpecialty,
+            hintStyle: const TextStyle(color: Colors.grey),
           ),
         ),
         trailing: const Icon(
@@ -637,5 +649,40 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
     _specialtyController.dispose();
     _degreeController.dispose();
     super.dispose();
+  }
+
+  String _getLocalizedSpecialty(String spec) {
+    if (context.mounted) {
+      final l10n = AppLocalizations.of(context)!;
+      switch (spec) {
+        case 'Cardiologist':
+          return l10n.specCardiologist;
+        case 'Dermatologist':
+          return l10n.specDermatologist;
+        case 'Neurologist':
+          return l10n.specNeurologist;
+        case 'Orthopedic':
+          return l10n.specOrthopedic;
+        case 'Pediatrician':
+          return l10n.specPediatrician;
+        case 'Psychiatrist':
+          return l10n.specPsychiatrist;
+        case 'General Physician':
+          return l10n.specGeneralPhysician;
+        case 'ENT Specialist':
+          return l10n.specENT;
+        case 'Gynecologist':
+          return l10n.specGynecologist;
+        case 'Ophthalmologist':
+          return l10n.specOphthalmologist;
+        case 'Dentist':
+          return l10n.specDentist;
+        case 'Urologist':
+          return l10n.specUrologist;
+        default:
+          return spec;
+      }
+    }
+    return spec;
   }
 }

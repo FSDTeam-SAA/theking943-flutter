@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:docmobi/models/appointment_model.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
@@ -58,12 +59,12 @@ class _SessionHolderScreenState extends State<SessionHolderScreen> {
         setState(() => _isSubmitting = false);
 
         if (success) {
-          // Show success message
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Session completed successfully! ✅'),
+            SnackBar(
+              content: Text(l10n.sessionCompleted),
               backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
+              duration: const Duration(seconds: 2),
             ),
           );
 
@@ -78,9 +79,10 @@ class _SessionHolderScreenState extends State<SessionHolderScreen> {
             Navigator.pop(context, true);
           }
         } else {
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(provider.error ?? 'Failed to complete session'),
+              content: Text(provider.error ?? l10n.failedCompleteSession),
               backgroundColor: Colors.red,
             ),
           );
@@ -89,8 +91,12 @@ class _SessionHolderScreenState extends State<SessionHolderScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isSubmitting = false);
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('${l10n.connectionError}: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -98,6 +104,7 @@ class _SessionHolderScreenState extends State<SessionHolderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
@@ -107,9 +114,12 @@ class _SessionHolderScreenState extends State<SessionHolderScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Complete Session',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        title: Text(
+          l10n.completeSession,
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -132,9 +142,9 @@ class _SessionHolderScreenState extends State<SessionHolderScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Appointment Details',
-                      style: TextStyle(
+                    Text(
+                      l10n.appointmentDetails,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF1B2C49),
@@ -142,17 +152,23 @@ class _SessionHolderScreenState extends State<SessionHolderScreen> {
                     ),
                     const SizedBox(height: 12),
                     _buildInfoRow(
-                      'Patient',
+                      l10n.patientFullName,
                       widget.appointment.patientName ?? 'N/A',
                     ),
                     const Divider(height: 20),
-                    _buildInfoRow('Date', widget.appointment.formattedDate),
-                    const Divider(height: 20),
-                    _buildInfoRow('Time', widget.appointment.appointmentTime),
+                    _buildInfoRow(
+                      l10n.selectDate,
+                      widget.appointment.formattedDate,
+                    ),
                     const Divider(height: 20),
                     _buildInfoRow(
-                      'Type',
-                      widget.appointment.appointmentType ?? 'Physical',
+                      l10n.availableTime,
+                      widget.appointment.appointmentTime,
+                    ),
+                    const Divider(height: 20),
+                    _buildInfoRow(
+                      l10n.appointmentTypeLabel,
+                      widget.appointment.appointmentType ?? l10n.physical,
                     ),
                   ],
                 ),
@@ -161,10 +177,10 @@ class _SessionHolderScreenState extends State<SessionHolderScreen> {
               const SizedBox(height: 30),
 
               // Header Text
-              const Text(
-                "Session Payment Details",
+              Text(
+                l10n.sessionPaymentDetails,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.black,
@@ -172,7 +188,7 @@ class _SessionHolderScreenState extends State<SessionHolderScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                "Enter the details to complete this session",
+                l10n.enterSessionDetails,
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
@@ -180,12 +196,12 @@ class _SessionHolderScreenState extends State<SessionHolderScreen> {
 
               // Full Name Input
               _buildInputField(
-                label: "Patient Full Name",
-                hint: "Enter patient's full name",
+                label: l10n.patientFullName,
+                hint: l10n.enterPatientName,
                 controller: _nameController,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Please enter patient name';
+                    return l10n.patientNameRequired;
                   }
                   return null;
                 },
@@ -194,17 +210,17 @@ class _SessionHolderScreenState extends State<SessionHolderScreen> {
 
               // Payable Amount Input
               _buildInputField(
-                label: "Payable Amount (DZD)", // ✅ Changed BDT to DZD
-                hint: "Enter amount received",
+                label: l10n.payableAmount,
+                hint: l10n.enterAmountReceived,
                 controller: _amountController,
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Please enter amount';
+                    return l10n.amountRequired;
                   }
                   final amount = double.tryParse(value);
                   if (amount == null || amount <= 0) {
-                    return 'Please enter a valid amount';
+                    return l10n.validAmountRequired;
                   }
                   return null;
                 },
@@ -242,9 +258,9 @@ class _SessionHolderScreenState extends State<SessionHolderScreen> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text(
-                            "Complete Session",
-                            style: TextStyle(
+                        : Text(
+                            l10n.completeSession,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
                               fontWeight: FontWeight.bold,

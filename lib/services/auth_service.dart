@@ -2,10 +2,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:docmobi/utils/api_config.dart';
 
 class AuthService {
-  static const String baseUrl =
-      'http://localhost:5000'; // ⚠️ Change this to your API URL
+  // Use ApiConfig for base URL
+  static String get baseUrl => ApiConfig.baseUrl;
+
   static String? _cachedToken;
   static String? _cachedRole;
 
@@ -87,12 +89,12 @@ class AuthService {
     required String password,
   }) async {
     try {
-      debugPrint('📤 POST: $baseUrl/api/v1/auth/login');
+      debugPrint('📤 POST: $baseUrl${ApiConfig.login}');
       debugPrint('📦 Email: $email');
 
       final response = await http
           .post(
-            Uri.parse('$baseUrl/api/v1/auth/login'),
+            Uri.parse('$baseUrl${ApiConfig.login}'),
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
@@ -159,7 +161,7 @@ class AuthService {
     String? experienceYears,
   }) async {
     try {
-      debugPrint('📤 POST: $baseUrl/api/v1/auth/register');
+      debugPrint('📤 POST: $baseUrl${ApiConfig.register}');
 
       // ✅ Build request body matching your backend
       final Map<String, dynamic> body = {
@@ -187,7 +189,7 @@ class AuthService {
 
       final response = await http
           .post(
-            Uri.parse('$baseUrl/api/v1/auth/register'),
+            Uri.parse('$baseUrl${ApiConfig.register}'),
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
@@ -239,8 +241,8 @@ class AuthService {
       final headers = await _getHeaders();
 
       await http
-          .post(Uri.parse('$baseUrl/api/v1/auth/logout'), headers: headers)
-          .timeout(const Duration(seconds: 10));
+          .post(Uri.parse('$baseUrl${ApiConfig.logout}'), headers: headers)
+          .timeout(const Duration(seconds: 2));
     } catch (e) {
       debugPrint('⚠️ Logout request failed: $e');
     }
@@ -290,22 +292,169 @@ class AuthService {
       final headers = await _getHeaders();
 
       final response = await http
-          .get(Uri.parse('$baseUrl/api/v1/auth/verify'), headers: headers)
+          .get(
+            Uri.parse('$baseUrl/api/v1/user/profile'),
+            headers: headers,
+          ) // Using profile endpoint to verify token
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return {'success': true, 'message': 'Token is valid'};
       } else {
-        await logout();
+        // await logout(); // Don't logout immediately, maybe just connection issue
+        if (response.statusCode == 401) {
+          await logout();
+          return {
+            'success': false,
+            'message': 'Token expired or invalid',
+            'requiresLogin': true,
+          };
+        }
         return {
           'success': false,
-          'message': 'Token expired or invalid',
-          'requiresLogin': true,
+          'message':
+              'Token verification failed with status ${response.statusCode}',
         };
       }
     } catch (e) {
       debugPrint('❌ Token verification error: $e');
       return {'success': false, 'message': 'Could not verify token'};
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🔑 FORGOT PASSWORD METHODS
+  // ═══════════════════════════════════════════════════════════════
+
+  /// ✅ Forgot Password (Send OTP)
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    try {
+      debugPrint('📤 POST: $baseUrl${ApiConfig.forgotPassword}');
+      debugPrint('📦 Email: $email');
+
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl${ApiConfig.forgotPassword}'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode({'email': email}),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      debugPrint('📥 Status: ${response.statusCode}');
+      debugPrint('📥 Response: ${response.body}');
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'OTP sent successfully',
+          'data': data['data'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Failed to send OTP',
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ Forgot password error: $e');
+      return {'success': false, 'message': 'Connection error: ${e.toString()}'};
+    }
+  }
+
+  /// ✅ Verify OTP (Might not be needed separately if Reset Password includes OTP, but good to have)
+  Future<Map<String, dynamic>> verifyOTP(String email, String otp) async {
+    // Note: Some flows verify OTP first, then allow reset. Others do it in one go.
+    // Based on user request "verify otp -> reset password", we might need an endpoint for this
+    // OR we just assume client side validation for now until reset.
+    // However, the common flow is usually separate or combined.
+    // Let's assume we might need it, or we can use it to validate before moving to next screen.
+    // If the backend has a specific verify-otp endpoint, use it.
+    // User mentioned: "forget password-> put email-> put otp(get the otp from main send through backend(server)->verify otp-> reset password"
+
+    try {
+      debugPrint('📤 POST: $baseUrl${ApiConfig.verifyOTP}');
+
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl${ApiConfig.verifyOTP}'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode({'email': email, 'otp': otp}),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      debugPrint('📥 Status: ${response.statusCode}');
+      debugPrint('📥 Response: ${response.body}');
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': data['message'] ?? 'OTP Verified'};
+      } else {
+        return {'success': false, 'message': data['message'] ?? 'Invalid OTP'};
+      }
+    } catch (e) {
+      // If endpoint doesn't exist, we might just return true to proceed to reset screen
+      // IF the backend does the check at reset-password time.
+      // But user request specifically said "verify otp".
+      // I'll leave this implemented assuming there is an endpoint or we can skip if not.
+      // For now let's try to hit it.
+      debugPrint('❌ Verify OTP error: $e');
+      return {'success': false, 'message': 'Connection error: ${e.toString()}'};
+    }
+  }
+
+  /// ✅ Reset Password
+  Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) async {
+    try {
+      debugPrint('📤 POST: $baseUrl${ApiConfig.resetPassword}');
+
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl${ApiConfig.resetPassword}'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode({
+              'email': email,
+              'otp': otp,
+              'password':
+                  newPassword, // Changed from newPassword to password based on typical APIs
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      debugPrint('📥 Status: ${response.statusCode}');
+      debugPrint('📥 Response: ${response.body}');
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Password reset successfully',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Failed to reset password',
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ Reset password error: $e');
+      return {'success': false, 'message': 'Connection error: ${e.toString()}'};
     }
   }
 }

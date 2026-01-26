@@ -8,6 +8,8 @@ import 'package:docmobi/screens/patient/profile/patient_profile_screen.dart';
 import 'package:docmobi/providers/notification_provider.dart';
 import 'package:docmobi/services/call_manager_service.dart';
 
+import 'package:docmobi/l10n/app_localizations.dart';
+
 class PatientMainNavigation extends ConsumerStatefulWidget {
   const PatientMainNavigation({super.key});
 
@@ -39,6 +41,8 @@ class _PatientMainNavigationState extends ConsumerState<PatientMainNavigation> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
@@ -71,16 +75,16 @@ class _PatientMainNavigationState extends ConsumerState<PatientMainNavigation> {
             fontWeight: FontWeight.bold,
           ),
           items: [
-            const BottomNavigationBarItem(
-              icon: Padding(
+            BottomNavigationBarItem(
+              icon: const Padding(
                 padding: EdgeInsets.only(bottom: 5),
                 child: Icon(Icons.home_outlined, size: 28),
               ),
-              activeIcon: Padding(
+              activeIcon: const Padding(
                 padding: EdgeInsets.only(bottom: 5),
                 child: Icon(Icons.home, size: 28),
               ),
-              label: 'Home',
+              label: l10n.navHome,
             ),
             BottomNavigationBarItem(
               icon: _buildBadgeIcon(
@@ -91,18 +95,18 @@ class _PatientMainNavigationState extends ConsumerState<PatientMainNavigation> {
                 Icons.calendar_today,
                 appointmentUnreadCountProvider,
               ),
-              label: 'Appointments',
+              label: l10n.navAppointments,
             ),
-            const BottomNavigationBarItem(
-              icon: Padding(
+            BottomNavigationBarItem(
+              icon: const Padding(
                 padding: EdgeInsets.only(bottom: 5),
                 child: Icon(Icons.video_library_outlined, size: 26),
               ),
-              activeIcon: Padding(
+              activeIcon: const Padding(
                 padding: EdgeInsets.only(bottom: 5),
                 child: Icon(Icons.video_library, size: 26),
               ),
-              label: 'Reels',
+              label: l10n.navReels,
             ),
             BottomNavigationBarItem(
               icon: _buildBadgeIcon(
@@ -113,18 +117,18 @@ class _PatientMainNavigationState extends ConsumerState<PatientMainNavigation> {
                 Icons.mail,
                 messageUnreadCountProvider,
               ),
-              label: 'Messages',
+              label: l10n.navMessages,
             ),
-            const BottomNavigationBarItem(
-              icon: Padding(
+            BottomNavigationBarItem(
+              icon: const Padding(
                 padding: EdgeInsets.only(bottom: 5),
                 child: Icon(Icons.person_outline, size: 28),
               ),
-              activeIcon: Padding(
+              activeIcon: const Padding(
                 padding: EdgeInsets.only(bottom: 5),
                 child: Icon(Icons.person, size: 28),
               ),
-              label: 'Profile',
+              label: l10n.navProfile,
             ),
           ],
         ),

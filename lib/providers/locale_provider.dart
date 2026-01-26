@@ -17,7 +17,7 @@ class LocaleNotifier extends Notifier<Locale> {
 
   @override
   Locale build() {
-    return _initialLocale ?? const Locale('en');
+    return _initialLocale ?? const Locale('fr');
   }
 
   /// Sets the locale and persists it.
@@ -27,11 +27,19 @@ class LocaleNotifier extends Notifier<Locale> {
     await _prefs.setString(_kLocaleKey, locale.languageCode);
   }
 
-  /// Toggles between English and Arabic.
+  /// Toggles between languages (Cycling)
   Future<void> toggleLocale() async {
-    final newLocale = state.languageCode == 'en'
-        ? const Locale('ar')
-        : const Locale('en');
+    final currentCode = state.languageCode;
+    Locale newLocale;
+
+    if (currentCode == 'en') {
+      newLocale = const Locale('ar');
+    } else if (currentCode == 'ar') {
+      newLocale = const Locale('fr');
+    } else {
+      newLocale = const Locale('en');
+    }
+
     await setLocale(newLocale);
   }
 }

@@ -1,8 +1,6 @@
-// screens/doctor/profile/doctor_profile_screen.dart
-// ✅ UPDATED with Video Call Save Functionality
-
 import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:docmobi/screens/doctor/navigation/doctor_main_navigation.dart';
+import 'package:docmobi/screens/doctor/profile/doctor_help_&_support_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/doctor/profile/doctor_personal_info_screen.dart';
 import 'package:docmobi/screens/doctor/profile/doctor_my_schedule_screen.dart';
@@ -14,7 +12,6 @@ import '../../../services/auth_service.dart';
 import '../../auth/sign_in_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:docmobi/providers/locale_provider.dart';
-// import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class DoctorProfileScreen extends ConsumerStatefulWidget {
   const DoctorProfileScreen({super.key});
@@ -169,6 +166,7 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
       ),
       body: legacy_provider.Consumer<UserProvider>(
         builder: (context, userProvider, child) {
+          final l10n = AppLocalizations.of(context)!;
           final user = userProvider.user;
           final isLoading = userProvider.isLoading;
 
@@ -286,7 +284,7 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
                   // Profile Menu Items
                   _buildProfileItem(
                     icon: Icons.person_outline,
-                    title: 'Personal Info',
+                    title: l10n.personalInfo,
                     onTap: () async {
                       final result = await Navigator.push(
                         context,
@@ -302,7 +300,7 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
                   ),
                   _buildProfileItem(
                     icon: Icons.calendar_today_outlined,
-                    title: 'Appointment Setting',
+                    title: l10n.appointmentSetting,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -315,7 +313,7 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
 
                   _buildProfileItem(
                     assetIconPath: 'assets/images/algerian.png',
-                    title: 'My Earning',
+                    title: l10n.myEarning,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -326,69 +324,101 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
                     },
                   ),
 
-                  /// Language Selector
-                  // _buildProfileItem(
-                  //   icon: Icons.language,
-                  //   title: l10n.changeLanguage,
-                  //   trailing: Text(
-                  //     currentLocale.languageCode == 'en'
-                  //         ? l10n.english
-                  //         : l10n.arabic,
-                  //     style: const TextStyle(
-                  //       color: Color(0xFF1664CD),
-                  //       fontWeight: FontWeight.bold,
-                  //     ),
-                  //   ),
-                  //   onTap: () {
-                  //     showDialog(
-                  //       context: context,
-                  //       builder: (context) => AlertDialog(
-                  //         title: Text(l10n.selectLanguage),
-                  //         content: Column(
-                  //           mainAxisSize: MainAxisSize.min,
-                  //           children: [
-                  //             ListTile(
-                  //               leading: const Icon(Icons.abc),
-                  //               title: Text(l10n.english),
-                  //               selected: currentLocale.languageCode == 'en',
-                  //               onTap: () {
-                  //                 ref
-                  //                     .read(localeProvider.notifier)
-                  //                     .setLocale(const Locale('en'));
-                  //                 Navigator.pop(context);
-                  //               },
-                  //             ),
-                  //             ListTile(
-                  //               leading: const Text(
-                  //                 'ع',
-                  //                 style: TextStyle(
-                  //                   fontSize: 24,
-                  //                   fontWeight: FontWeight.bold,
-                  //                 ),
-                  //               ),
-                  //               title: Text(l10n.arabic),
-                  //               selected: currentLocale.languageCode == 'ar',
-                  //               onTap: () {
-                  //                 ref
-                  //                     .read(localeProvider.notifier)
-                  //                     .setLocale(const Locale('ar'));
-                  //                 Navigator.pop(context);
-                  //               },
-                  //             ),
-                  //           ],
-                  //         ),
-                  //       ),
-                  //     );
-                  //   },
-                  // ),
+                  // Language Selector
+                  _buildProfileItem(
+                    icon: Icons.language,
+                    title: l10n.changeLanguage,
+                    trailing: Text(
+                      currentLocale.languageCode == 'en'
+                          ? l10n.english
+                          : currentLocale.languageCode == 'ar'
+                          ? l10n.arabic
+                          : l10n.french,
+                      style: const TextStyle(
+                        color: Color(0xFF1664CD),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text(l10n.selectLanguage),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.abc),
+                                title: Text(l10n.english),
+                                selected: currentLocale.languageCode == 'en',
+                                onTap: () {
+                                  ref
+                                      .read(localeProvider.notifier)
+                                      .setLocale(const Locale('en'));
+                                  Navigator.pop(context);
+                                },
+                              ),
+                              ListTile(
+                                leading: const Text(
+                                  'ع',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                title: Text(l10n.arabic),
+                                selected: currentLocale.languageCode == 'ar',
+                                onTap: () {
+                                  ref
+                                      .read(localeProvider.notifier)
+                                      .setLocale(const Locale('ar'));
+                                  Navigator.pop(context);
+                                },
+                              ),
+                              ListTile(
+                                leading: const Text(
+                                  'Fr',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                title: Text(l10n.french),
+                                selected: currentLocale.languageCode == 'fr',
+                                onTap: () {
+                                  ref
+                                      .read(localeProvider.notifier)
+                                      .setLocale(const Locale('fr'));
+                                  Navigator.pop(context);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                   _buildProfileItem(
                     icon: Icons.lock_outline,
-                    title: 'Change Password',
+                    title: l10n.changePasswordLabel,
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const ChangePasswordScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  _buildProfileItem(
+                    assetIconPath: 'assets/icons/help&support.png',
+                    title: l10n.helpSupport,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const DoctorHelpSupportScreen(),
                         ),
                       );
                     },
@@ -402,11 +432,11 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
                       width: double.infinity,
                       height: 55,
                       child: ElevatedButton.icon(
-                        onPressed: () => _showLogoutDialog(context),
+                        onPressed: () => _showLogoutConfirmationDialog(context),
                         icon: const Icon(Icons.logout, color: Colors.white),
-                        label: const Text(
-                          'Log Out',
-                          style: TextStyle(
+                        label: Text(
+                          l10n.logOut,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
@@ -482,12 +512,13 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
+  void _showLogoutConfirmationDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: const Text('Logout'),
+        title: Text(l10n.logOut),
         content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(
@@ -496,20 +527,28 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(context); // Pop confirmation dialog
+
+              // Show loading dialog
               showDialog(
                 context: context,
                 barrierDismissible: false,
                 builder: (context) =>
                     const Center(child: CircularProgressIndicator()),
               );
-              await AuthService().logout();
-              legacy_provider.Provider.of<UserProvider>(
-                context,
-                listen: false,
-              ).clearUser();
 
-              if (mounted) {
+              await AuthService().logout();
+
+              if (context.mounted) {
+                Navigator.pop(context); // Pop loading dialog explicitly
+              }
+
+              if (context.mounted) {
+                legacy_provider.Provider.of<UserProvider>(
+                  context,
+                  listen: false,
+                ).clearUser();
+
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(
                     builder: (context) =>
@@ -519,7 +558,7 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
                 );
               }
             },
-            child: const Text('Logout', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.logOut, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),

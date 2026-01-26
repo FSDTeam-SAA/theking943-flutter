@@ -1,3 +1,4 @@
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/patient/messages/patient_chat_screen.dart';
 import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart';
@@ -149,17 +150,20 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
 
         // 4. Format for UI
         String content = '';
+        final l10n = AppLocalizations.of(context);
         if (lastMsg.attributes?['type'] == 'call_log') {
           final isVideo = lastMsg.attributes?['call_type'] == 'video';
-          content = isVideo ? 'Video Call' : 'Voice Call';
+          content = isVideo
+              ? (l10n?.videoCall ?? 'Video Call')
+              : (l10n?.voiceCall ?? 'Voice Call');
         } else if (lastMsg.body.type == MessageType.TXT) {
           content = (lastMsg.body as ChatTextMessageBody).content;
         } else if (lastMsg.body.type == MessageType.IMAGE) {
-          content = '[Image]';
+          content = l10n?.imageLabel ?? '[Image]';
         } else if (lastMsg.body.type == MessageType.FILE) {
-          content = '[File]';
+          content = l10n?.fileLabel ?? '[File]';
         } else {
-          content = '[Message]';
+          content = l10n?.messageLabel ?? '[Message]';
         }
 
         formattedChats.add({
@@ -230,18 +234,23 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Chats'),
+        title: Text(AppLocalizations.of(context)!.deleteChats),
         content: Text(
-          'Are you sure you want to delete ${_selectedConversationIds.length} conversations? This will remove all messages.',
+          AppLocalizations.of(
+            context,
+          )!.deleteConversationsConfirm(_selectedConversationIds.length),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(
+              AppLocalizations.of(context)!.deleteLabel,
+              style: const TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -259,7 +268,9 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Conversations deleted')),
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.conversationsDeleted),
+            ),
           );
           _cancelSelection();
           _loadChats(); // Reload list
@@ -267,9 +278,13 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
       } catch (e) {
         debugPrint('❌ Failed to delete conversations: $e');
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Failed to delete: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context)!.failedToDelete(e.toString()),
+              ),
+            ),
+          );
         }
       }
     }
@@ -309,7 +324,7 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
           title: Text(
             _isSelectionMode
                 ? "${_selectedConversationIds.length} selected"
-                : "Messages",
+                : AppLocalizations.of(context)!.messagesLabel,
             style: const TextStyle(
               color: Colors.black,
               fontSize: 24,
@@ -342,14 +357,14 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'No conversations yet',
+                        AppLocalizations.of(context)!.noConversationsYet,
                         style: TextStyle(color: Colors.grey[600], fontSize: 16),
                       ),
                       const SizedBox(height: 8),
                       TextButton.icon(
                         onPressed: _loadChats,
                         icon: const Icon(Icons.refresh),
-                        label: const Text('Refresh'),
+                        label: Text(AppLocalizations.of(context)!.retryLabel),
                       ),
                     ],
                   ),
@@ -391,8 +406,9 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
 
     final lastMessage = chat['lastMessage'];
     final String messageText = lastMessage != null
-        ? (lastMessage['content']?.toString() ?? 'Start conversation')
-        : 'Start conversation';
+        ? (lastMessage['content']?.toString() ??
+              AppLocalizations.of(context)!.startConversation)
+        : AppLocalizations.of(context)!.startConversation;
 
     // ✅ Get unread count
     final int unreadCount = chat['unreadCount'] ?? 0;
@@ -576,13 +592,13 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
     final difference = now.difference(dateTime);
 
     if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
+      return AppLocalizations.of(context)!.daysAgo(difference.inDays);
     } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
+      return AppLocalizations.of(context)!.hoursAgo(difference.inHours);
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
+      return AppLocalizations.of(context)!.minutesAgo(difference.inMinutes);
     } else {
-      return 'Just now';
+      return AppLocalizations.of(context)!.justNow;
     }
   }
 

@@ -1,7 +1,8 @@
+import 'package:flutter/material.dart';
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:docmobi/models/notification_model.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
 import 'package:docmobi/providers/notification_provider.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart' as legacy_provider;
 import '../widgets/upcoming_patient_card.dart';
@@ -23,12 +24,13 @@ class _DoctorNotificationScreenState
       context,
     );
 
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          'Notifications',
-          style: TextStyle(
+        title: Text(
+          l10n.notificationsTitle,
+          style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w600,
             color: Color(0xFF1B2C49),
@@ -45,7 +47,7 @@ class _DoctorNotificationScreenState
         actions: [
           IconButton(
             icon: const Icon(Icons.done_all, color: Color(0xFF1664CD)),
-            tooltip: 'Mark all as read',
+            tooltip: l10n.markAllAsRead,
             onPressed: () {
               ref.read(notificationListProvider.notifier).markAllAsRead();
             },
@@ -71,7 +73,7 @@ class _DoctorNotificationScreenState
 
                 // New Section
                 if (unread.isNotEmpty) ...[
-                  _buildSectionTitle("New"),
+                  _buildSectionTitle(l10n.newNotifications),
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     sliver: SliverList(
@@ -86,7 +88,7 @@ class _DoctorNotificationScreenState
 
                 // Earlier Section
                 if (read.isNotEmpty) ...[
-                  _buildSectionTitle("Earlier"),
+                  _buildSectionTitle(l10n.earlierNotifications),
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     sliver: SliverList(
@@ -139,6 +141,7 @@ class _DoctorNotificationScreenState
   }
 
   Widget _buildUpcomingSection(AppointmentProvider aptProvider) {
+    final l10n = AppLocalizations.of(context)!;
     final upcoming = aptProvider.upcomingAppointments;
     if (upcoming.isEmpty) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
@@ -150,9 +153,9 @@ class _DoctorNotificationScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Upcoming Patient",
-              style: TextStyle(
+            Text(
+              l10n.upcomingPatient,
+              style: const TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1B2C49),
@@ -167,6 +170,7 @@ class _DoctorNotificationScreenState
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -178,7 +182,7 @@ class _DoctorNotificationScreenState
           ),
           const SizedBox(height: 16),
           Text(
-            'No notifications yet',
+            l10n.noNotificationsYet,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -187,7 +191,7 @@ class _DoctorNotificationScreenState
           ),
           const SizedBox(height: 8),
           Text(
-            'We\'ll notify you when a patient books or updates an appointment.',
+            l10n.doctorNotificationEmptySubtitle,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),

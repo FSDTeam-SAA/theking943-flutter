@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool isOutlined;
 
   const CustomButton({
@@ -26,7 +26,9 @@ class CustomButton extends StatelessWidget {
                 end: Alignment.centerRight,
               ),
         borderRadius: BorderRadius.circular(10),
-        border: isOutlined ? Border.all(color: const Color(0xFF1664CD), width: 2) : null,
+        border: isOutlined
+            ? Border.all(color: const Color(0xFF1664CD), width: 2)
+            : null,
       ),
       child: ElevatedButton(
         onPressed: onPressed,

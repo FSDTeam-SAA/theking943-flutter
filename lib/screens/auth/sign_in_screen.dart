@@ -9,6 +9,7 @@ import 'package:docmobi/widgets/custom_button.dart';
 import 'package:docmobi/widgets/custom_text_field.dart';
 import 'package:docmobi/services/api_service.dart';
 import 'package:docmobi/services/agora_chat_service.dart';
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -96,7 +97,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
         // ✅ Check if role matches expected type
         if (userRole == widget.userType.toLowerCase()) {
-          _showSnackBar('Welcome back, $userName!', isError: false);
+          final l10n = AppLocalizations.of(context)!;
+          _showSnackBar(l10n.welcomeBackUser(userName), isError: false);
 
           // Small delay for better UX
           await Future.delayed(const Duration(milliseconds: 500));
@@ -134,35 +136,25 @@ class _SignInScreenState extends State<SignInScreen> {
             '⚠️ Role mismatch: Expected ${widget.userType}, Got $userRole',
           );
           await ApiService.clearToken();
+          final l10n = AppLocalizations.of(context)!;
           _showSnackBar(
-            'This account is registered as ${_capitalize(userRole ?? "user")}. '
-            'Please use the correct login option.',
+            l10n.accountRegisteredAs(_capitalize(userRole ?? "user")),
             isError: true,
           );
         }
       } else {
         // Login failed
         debugPrint('❌ Login failed: ${result['message']}');
-        _showSnackBar(
-          result['message'] ?? 'Login failed. Please check your credentials.',
-          isError: true,
-        );
+        final l10n = AppLocalizations.of(context)!;
+        _showSnackBar(result['message'] ?? l10n.loginFailed, isError: true);
       }
     } catch (e) {
       debugPrint('❌ Login error: $e');
       if (!mounted) return;
       setState(() => _isLoading = false);
 
-      String errorMessage = 'Connection error. ';
-      if (e.toString().contains('SocketException') ||
-          e.toString().contains('Connection')) {
-        errorMessage +=
-            'Please check if the server is running at http://localhost:5000';
-      } else {
-        errorMessage += e.toString();
-      }
-
-      _showSnackBar(errorMessage, isError: true);
+      final l10n = AppLocalizations.of(context)!;
+      _showSnackBar(l10n.connectionError, isError: true);
     }
   }
 
@@ -193,6 +185,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -238,9 +231,9 @@ class _SignInScreenState extends State<SignInScreen> {
                   Center(
                     child: Column(
                       children: [
-                        const Text(
-                          'Welcome back',
-                          style: TextStyle(
+                        Text(
+                          l10n.welcomeBack,
+                          style: const TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF0B3267),
@@ -248,7 +241,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Please Login to your Account as ${widget.userType}',
+                          l10n.loginToAccountAs(widget.userType),
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.grey[600],
@@ -262,16 +255,16 @@ class _SignInScreenState extends State<SignInScreen> {
                   const SizedBox(height: 40),
 
                   /// Email Field
-                  const Text(
-                    "Email Address",
-                    style: TextStyle(
+                  Text(
+                    l10n.emailAddress,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF0B3267),
                     ),
                   ),
                   const SizedBox(height: 8),
                   CustomTextField(
-                    hintText: 'you@gmail.com',
+                    hintText: l10n.emailHint,
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     prefixIcon: const Icon(
@@ -283,16 +276,16 @@ class _SignInScreenState extends State<SignInScreen> {
                   const SizedBox(height: 20),
 
                   /// Password Field
-                  const Text(
-                    "Password",
-                    style: TextStyle(
+                  Text(
+                    l10n.password,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF0B3267),
                     ),
                   ),
                   const SizedBox(height: 8),
                   CustomTextField(
-                    hintText: '****************',
+                    hintText: l10n.passwordHint,
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     prefixIcon: const Icon(
@@ -327,9 +320,9 @@ class _SignInScreenState extends State<SignInScreen> {
                           ),
                         );
                       },
-                      child: const Text(
-                        'Forgot Password?',
-                        style: TextStyle(
+                      child: Text(
+                        l10n.forgotPassword,
+                        style: const TextStyle(
                           color: Color(0xFF1664CD),
                           fontWeight: FontWeight.w600,
                         ),
@@ -346,7 +339,10 @@ class _SignInScreenState extends State<SignInScreen> {
                             color: Color(0xFF1664CD),
                           ),
                         )
-                      : CustomButton(text: 'Sign in', onPressed: _handleSignIn),
+                      : CustomButton(
+                          text: l10n.signIn,
+                          onPressed: _handleSignIn,
+                        ),
 
                   const SizedBox(height: 30),
 
@@ -354,7 +350,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("Don't have an account? "),
+                      Text(l10n.dontHaveAccount),
                       TextButton(
                         onPressed: () {
                           Navigator.push(
@@ -365,9 +361,9 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                           );
                         },
-                        child: const Text(
-                          'Signup',
-                          style: TextStyle(
+                        child: Text(
+                          l10n.signup,
+                          style: const TextStyle(
                             color: Color(0xFF1664CD),
                             fontWeight: FontWeight.bold,
                           ),

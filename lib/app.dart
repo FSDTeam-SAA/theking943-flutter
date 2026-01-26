@@ -136,7 +136,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
 
-      supportedLocales: const [Locale('en'), Locale('ar')],
+      supportedLocales: const [Locale('en'), Locale('ar'), Locale('fr')],
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: true,

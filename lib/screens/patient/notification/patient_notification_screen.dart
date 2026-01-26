@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:provider/provider.dart' as legacy_provider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:docmobi/providers/notification_provider.dart';
@@ -21,12 +22,13 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
       context,
     );
 
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          'Notification',
-          style: TextStyle(
+        title: Text(
+          l10n.notificationTitle,
+          style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w600,
             color: Color(0xFF1B2C49),
@@ -43,7 +45,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.done_all, color: Color(0xFF1664CD)),
-            tooltip: 'Mark all as read',
+            tooltip: l10n.markAllAsRead,
             onPressed: () {
               ref.read(notificationListProvider.notifier).markAllAsRead();
             },
@@ -69,7 +71,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
 
                 // New Section
                 if (unread.isNotEmpty) ...[
-                  _buildSectionTitle("New"),
+                  _buildSectionTitle(l10n.newNotifications),
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     sliver: SliverList(
@@ -84,7 +86,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
 
                 // Earlier Section
                 if (read.isNotEmpty) ...[
-                  _buildSectionTitle("Earlier"),
+                  _buildSectionTitle(l10n.earlierNotifications),
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     sliver: SliverList(
@@ -148,9 +150,9 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Upcoming Appointment",
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.upcomingAppointment,
+              style: const TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1B2C49),
@@ -176,7 +178,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No notifications',
+            AppLocalizations.of(context)!.noNotifications,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:docmobi/services/doctor_schedule_service.dart';
+import 'package:docmobi/l10n/app_localizations.dart';
 
 class DoctorMyScheduleScreen extends StatefulWidget {
   const DoctorMyScheduleScreen({super.key});
@@ -31,50 +32,6 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
     super.initState();
     _loadExistingSchedule();
   }
-
-  // /// Show time picker dialog to select time
-  // Future<String?> _selectTime(
-  //   BuildContext context, {
-  //   String? initialTime,
-  // }) async {
-  //   TimeOfDay initialTimeOfDay;
-
-  //   if (initialTime != null) {
-  //     // Parse initial time if provided
-  //     final parts = initialTime.trim().split(' ');
-  //     if (parts.length == 2) {
-  //       final time = parts[0];
-  //       final period = parts[1].toLowerCase();
-
-  //       final timeParts = time.split(':');
-  //       if (timeParts.length == 2) {
-  //         int hour = int.parse(timeParts[0]);
-  //         final minute = int.parse(timeParts[1]);
-
-  //         if (period == 'pm' && hour < 12) hour += 12;
-  //         if (period == 'am' && hour == 12) hour = 0;
-
-  //         initialTimeOfDay = TimeOfDay(hour: hour, minute: minute);
-  //       } else {
-  //         initialTimeOfDay = TimeOfDay.now();
-  //       }
-  //     } else {
-  //       initialTimeOfDay = TimeOfDay.now();
-  //     }
-  //   } else {
-  //     initialTimeOfDay = TimeOfDay.now();
-  //   }
-
-  //   final TimeOfDay? picked = await showTimePicker(
-  //     context: context,
-  //     initialTime: initialTimeOfDay,
-  //     builder: (BuildContext context, Widget? child) {
-  //       return MediaQuery(
-  //         data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
-  //         child: child!,
-  //       );
-  //     },
-  //   );
 
   /// Show time picker dialog to select time
   Future<String?> _selectTime(
@@ -131,11 +88,65 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
 
   /// Add new time slot with dynamic time selection
   Future<void> _addNewTimeSlot(Map<String, dynamic> dayData) async {
-    // First select start time
+    final l10n = AppLocalizations.of(context)!;
+
+    // Show info dialog and select start time
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            l10n.selectStartTime,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1B2C49),
+            ),
+          ),
+          content: Text(l10n.selectTimeFromPicker),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                l10n.ok,
+                style: const TextStyle(color: Color(0xFF2D5AF0)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
     final startTime = await _selectTime(context);
     if (startTime == null) return;
 
-    // Then select end time
+    // Show info dialog and select end time
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            l10n.selectEndTime,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1B2C49),
+            ),
+          ),
+          content: Text(l10n.selectTimeFromPicker),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                l10n.ok,
+                style: const TextStyle(color: Color(0xFF2D5AF0)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
     final endTime = await _selectTime(context, initialTime: startTime);
     if (endTime == null) return;
 
@@ -144,7 +155,7 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
     final end24 = _convertTo24Hour(endTime);
 
     if (start24.compareTo(end24) >= 0) {
-      _showSnackBar('End time must be after start time', Colors.red);
+      _showSnackBar(l10n.endTimeError, Colors.red);
       return;
     }
 
@@ -208,7 +219,10 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
   /// Save schedule to backend
   Future<void> _saveSchedule() async {
     if (_feesController.text.isEmpty) {
-      _showSnackBar('Please enter consultation fees', Colors.orange);
+      _showSnackBar(
+        AppLocalizations.of(context)!.enterConsultationFees,
+        Colors.orange,
+      );
       return;
     }
 
@@ -251,7 +265,10 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
         if (response['success'] == true) {
           debugPrint('✅ Schedule saved successfully!');
           debugPrint('   - isVideoCallAvailable saved as: $onlineAppointment');
-          _showSnackBar('Schedule saved successfully!', Colors.green);
+          _showSnackBar(
+            AppLocalizations.of(context)!.scheduleSavedSuccess,
+            Colors.green,
+          );
         } else {
           debugPrint('❌ Save failed: ${response['message']}');
           _showSnackBar(response['message'] ?? 'Failed to save', Colors.red);
@@ -329,9 +346,9 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
           icon: const Icon(Icons.arrow_back, color: Color(0xFF1B2C49)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Appointment Setting',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.appointmentSetting,
+          style: const TextStyle(
             color: Color(0xFF1B2C49),
             fontWeight: FontWeight.bold,
           ),
@@ -343,9 +360,9 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Manage your Video and physical\nConsultations',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.manageConsultations,
+              style: const TextStyle(
                 color: Color.fromARGB(255, 0, 0, 0),
                 fontSize: 14,
               ),
@@ -373,10 +390,10 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
                     ),
                   ),
                   const SizedBox(width: 15),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Online Appointment',
-                      style: TextStyle(
+                      AppLocalizations.of(context)!.onlineAppointment,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                         color: Color(0xFF1B2C49),
@@ -394,9 +411,9 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
             const SizedBox(height: 20),
 
             // Fees Input
-            const Text(
-              'Consultation Fees (DZD)',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.consultationFees,
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1B2C49),
@@ -432,12 +449,12 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
             const SizedBox(height: 25),
 
             Row(
-              children: const [
-                Icon(Icons.access_time_filled, color: Color(0xFF3B71FE)),
-                SizedBox(width: 10),
+              children: [
+                const Icon(Icons.access_time_filled, color: Color(0xFF3B71FE)),
+                const SizedBox(width: 10),
                 Text(
-                  'Weekly Schedule',
-                  style: TextStyle(
+                  AppLocalizations.of(context)!.weeklySchedule,
+                  style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF1B2C49),
@@ -468,9 +485,9 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
                 ),
                 child: _isSaving
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'Save Changes',
-                        style: TextStyle(
+                    : Text(
+                        AppLocalizations.of(context)!.saveChanges,
+                        style: const TextStyle(
                           fontSize: 18,
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -584,7 +601,7 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
                                   horizontal: 15,
                                 ),
                                 child: Text(
-                                  'To',
+                                  AppLocalizations.of(context)!.to,
                                   style: TextStyle(
                                     color: isSelected
                                         ? Colors.white70
@@ -631,9 +648,9 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
                 size: 20,
                 color: Color(0xFF3B71FE),
               ),
-              label: const Text(
-                'Add New Slot',
-                style: TextStyle(
+              label: Text(
+                AppLocalizations.of(context)!.addNewSlot,
+                style: const TextStyle(
                   color: Color(0xFF3B71FE),
                   fontWeight: FontWeight.bold,
                 ),

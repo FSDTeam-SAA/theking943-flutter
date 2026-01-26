@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:docmobi/l10n/app_localizations.dart';
 
 import 'package:docmobi/screens/patient/home/full_map_screen.dart';
 import 'package:docmobi/screens/patient/home/upcoming_appointment_card.dart';
@@ -106,6 +107,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   }
 
   Future<void> _getCurrentLocation() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -186,9 +188,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Unable to get your location: ${e.toString()}'),
+            content: Text('${l10n.loading} : ${e.toString()}'),
             action: SnackBarAction(
-              label: 'Retry',
+              label: l10n.retry,
               onPressed: _getCurrentLocation,
             ),
             duration: const Duration(seconds: 5),
@@ -204,25 +206,24 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   }
 
   void _showLocationServiceDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Location Services Disabled'),
-          content: const Text(
-            'Location services are disabled. Please enable them to see nearby doctors.',
-          ),
+          title: Text(l10n.locationServicesDisabledTitle),
+          content: Text(l10n.locationServicesDisabledMessage),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
                 await Geolocator.openLocationSettings();
               },
-              child: const Text('Open Settings'),
+              child: Text(l10n.openSettings),
             ),
           ],
         );
@@ -231,25 +232,24 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   }
 
   void _showPermissionDeniedDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Location Permission Required'),
-          content: const Text(
-            'Location permission is required to show nearby doctors. Please grant permission in app settings.',
-          ),
+          title: Text(l10n.locationPermissionRequiredTitle),
+          content: Text(l10n.locationPermissionRequiredMessage),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
                 await Geolocator.openAppSettings();
               },
-              child: const Text('Open Settings'),
+              child: Text(l10n.openSettings),
             ),
           ],
         );
@@ -373,6 +373,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     LatLng doctorLocation,
     double distance,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     // Set selected doctor
     if (mounted) {
       setState(() {
@@ -384,7 +385,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
     // Show loading snackbar
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Row(
           children: [
             SizedBox(
@@ -396,7 +397,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
               ),
             ),
             SizedBox(width: 12),
-            Text('Loading route...'),
+            Text(l10n.loadingRoute),
           ],
         ),
         duration: Duration(seconds: 2),
@@ -497,24 +498,24 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.warning_amber_rounded,
                   color: Colors.white,
                   size: 20,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Directions API not enabled. Using straight line route.',
-                    style: TextStyle(fontSize: 13),
+                    l10n.directionsApiDisabled,
+                    style: const TextStyle(fontSize: 13),
                   ),
                 ),
               ],
             ),
-            duration: Duration(seconds: 4),
+            duration: const Duration(seconds: 4),
             backgroundColor: Colors.orange,
             behavior: SnackBarBehavior.floating,
           ),
@@ -574,6 +575,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   }
 
   String _calculateDistance(Doctor doctor) {
+    final l10n = AppLocalizations.of(context)!;
     if (doctor.latitude != null && doctor.longitude != null) {
       try {
         final latLngDoctor = LatLng(doctor.latitude!, doctor.longitude!);
@@ -589,7 +591,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
         }
       } catch (e) {
         debugPrint('Error calculating distance: $e');
-        return 'N/A';
+        return l10n.notAvailable;
       }
     }
     return doctor.distance;
@@ -597,6 +599,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final userProvider = legacy_provider.Provider.of<UserProvider>(context);
     final generalUnreadCountValue = ref.watch(generalUnreadCountProvider);
 
@@ -751,9 +754,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                             ),
                             child: TextField(
                               controller: _searchController,
-                              decoration: const InputDecoration(
-                                hintText: 'Search Doctor...',
-                                prefixIcon: Icon(
+                              decoration: InputDecoration(
+                                hintText: l10n.searchDoctorHint,
+                                prefixIcon: const Icon(
                                   Icons.search,
                                   color: Colors.grey,
                                 ),
@@ -802,7 +805,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                           child: _isLoadingLocation
                               ? Container(
                                   color: Colors.grey[200],
-                                  child: const Center(
+                                  child: Center(
                                     child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
@@ -810,8 +813,10 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                                         CircularProgressIndicator(),
                                         SizedBox(height: 10),
                                         Text(
-                                          'Loading map...',
-                                          style: TextStyle(color: Colors.grey),
+                                          l10n.loadingMap,
+                                          style: const TextStyle(
+                                            color: Colors.grey,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -868,9 +873,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            const Text(
-                                              'Distance',
-                                              style: TextStyle(
+                                            Text(
+                                              l10n.distance,
+                                              style: const TextStyle(
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.bold,
                                                 color: Color(0xFF1B2C49),
@@ -1049,9 +1054,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                "Upcoming Appointment",
-                                style: TextStyle(
+                              Text(
+                                l10n.upcomingAppointment,
+                                style: const TextStyle(
                                   fontSize: 19,
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFF1B2C49),
@@ -1074,9 +1079,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            "Nearby Doctors ",
-                            style: TextStyle(
+                          Text(
+                            l10n.nearbyDoctors,
+                            style: const TextStyle(
                               fontSize: 19,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF1B2C49),
@@ -1089,9 +1094,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                                 builder: (_) => const SeeAllDoctorsScreen(),
                               ),
                             ),
-                            child: const Text(
-                              'See All',
-                              style: TextStyle(
+                            child: Text(
+                              l10n.seeAll,
+                              style: const TextStyle(
                                 color: Colors.grey,
                                 fontSize: 14,
                               ),
@@ -1127,10 +1132,10 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                         final nearbyDoctors = doctorProvider.nearbyDoctors;
 
                         if (nearbyDoctors.isEmpty) {
-                          return const Center(
+                          return Center(
                             child: Padding(
-                              padding: EdgeInsets.all(20.0),
-                              child: Text('No doctors found'),
+                              padding: const EdgeInsets.all(20.0),
+                              child: Text(l10n.noDoctorsFound),
                             ),
                           );
                         }
@@ -1238,6 +1243,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   }
 
   Widget _buildCustomDoctorCard(Doctor doctor) {
+    final l10n = AppLocalizations.of(context)!;
     final bool isAvailable = _isDoctorAvailable(doctor);
     final bool hasVideoCall = doctor.isVideoCallAvailable;
     final String visitingHours = _getVisitingHours(doctor);
@@ -1295,7 +1301,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            isAvailable ? 'Available' : 'No Schedule',
+                            isAvailable ? l10n.available : l10n.noSchedule,
                             style: TextStyle(
                               color: isAvailable
                                   ? Colors.green[700]
@@ -1337,9 +1343,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                               color: Color(0xFF1976D2),
                             ),
                             const SizedBox(width: 4),
-                            const Text(
-                              'Video Consultation',
-                              style: TextStyle(
+                            Text(
+                              l10n.videoConsultation,
+                              style: const TextStyle(
                                 fontSize: 11,
                                 color: Color(0xFF1565C0),
                                 fontWeight: FontWeight.w600,
@@ -1423,7 +1429,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                     ),
                   ),
                   child: Text(
-                    isAvailable ? 'Book Now' : 'Not Available',
+                    isAvailable ? l10n.bookNow : l10n.notAvailable,
                     style: TextStyle(
                       color: isAvailable ? Colors.white : Colors.grey[600],
                       fontWeight: FontWeight.bold,
@@ -1509,8 +1515,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   }
 
   String _getVisitingHours(Doctor doctor) {
+    final l10n = AppLocalizations.of(context)!;
     if (doctor.weeklySchedule == null || doctor.weeklySchedule!.isEmpty) {
-      return 'No schedule set';
+      return l10n.noScheduleSet;
     }
 
     List<String> activeDays = [];
@@ -1524,7 +1531,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     }
 
     if (activeDays.isEmpty) {
-      return 'No schedule set';
+      return l10n.noScheduleSet;
     }
 
     if (activeDays.length == 1) {

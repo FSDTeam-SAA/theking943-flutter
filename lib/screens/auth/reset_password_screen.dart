@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:docmobi/widgets/custom_button.dart';
 import 'package:docmobi/widgets/custom_text_field.dart';
+import 'package:docmobi/services/auth_service.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key});
+  final String email;
+  final String otp;
+  const ResetPasswordScreen({
+    super.key,
+    required this.email,
+    required this.otp,
+  });
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -16,8 +24,78 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
 
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
+
+  void _handleResetPassword() async {
+    final newPassword = _newPasswordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    final l10n = AppLocalizations.of(context)!;
+    if (newPassword.isEmpty || confirmPassword.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.fillAllFields)));
+      return;
+    }
+
+    if (newPassword != confirmPassword) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.passwordsDoNotMatch)));
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.passwordAtLeast6)));
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    final result = await _authService.resetPassword(
+      email: widget.email,
+      otp: widget.otp,
+      newPassword: newPassword,
+    );
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (result['success']) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.success),
+          content: Text(l10n.passwordResetSuccess),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.popUntil(context, (route) => route.isFirst);
+              },
+              child: Text(l10n.ok),
+            ),
+          ],
+        ),
+      );
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(result['message'])));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -45,9 +123,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               ),
               const SizedBox(height: 30),
               // Reset Password text
-              const Text(
-                'Reset Password',
-                style: TextStyle(
+              Text(
+                l10n.resetPasswordTitle,
+                style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF0B3267),
@@ -55,13 +133,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Set the new password for your account',
+                l10n.setNewPassword,
                 style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               ),
               const SizedBox(height: 40),
               // New Password field
               CustomTextField(
-                hintText: 'New Password',
+                hintText: l10n.newPassword,
                 controller: _newPasswordController,
                 obscureText: _obscureNewPassword,
                 prefixIcon: const Icon(
@@ -85,7 +163,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               const SizedBox(height: 20),
               // Confirm Password field
               CustomTextField(
-                hintText: 'Confirm Password',
+                hintText: l10n.confirmPassword,
                 controller: _confirmPasswordController,
                 obscureText: _obscureConfirmPassword,
                 prefixIcon: const Icon(
@@ -109,31 +187,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               const SizedBox(height: 50),
               // Continue button
               CustomButton(
-                text: 'Continue',
-                onPressed: () {
-                  // Implement reset password logic
-                  // Show success dialog and navigate to sign in
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Success'),
-                      content: const Text(
-                        'Password has been reset successfully',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.popUntil(
-                              context,
-                              (route) => route.isFirst,
-                            );
-                          },
-                          child: const Text('OK'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                text: _isLoading ? l10n.resetting : l10n.continueText,
+                onPressed: _isLoading ? null : _handleResetPassword,
               ),
             ],
           ),

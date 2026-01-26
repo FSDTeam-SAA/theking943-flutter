@@ -1,3 +1,4 @@
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../../../services/api_service.dart';
 import '../../../utils/api_config.dart';
@@ -11,9 +12,11 @@ class ChangePasswordScreen extends StatefulWidget {
 
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _currentPasswordController = TextEditingController();
+  final TextEditingController _currentPasswordController =
+      TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   bool _isCurrentPasswordVisible = false;
   bool _isNewPasswordVisible = false;
@@ -25,8 +28,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     if (_newPasswordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('New password and confirm password do not match'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.passwordsDoNotMatchError),
           backgroundColor: Colors.red,
         ),
       );
@@ -38,20 +41,18 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     });
 
     try {
-      final response = await ApiService.put(
-        ApiConfig.changePassword,
-        {
-          'currentPassword': _currentPasswordController.text,
-          'newPassword': _newPasswordController.text,
-          'confirmPassword': _confirmPasswordController.text,
-        },
-        requiresAuth: true,
-      );
+      final response = await ApiService.put(ApiConfig.changePassword, {
+        'currentPassword': _currentPasswordController.text,
+        'newPassword': _newPasswordController.text,
+        'confirmPassword': _confirmPasswordController.text,
+      }, requiresAuth: true);
 
       if (response['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Password changed successfully'),
+          SnackBar(
+            content: Text(
+              '✅ ${AppLocalizations.of(context)!.passwordChangedSuccess}',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -67,17 +68,17 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(response['message'] ?? 'Failed to change password'),
+            content: Text(
+              response['message'] ??
+                  AppLocalizations.of(context)!.changePasswordFailed,
+            ),
             backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     } finally {
       setState(() {
@@ -97,9 +98,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           icon: const Icon(Icons.arrow_back, color: Color(0xFF0B3267)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Change Password',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.changePassword,
+          style: const TextStyle(
             color: Color(0xFF0B3267),
             fontWeight: FontWeight.bold,
           ),
@@ -127,10 +128,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   children: [
                     Icon(Icons.info_outline, color: Colors.blue[700]),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Password must be at least 6 characters long',
-                        style: TextStyle(fontSize: 13),
+                        AppLocalizations.of(context)!.passwordLengthRequirement,
+                        style: const TextStyle(fontSize: 13),
                       ),
                     ),
                   ],
@@ -139,9 +140,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               const SizedBox(height: 30),
 
               // Current Password
-              const Text(
-                'Current Password',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.currentPassword,
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF0B3267),
@@ -150,13 +151,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               const SizedBox(height: 10),
               _buildPasswordField(
                 controller: _currentPasswordController,
-                hintText: 'Enter current password',
+                hintText: AppLocalizations.of(context)!.enterCurrentPassword,
                 isVisible: _isCurrentPasswordVisible,
-                onToggle: () => setState(() => 
-                  _isCurrentPasswordVisible = !_isCurrentPasswordVisible),
+                onToggle: () => setState(
+                  () => _isCurrentPasswordVisible = !_isCurrentPasswordVisible,
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter current password';
+                    return AppLocalizations.of(context)!.enterCurrentPassword;
                   }
                   return null;
                 },
@@ -164,9 +166,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               const SizedBox(height: 20),
 
               // New Password
-              const Text(
-                'New Password',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.newPassword,
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF0B3267),
@@ -175,16 +177,17 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               const SizedBox(height: 10),
               _buildPasswordField(
                 controller: _newPasswordController,
-                hintText: 'Enter new password',
+                hintText: AppLocalizations.of(context)!.enterNewPassword,
                 isVisible: _isNewPasswordVisible,
-                onToggle: () => setState(() => 
-                  _isNewPasswordVisible = !_isNewPasswordVisible),
+                onToggle: () => setState(
+                  () => _isNewPasswordVisible = !_isNewPasswordVisible,
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter new password';
+                    return AppLocalizations.of(context)!.enterNewPassword;
                   }
                   if (value.length < 6) {
-                    return 'Password must be at least 6 characters';
+                    return AppLocalizations.of(context)!.passwordAtLeast6;
                   }
                   return null;
                 },
@@ -192,9 +195,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               const SizedBox(height: 20),
 
               // Confirm Password
-              const Text(
-                'Confirm New Password',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.confirmNewPassword,
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF0B3267),
@@ -203,16 +206,17 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               const SizedBox(height: 10),
               _buildPasswordField(
                 controller: _confirmPasswordController,
-                hintText: 'Re-enter new password',
+                hintText: AppLocalizations.of(context)!.reEnterNewPassword,
                 isVisible: _isConfirmPasswordVisible,
-                onToggle: () => setState(() => 
-                  _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+                onToggle: () => setState(
+                  () => _isConfirmPasswordVisible = !_isConfirmPasswordVisible,
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please confirm new password';
                   }
                   if (value != _newPasswordController.text) {
-                    return 'Passwords do not match';
+                    return AppLocalizations.of(context)!.passwordsDoNotMatch;
                   }
                   return null;
                 },
@@ -242,9 +246,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                             ),
                           ),
                         )
-                      : const Text(
-                          'Change Password',
-                          style: TextStyle(
+                      : Text(
+                          AppLocalizations.of(context)!.changePassword,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,

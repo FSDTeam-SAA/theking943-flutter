@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
@@ -264,9 +264,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   // ✅ UPDATED: Handle both create and reschedule
   Future<void> _submitAppointment() async {
     if (doctorId.isEmpty || doctorId.length < 10) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Invalid Doctor – Cannot book appointment'),
+        SnackBar(
+          content: Text(l10n.invalidDoctorBooking),
           backgroundColor: Colors.red,
         ),
       );
@@ -274,9 +275,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     }
 
     if (selectedDate == null || selectedTimeSlot == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select date and time')),
-      );
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.selectDateTime)));
       return;
     }
 
@@ -315,9 +317,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       await _handleNewAppointment();
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Reschedule failed: $e'),
+            content: Text(l10n.rescheduleFailed(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -376,11 +379,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
       if (selectedType == "Video Call") {
         if (_paymentScreenshot == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Payment screenshot required for Video Call'),
-            ),
-          );
+          final l10n = AppLocalizations.of(context)!;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.paymentRequired)));
           return;
         }
         request.files.add(
@@ -408,7 +410,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           Navigator.pop(context);
         }
       } else {
-        String msg = jsonResponse['message'] ?? 'Booking failed';
+        final l10n = AppLocalizations.of(context)!;
+        String msg = jsonResponse['message'] ?? l10n.bookingFailed;
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(msg), backgroundColor: Colors.red),
@@ -417,8 +420,12 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(l10n.rescheduleFailed(e.toString())),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -426,6 +433,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF5F8FF),
       appBar: AppBar(
@@ -436,7 +444,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          widget.isReschedule ? "Reschedule Appointment" : "Book Appointment",
+          widget.isReschedule
+              ? l10n.rescheduleAppointment
+              : l10n.bookAppointment,
           style: const TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.bold,
@@ -464,7 +474,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'You are rescheduling your appointment. Old appointment will be cancelled.',
+                        l10n.rescheduleBanner,
                         style: TextStyle(
                           color: Colors.blue.shade900,
                           fontWeight: FontWeight.w500,
@@ -484,24 +494,23 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                     TextSpan(
                       children: [
                         const TextSpan(
-                          text: '*',
+                          text: "* ",
                           style: TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
                           ),
                         ),
-                        const TextSpan(
-                          text:
-                              " Video appointments- patient must\nupload BaridiMob payment screenshot ",
-                          style: TextStyle(
+                        TextSpan(
+                          text: l10n.videoUploadWarning,
+                          style: const TextStyle(
                             color: Colors.red,
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
                           ),
                         ),
                         const TextSpan(
-                          text: '*',
+                          text: " *",
                           style: TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.bold,
@@ -519,9 +528,12 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Appointment Type",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.appointmentTypeLabel,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 15),
                   Row(
@@ -529,13 +541,15 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                       _buildTypeOption(
                         'assets/icons/physical_visit.png',
                         "Physical Visit",
-                        "Pay at Clinic",
+                        l10n.physicalVisit,
+                        l10n.payAtClinic,
                       ),
                       const SizedBox(width: 15),
                       _buildTypeOption(
                         'assets/icons/video_call.png',
                         "Video Call",
-                        "Online Payment",
+                        l10n.videoCall,
+                        l10n.onlinePayment,
                       ),
                     ],
                   ),
@@ -552,9 +566,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Book Appointment For",
-                        style: TextStyle(
+                      Text(
+                        l10n.bookAppointmentFor,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -563,16 +577,19 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
                       _buildSelectForOption(
                         icon: Icons.person,
-                        label: "Myself",
+                        label: l10n.myself,
                         isSelected: selectedDependent == null,
                         onTap: () => setState(() => selectedDependent = null),
                       ),
 
                       if (dependents.isNotEmpty) ...[
                         const SizedBox(height: 8),
-                        const Text(
-                          "Or select a dependent:",
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        Text(
+                          l10n.orSelectDependent,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         ...dependents.map(
@@ -602,9 +619,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                           Icons.add_circle_outline,
                           color: Color(0xFF0D53C1),
                         ),
-                        label: const Text(
-                          'Add New Dependent',
-                          style: TextStyle(
+                        label: Text(
+                          l10n.addNewDependent,
+                          style: const TextStyle(
                             color: Color(0xFF0D53C1),
                             fontWeight: FontWeight.bold,
                           ),
@@ -621,9 +638,12 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Select Date",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.selectDate,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   GestureDetector(
@@ -642,7 +662,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                         children: [
                           Text(
                             selectedDate == null
-                                ? "dd/mm/yyyy"
+                                ? l10n.datePlaceholder
                                 : DateFormat(
                                     'dd/MM/yyyy',
                                   ).format(selectedDate!),
@@ -671,9 +691,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Available Time",
-                      style: TextStyle(
+                    Text(
+                      l10n.availableTime,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -689,9 +709,12 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Describe your Symptoms",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.describeSymptoms,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   _buildDashedInput(_symptomsController),
@@ -704,16 +727,19 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Upload Medical Documents",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.uploadMedicalDocs,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   GestureDetector(
                     onTap: _pickMedicalDocuments,
                     child: _buildUploadBox(
                       Icons.cloud_upload_outlined,
-                      "Tap to Upload image or PDF",
+                      l10n.tapToUpload,
                     ),
                   ),
                   if (_medicalDocuments.isNotEmpty)
@@ -736,9 +762,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Upload Payment Screenshot",
-                      style: TextStyle(
+                    Text(
+                      l10n.uploadPaymentScreenshot,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -748,7 +774,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                       onTap: _pickPaymentScreenshot,
                       child: _buildUploadBox(
                         Icons.cloud_upload_outlined,
-                        "Tap to Upload Your Payment Screenshot",
+                        l10n.tapToUploadPayment,
                       ),
                     ),
                     if (_paymentScreenshot != null)
@@ -777,8 +803,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
                         widget.isReschedule
-                            ? "Confirm Reschedule"
-                            : "Submit Appointment Request",
+                            ? l10n.confirmReschedule
+                            : l10n.submitAppointmentRequest,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -811,11 +837,16 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     child: child,
   );
 
-  Widget _buildTypeOption(String image, String title, String subtitle) {
-    bool isSelected = selectedType == title;
+  Widget _buildTypeOption(
+    String image,
+    String typeKey,
+    String displayTitle,
+    String displaySubtitle,
+  ) {
+    bool isSelected = selectedType == typeKey;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => selectedType = title),
+        onTap: () => setState(() => selectedType = typeKey),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
@@ -838,14 +869,14 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               ),
               const SizedBox(height: 5),
               Text(
-                title,
+                displayTitle,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: isSelected ? const Color(0xFF0D53C1) : Colors.black87,
                 ),
               ),
               Text(
-                subtitle,
+                displaySubtitle,
                 style: const TextStyle(fontSize: 11, color: Colors.grey),
               ),
             ],
@@ -913,6 +944,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   }
 
   Widget _buildTimeSlots() {
+    final l10n = AppLocalizations.of(context)!;
     if (_isLoadingSlots) {
       return const Center(
         child: Padding(
@@ -931,7 +963,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               Icon(Icons.event_busy, size: 50, color: Colors.grey[400]),
               const SizedBox(height: 12),
               Text(
-                'No available time slots for this date',
+                l10n.noTimeSlots,
                 style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
             ],
@@ -946,6 +978,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   }
 
   Widget _buildTimeSlotCard(TimeSlot slot) {
+    final l10n = AppLocalizations.of(context)!;
     final isSelected =
         selectedTimeSlot?.start == slot.start &&
         selectedTimeSlot?.end == slot.end;
@@ -996,7 +1029,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Text(
-                'To',
+                l10n.timeTo,
                 style: TextStyle(
                   fontSize: 13,
                   color: isDisabled
@@ -1035,9 +1068,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                   color: Colors.red[100],
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text(
-                  'Booked',
-                  style: TextStyle(
+                child: Text(
+                  l10n.booked,
+                  style: const TextStyle(
                     fontSize: 11,
                     color: Colors.red,
                     fontWeight: FontWeight.bold,
@@ -1064,25 +1097,26 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     }
   }
 
-  Widget _buildDashedInput(TextEditingController controller) => Container(
-    width: double.infinity,
-    height: 100,
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFF9FBFF),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.blue.shade200),
-    ),
-    child: TextField(
-      controller: controller,
-      maxLines: null,
-      decoration: const InputDecoration(
-        hintText: "Please describe your symptoms in detail....",
-        hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
-        border: InputBorder.none,
+  Widget _buildDashedInput(TextEditingController controller) {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FBFF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade200),
       ),
-    ),
-  );
+      child: TextField(
+        controller: controller,
+        maxLines: null,
+        decoration: InputDecoration(
+          hintText: l10n.symptomsHint,
+          hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+          border: InputBorder.none,
+        ),
+      ),
+    );
+  }
 
   Widget _buildUploadBox(IconData icon, String label) => Container(
     width: double.infinity,

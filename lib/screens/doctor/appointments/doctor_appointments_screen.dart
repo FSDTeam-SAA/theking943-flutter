@@ -1,4 +1,5 @@
 import 'package:docmobi/screens/doctor/navigation/doctor_main_navigation.dart';
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:docmobi/models/appointment_model.dart';
@@ -28,6 +29,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
       appBar: AppBar(
@@ -80,17 +82,17 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                   child: Row(
                     children: [
                       _buildTabButton(
-                        "Pending",
+                        l10n.pending,
                         provider.pendingAppointments.length,
                       ),
                       const SizedBox(width: 5),
                       _buildTabButton(
-                        "Confirmed",
+                        l10n.confirmed,
                         provider.acceptedAppointments.length,
                       ),
                       const SizedBox(width: 5),
                       _buildTabButton(
-                        "Completed",
+                        l10n.completed,
                         provider.completedAppointments.length,
                       ),
                     ],
@@ -113,6 +115,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
   }
 
   Widget _buildContent(AppointmentProvider provider) {
+    final l10n = AppLocalizations.of(context)!;
     if (provider.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -132,7 +135,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => provider.fetchAppointments(),
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -140,9 +143,9 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
     }
 
     List<AppointmentModel> appointments;
-    if (selectedTab == "Pending") {
+    if (selectedTab == l10n.pending) {
       appointments = provider.pendingAppointments;
-    } else if (selectedTab == "Confirmed") {
+    } else if (selectedTab == l10n.confirmed) {
       appointments = provider.acceptedAppointments;
     } else {
       appointments = provider.completedAppointments;
@@ -156,7 +159,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
             Icon(Icons.event_busy, size: 80, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              'No $selectedTab appointments',
+              l10n.noAppointments(selectedTab),
               style: TextStyle(fontSize: 18, color: Colors.grey[600]),
             ),
           ],
@@ -171,9 +174,10 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
         itemCount: appointments.length,
         itemBuilder: (context, index) {
           final appointment = appointments[index];
-          if (selectedTab == "Pending") {
+          final l10n = AppLocalizations.of(context)!;
+          if (selectedTab == l10n.pending) {
             return _buildPendingCard(appointment, provider);
-          } else if (selectedTab == "Confirmed") {
+          } else if (selectedTab == l10n.confirmed) {
             return _buildConfirmedCard(appointment, provider);
           } else {
             return _buildCompletedCard(appointment);
@@ -205,11 +209,11 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
     );
   }
 
-  // Pending Card
   Widget _buildPendingCard(
     AppointmentModel appointment,
     AppointmentProvider provider,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(15),
@@ -251,7 +255,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                           ),
                         ),
                         _statusBadge(
-                          "Pending",
+                          l10n.pending,
                           const Color(0xFFFFF7E6),
                           const Color(0xFFFAAD14),
                         ),
@@ -285,7 +289,9 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'For: ${appointment.bookedFor!.bookingLabel}',
+                              l10n.forDependent(
+                                appointment.bookedFor!.bookingLabel,
+                              ),
                               style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -320,7 +326,9 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                   appointment.appointmentType == "video"
                       ? Icons.videocam_outlined
                       : Icons.location_on_outlined,
-                  appointment.appointmentType ?? 'Physical',
+                  appointment.appointmentType == "video"
+                      ? "Video"
+                      : l10n.physical,
                 ),
               ],
             ),
@@ -366,7 +374,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
             children: [
               Expanded(
                 child: _actionBtn(
-                  "Cancel",
+                  l10n.cancel,
                   const Color(0xFFD93D57),
                   Colors.white,
                   () => _handleCancel(appointment.id, provider),
@@ -375,7 +383,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
               const SizedBox(width: 15),
               Expanded(
                 child: _actionBtn(
-                  "Accept",
+                  l10n.accept,
                   const Color(0xFFC6F2D6),
                   const Color(0xFF27AE60),
                   () => _handleAccept(appointment.id, provider),
@@ -388,11 +396,11 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
     );
   }
 
-  // Confirmed Card
   Widget _buildConfirmedCard(
     AppointmentModel appointment,
     AppointmentProvider provider,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(15),
@@ -477,7 +485,9 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                           appointment.appointmentType == "video"
                               ? Icons.videocam_outlined
                               : Icons.location_on_outlined,
-                          appointment.appointmentType ?? 'Physical',
+                          appointment.appointmentType == "video"
+                              ? "Video"
+                              : l10n.physical,
                         ),
                         _smallIconText(
                           Icons.calendar_today_outlined,
@@ -535,7 +545,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
             children: [
               Expanded(
                 child: _actionBtn(
-                  "Cancel",
+                  l10n.cancel,
                   const Color(0xFFD93D57),
                   Colors.white,
                   () => _handleCancel(appointment.id, provider),
@@ -547,7 +557,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
           SizedBox(
             width: double.infinity,
             child: _actionBtn(
-              "Start Session",
+              l10n.startSession,
               const Color(0xFF0B3267),
               Colors.white,
               () => _handleStartSession(appointment),
@@ -560,6 +570,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
 
   // Completed Card
   Widget _buildCompletedCard(AppointmentModel appointment) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(15),
@@ -599,7 +610,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                       ),
                     ),
                     _statusBadge(
-                      "Completed",
+                      l10n.completed,
                       const Color(0xFFF6FFED),
                       const Color(0xFF52C41A),
                     ),
@@ -654,7 +665,9 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                       appointment.appointmentType == "video"
                           ? Icons.videocam_outlined
                           : Icons.location_on_outlined,
-                      appointment.appointmentType ?? 'Physical',
+                      appointment.appointmentType == "video"
+                          ? "Video"
+                          : l10n.physical,
                     ),
                     _smallIconText(
                       Icons.calendar_today_outlined,
@@ -676,6 +689,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
 
   // ✅ NEW: Show Appointment Details Bottom Sheet
   void _showAppointmentDetails(AppointmentModel appointment) {
+    final l10n = AppLocalizations.of(context)!;
     // ✅ Debug logs
     debugPrint('🔍 Showing details for appointment: ${appointment.id}');
     debugPrint('📋 Appointment Type: ${appointment.appointmentType}');
@@ -718,9 +732,9 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                   children: [
                     const Icon(Icons.info_outline, color: Color(0xFF1664CD)),
                     const SizedBox(width: 10),
-                    const Text(
-                      'Appointment Details',
-                      style: TextStyle(
+                    Text(
+                      l10n.appointmentDetails,
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
@@ -745,7 +759,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                     // Patient Info
                     _detailSection(
                       icon: Icons.person,
-                      title: 'Patient Information',
+                      title: l10n.patientInformation,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -759,7 +773,9 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                           if (appointment.bookedFor != null &&
                               appointment.bookedFor!.type == 'dependent')
                             Text(
-                              'Booked for: ${appointment.bookedFor!.bookingLabel}',
+                              l10n.bookedFor(
+                                appointment.bookedFor!.bookingLabel,
+                              ),
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[700],
@@ -774,12 +790,12 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                     // Symptoms Section
                     _detailSection(
                       icon: Icons.medical_information_outlined,
-                      title: 'Symptoms',
+                      title: l10n.symptoms,
                       child: Text(
                         appointment.symptoms != null &&
                                 appointment.symptoms!.isNotEmpty
                             ? appointment.symptoms!
-                            : 'No symptoms provided',
+                            : l10n.noSymptoms,
                         style: TextStyle(
                           fontSize: 14,
                           color:
@@ -797,7 +813,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                     // Medical Documents Section
                     _detailSection(
                       icon: Icons.attachment,
-                      title: 'Medical Documents',
+                      title: l10n.medicalDocuments,
                       child:
                           appointment.medicalDocuments != null &&
                               appointment.medicalDocuments!.isNotEmpty
@@ -805,7 +821,9 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '${appointment.medicalDocuments!.length} document(s) uploaded',
+                                  l10n.docsUploaded(
+                                    appointment.medicalDocuments!.length,
+                                  ),
                                   style: const TextStyle(
                                     fontSize: 13,
                                     color: Colors.grey,
@@ -871,9 +889,9 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                                 }),
                               ],
                             )
-                          : const Text(
-                              'No medical documents uploaded',
-                              style: TextStyle(
+                          : Text(
+                              l10n.noDocsUploaded,
+                              style: const TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey,
                               ),
@@ -883,61 +901,59 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                     const SizedBox(height: 16),
 
                     // Payment Screenshot (if video call)
-                    if (appointment.appointmentType?.toLowerCase() == "video")
-                      _detailSection(
-                        icon: Icons.payment,
-                        title: 'Payment Screenshot',
-                        child:
-                            appointment.paymentScreenshot != null &&
-                                appointment.paymentScreenshot!.isNotEmpty
-                            ? GestureDetector(
-                                onTap: () => _viewDocument(
-                                  appointment.paymentScreenshot!,
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF0F7FF),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: const Color(
-                                        0xFF1664CD,
-                                      ).withOpacity(0.2),
-                                    ),
+                    _detailSection(
+                      icon: Icons.payment,
+                      title: l10n.paymentScreenshot,
+                      child:
+                          appointment.paymentScreenshot != null &&
+                              appointment.paymentScreenshot!.isNotEmpty
+                          ? GestureDetector(
+                              onTap: () =>
+                                  _viewDocument(appointment.paymentScreenshot!),
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF0F7FF),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: const Color(
+                                      0xFF1664CD,
+                                    ).withOpacity(0.2),
                                   ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.receipt_long,
-                                        color: Color(0xFF1664CD),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      const Expanded(
-                                        child: Text(
-                                          'View Payment Screenshot',
-                                          style: TextStyle(
-                                            color: Color(0xFF1664CD),
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.receipt_long,
+                                      color: Color(0xFF1664CD),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        l10n.viewPaymentScreenshot,
+                                        style: const TextStyle(
+                                          color: Color(0xFF1664CD),
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
-                                      const Icon(
-                                        Icons.visibility,
-                                        color: Color(0xFF1664CD),
-                                        size: 20,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              )
-                            : const Text(
-                                'No payment screenshot uploaded',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
+                                    ),
+                                    const Icon(
+                                      Icons.visibility,
+                                      color: Color(0xFF1664CD),
+                                      size: 20,
+                                    ),
+                                  ],
                                 ),
                               ),
-                      ),
+                            )
+                          : Text(
+                              l10n.noPaymentScreenshot,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                    ),
                   ],
                 ),
               ),
@@ -985,6 +1001,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
   }
 
   void _viewDocument(String url) async {
+    final l10n = AppLocalizations.of(context)!;
     // Show loading
     showDialog(
       context: context,
@@ -1077,7 +1094,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
       Navigator.pop(context); // Close loading if still open
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error opening document: $e'),
+          content: Text(l10n.errorOpeningDoc(e.toString())),
           backgroundColor: Colors.red,
         ),
       );
@@ -1126,6 +1143,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
   }
 
   void _handleAccept(String appointmentId, AppointmentProvider provider) async {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1145,9 +1163,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              success
-                  ? 'Appointment accepted successfully'
-                  : 'Failed to accept appointment',
+              success ? l10n.appointmentAccepted : l10n.failedAccept,
             ),
             backgroundColor: success ? Colors.green : Colors.red,
           ),
@@ -1164,17 +1180,16 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
   }
 
   void _handleCancel(String appointmentId, AppointmentProvider provider) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cancel Appointment'),
-        content: const Text(
-          'Are you sure you want to cancel this appointment?',
-        ),
+        title: Text(l10n.cancelAppointment),
+        content: Text(l10n.confirmCancel),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('No'),
+            child: Text(l10n.no),
           ),
           TextButton(
             onPressed: () async {
@@ -1200,9 +1215,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        success
-                            ? 'Appointment cancelled'
-                            : 'Failed to cancel appointment',
+                        success ? l10n.appointmentCancelled : l10n.failedCancel,
                       ),
                       backgroundColor: success ? Colors.orange : Colors.red,
                     ),
@@ -1222,7 +1235,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                 }
               }
             },
-            child: const Text('Yes', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.yes, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -1243,7 +1256,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
   }
 }
 
-// ✅ Image Viewer Screen for viewing uploaded documents
+//  Image Viewer Screen for viewing uploaded documents
 class _ImageViewerScreen extends StatefulWidget {
   final String imageUrl;
 
@@ -1269,6 +1282,7 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -1277,15 +1291,15 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
           icon: const Icon(Icons.close, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Medical Document',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          l10n.medicalDocument,
+          style: const TextStyle(color: Colors.white),
         ),
         actions: [
-          // ✅ Reset Zoom Button
+          //  Reset Zoom Button
           IconButton(
             icon: const Icon(Icons.zoom_out_map, color: Colors.white),
-            tooltip: 'Reset Zoom',
+            tooltip: l10n.resetZoom,
             onPressed: _resetZoom,
           ),
         ],
@@ -1297,7 +1311,7 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
               transformationController: _transformationController,
               panEnabled: true,
               minScale: 0.5,
-              maxScale: 5.0, // ✅ Increased max zoom
+              maxScale: 5.0, //  Increased max zoom
               child: Image.network(
                 widget.imageUrl,
                 fit: BoxFit.contain,
@@ -1316,7 +1330,7 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Loading image...',
+                          l10n.loadingImage,
                           style: TextStyle(color: Colors.grey[400]),
                         ),
                       ],
@@ -1335,7 +1349,7 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Failed to load image',
+                          l10n.failedLoadImage,
                           style: TextStyle(color: Colors.grey[400]),
                         ),
                         const SizedBox(height: 8),
@@ -1379,7 +1393,7 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
                     Icon(Icons.pinch, color: Colors.grey[400], size: 16),
                     const SizedBox(width: 8),
                     Text(
-                      'Pinch to zoom • Drag to pan',
+                      l10n.zoomInstructions,
                       style: TextStyle(color: Colors.grey[400], fontSize: 12),
                     ),
                   ],

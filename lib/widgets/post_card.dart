@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:docmobi/models/post_model.dart';
 import 'package:docmobi/services/api_service.dart';
 import 'package:video_player/video_player.dart';
@@ -28,7 +29,7 @@ class _PostCardState extends State<PostCard> {
   bool _isVideoInitialized = false;
   bool _isLiking = false;
   bool _isMuted = true;
-  
+
   @override
   void initState() {
     super.initState();
@@ -80,16 +81,17 @@ class _PostCardState extends State<PostCard> {
         setState(() {
           _currentPost = _currentPost.copyWith(
             isLiked: !_currentPost.isLiked,
-            likesCount: _currentPost.isLiked 
-                ? _currentPost.likesCount - 1 
+            likesCount: _currentPost.isLiked
+                ? _currentPost.likesCount - 1
                 : _currentPost.likesCount + 1,
           );
         });
       } else {
         if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message'] ?? 'Failed to like post'),
+              content: Text(result['message'] ?? l10n.failedLikePost),
               backgroundColor: Colors.red,
             ),
           );
@@ -122,9 +124,9 @@ class _PostCardState extends State<PostCard> {
               if (isOwnPost) ...[
                 ListTile(
                   leading: const Icon(Icons.delete, color: Colors.red),
-                  title: const Text(
-                    'Delete Post',
-                    style: TextStyle(color: Colors.red),
+                  title: Text(
+                    AppLocalizations.of(context)!.deletePost,
+                    style: const TextStyle(color: Colors.red),
                   ),
                   onTap: () {
                     Navigator.pop(context);
@@ -134,12 +136,13 @@ class _PostCardState extends State<PostCard> {
               ] else ...[
                 ListTile(
                   leading: const Icon(Icons.report),
-                  title: const Text('Report Post'),
+                  title: Text(AppLocalizations.of(context)!.reportPost),
                   onTap: () {
                     Navigator.pop(context);
+                    final l10n = AppLocalizations.of(context)!;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Report - Coming soon!'),
+                      SnackBar(
+                        content: Text(l10n.reportComingSoon),
                         backgroundColor: Colors.orange,
                       ),
                     );
@@ -148,7 +151,7 @@ class _PostCardState extends State<PostCard> {
               ],
               ListTile(
                 leading: const Icon(Icons.cancel),
-                title: const Text('Cancel'),
+                title: Text(AppLocalizations.of(context)!.cancel),
                 onTap: () => Navigator.pop(context),
               ),
             ],
@@ -161,24 +164,27 @@ class _PostCardState extends State<PostCard> {
   void _confirmDelete() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Post'),
-        content: const Text('Are you sure you want to delete this post?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _deletePost();
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
+        return AlertDialog(
+          title: Text(l10n.deletePost),
+          content: Text(l10n.confirmDeletePost),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _deletePost();
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: Text(l10n.delete),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -187,19 +193,20 @@ class _PostCardState extends State<PostCard> {
       final result = await ApiService.deletePost(_currentPost.id);
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         if (result['success'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✓ Post deleted successfully'),
+            SnackBar(
+              content: Text(l10n.postDeletedSuccessfully),
               backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
+              duration: const Duration(seconds: 2),
             ),
           );
           widget.onPostUpdated();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message'] ?? 'Failed to delete post'),
+              content: Text(result['message'] ?? l10n.failedDeletePost),
               backgroundColor: Colors.red,
             ),
           );
@@ -222,11 +229,11 @@ class _PostCardState extends State<PostCard> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
-                padding: EdgeInsets.all(16.0),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Text(
-                  'Share Post',
-                  style: TextStyle(
+                  AppLocalizations.of(context)!.sharePost,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -234,7 +241,7 @@ class _PostCardState extends State<PostCard> {
               ),
               ListTile(
                 leading: const Icon(Icons.share, color: Colors.blue),
-                title: const Text('Share Externally'),
+                title: Text(AppLocalizations.of(context)!.shareExternally),
                 onTap: () {
                   Navigator.pop(context);
                   _shareExternal();
@@ -242,12 +249,13 @@ class _PostCardState extends State<PostCard> {
               ),
               ListTile(
                 leading: const Icon(Icons.message, color: Colors.green),
-                title: const Text('Send Message'),
+                title: Text(AppLocalizations.of(context)!.sendMessage),
                 onTap: () {
                   Navigator.pop(context);
+                  final l10n = AppLocalizations.of(context)!;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Share to message - Coming soon!'),
+                    SnackBar(
+                      content: Text(l10n.shareMessageComingSoon),
                       backgroundColor: Colors.blue,
                     ),
                   );
@@ -255,7 +263,7 @@ class _PostCardState extends State<PostCard> {
               ),
               ListTile(
                 leading: const Icon(Icons.cancel),
-                title: const Text('Cancel'),
+                title: Text(AppLocalizations.of(context)!.cancel),
                 onTap: () => Navigator.pop(context),
               ),
             ],
@@ -267,18 +275,20 @@ class _PostCardState extends State<PostCard> {
 
   Future<void> _shareExternal() async {
     try {
-      String shareText = '${_currentPost.author.fullName} posted:\n\n';
+      final l10n = AppLocalizations.of(context)!;
+      String shareText =
+          '${l10n.authorPosted(_currentPost.author.fullName)}\n\n';
       shareText += _currentPost.content;
-      
+
       if (_currentPost.media.isNotEmpty) {
         final images = _currentPost.media.where((m) => m.isImage).toList();
         final videos = _currentPost.media.where((m) => m.isVideo).toList();
-        
+
         if (images.isNotEmpty) {
-          shareText += '\n\n📷 ${images.length} image(s)';
+          shareText += '\n\n📷 ${l10n.imagesCount(images.length)}';
         }
         if (videos.isNotEmpty) {
-          shareText += '\n\n🎥 ${videos.length} video(s)';
+          shareText += '\n\n🎥 ${l10n.videosCount(videos.length)}';
         }
       }
 
@@ -337,7 +347,7 @@ class _PostCardState extends State<PostCard> {
                     backgroundImage: _currentPost.author.avatar != null
                         ? NetworkImage(_currentPost.author.avatar!)
                         : const AssetImage('assets/images/doctor_booking.png')
-                            as ImageProvider,
+                              as ImageProvider,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -368,7 +378,7 @@ class _PostCardState extends State<PostCard> {
                           ],
                         ),
                         Text(
-                          '${_currentPost.author.specialty ?? "Doctor"} • ${_currentPost.timeAgo}',
+                          '${_currentPost.author.specialty ?? AppLocalizations.of(context)!.doctor} • ${_currentPost.timeAgo}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
@@ -405,27 +415,24 @@ class _PostCardState extends State<PostCard> {
             child: Row(
               children: [
                 Text(
-                  '${_currentPost.likesCount} ${_currentPost.likesCount == 1 ? 'like' : 'likes'}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  AppLocalizations.of(
+                    context,
+                  )!.likesCount(_currentPost.likesCount),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 const Spacer(),
                 Text(
-                  '${_currentPost.commentsCount} ${_currentPost.commentsCount == 1 ? 'comment' : 'comments'}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  AppLocalizations.of(
+                    context,
+                  )!.commentsCount(_currentPost.commentsCount),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  '${_currentPost.sharesCount} ${_currentPost.sharesCount == 1 ? 'share' : 'shares'}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  AppLocalizations.of(
+                    context,
+                  )!.sharesCount(_currentPost.sharesCount),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),
@@ -440,19 +447,19 @@ class _PostCardState extends State<PostCard> {
                 icon: _currentPost.isLiked
                     ? Icons.favorite
                     : Icons.favorite_border,
-                label: 'Like',
+                label: AppLocalizations.of(context)!.likeLabel,
                 color: _currentPost.isLiked ? Colors.red : Colors.grey,
                 onTap: _toggleLike,
               ),
               _buildActionButton(
                 icon: Icons.chat_bubble_outline,
-                label: 'Comment',
+                label: AppLocalizations.of(context)!.commentLabel,
                 color: Colors.grey,
                 onTap: _showComments,
               ),
               _buildActionButton(
                 icon: Icons.share_outlined,
-                label: 'Share',
+                label: AppLocalizations.of(context)!.shareLabel,
                 color: Colors.grey,
                 onTap: _showShareOptions,
               ),
@@ -509,17 +516,12 @@ class _PostCardState extends State<PostCard> {
                 return Container(
                   height: 250,
                   color: Colors.grey[300],
-                  child: const Center(
-                    child: Icon(Icons.error, size: 50),
-                  ),
+                  child: const Center(child: Icon(Icons.error, size: 50)),
                 );
               },
             )
           else
-            Container(
-              height: 250,
-              color: Colors.grey[300],
-            ),
+            Container(height: 250, color: Colors.grey[300]),
           Positioned.fill(
             child: Center(
               child: Container(
@@ -545,7 +547,7 @@ class _PostCardState extends State<PostCard> {
           aspectRatio: _videoController!.value.aspectRatio,
           child: VideoPlayer(_videoController!),
         ),
-        
+
         Positioned.fill(
           child: GestureDetector(
             onTap: () {
@@ -578,7 +580,7 @@ class _PostCardState extends State<PostCard> {
             ),
           ),
         ),
-        
+
         Positioned(
           top: 10,
           right: 10,
@@ -612,9 +614,7 @@ class _PostCardState extends State<PostCard> {
           return Container(
             height: 200,
             color: Colors.grey[300],
-            child: const Center(
-              child: Icon(Icons.error, size: 50),
-            ),
+            child: const Center(child: Icon(Icons.error, size: 50)),
           );
         },
       ),
@@ -625,16 +625,14 @@ class _PostCardState extends State<PostCard> {
     if (images.length == 2) {
       return Row(
         children: images
-            .map((img) => Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(1),
-                    child: Image.network(
-                      img.url,
-                      height: 200,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ))
+            .map(
+              (img) => Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(1),
+                  child: Image.network(img.url, height: 200, fit: BoxFit.cover),
+                ),
+              ),
+            )
             .toList(),
       );
     }
@@ -653,10 +651,7 @@ class _PostCardState extends State<PostCard> {
           return Stack(
             fit: StackFit.expand,
             children: [
-              Image.network(
-                images[index].url,
-                fit: BoxFit.cover,
-              ),
+              Image.network(images[index].url, fit: BoxFit.cover),
               Container(
                 color: Colors.black54,
                 child: Center(
@@ -673,10 +668,7 @@ class _PostCardState extends State<PostCard> {
             ],
           );
         }
-        return Image.network(
-          images[index].url,
-          fit: BoxFit.cover,
-        );
+        return Image.network(images[index].url, fit: BoxFit.cover);
       },
     );
   }
@@ -800,16 +792,14 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Colors.grey[300]!),
-                ),
+                border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Comments',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context)!.commentsLabel,
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -826,53 +816,54 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _comments.isEmpty
-                      ? const Center(child: Text('No comments yet'))
-                      : ListView.builder(
-                          controller: scrollController,
-                          itemCount: _comments.length,
-                          itemBuilder: (context, index) {
-                            final comment = _comments[index];
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundImage: comment.author.avatar != null
-                                    ? NetworkImage(comment.author.avatar!)
-                                    : const AssetImage(
-                                            'assets/images/doctor_booking.png')
-                                        as ImageProvider,
-                              ),
-                              title: Text(
-                                comment.author.fullName,
+                  ? Center(
+                      child: Text(AppLocalizations.of(context)!.noCommentsYet),
+                    )
+                  : ListView.builder(
+                      controller: scrollController,
+                      itemCount: _comments.length,
+                      itemBuilder: (context, index) {
+                        final comment = _comments[index];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: comment.author.avatar != null
+                                ? NetworkImage(comment.author.avatar!)
+                                : const AssetImage(
+                                        'assets/images/doctor_booking.png',
+                                      )
+                                      as ImageProvider,
+                          ),
+                          title: Text(
+                            comment.author.fullName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(comment.content),
+                              const SizedBox(height: 4),
+                              Text(
+                                comment.timeAgo,
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                                  fontSize: 12,
+                                  color: Colors.grey,
                                 ),
                               ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(comment.content),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    comment.timeAgo,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
             ),
 
             Container(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
               decoration: BoxDecoration(
                 color: Colors.white,
-                border: Border(
-                  top: BorderSide(color: Colors.grey[300]!),
-                ),
+                border: Border(top: BorderSide(color: Colors.grey[300]!)),
               ),
               child: SafeArea(
                 child: Row(
@@ -882,7 +873,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                       child: TextField(
                         controller: _commentController,
                         decoration: InputDecoration(
-                          hintText: 'Write a comment...',
+                          hintText: AppLocalizations.of(context)!.writeComment,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(25),
                           ),

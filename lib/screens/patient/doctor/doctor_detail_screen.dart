@@ -1,7 +1,5 @@
-// screens/patient/doctor/doctor_detail_screen.dart
-// ✅ UPDATED with Review Section
-
 import 'package:flutter/material.dart';
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:docmobi/models/doctor_model.dart';
 import 'package:docmobi/services/api_service.dart';
 import 'package:docmobi/screens/patient/messages/patient_chat_screen.dart';
@@ -65,6 +63,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final bool hasVideoCall =
         widget.doctor.isVideoCallAvailable; // ✅ Read from model
 
@@ -133,7 +132,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                                   width: 1.5,
                                 ),
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
@@ -143,8 +142,8 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                                   ),
                                   SizedBox(width: 6),
                                   Text(
-                                    'Video Consultation Available',
-                                    style: TextStyle(
+                                    l10n.videoAvailable,
+                                    style: const TextStyle(
                                       color: Color(0xFF1565C0),
                                       fontWeight: FontWeight.w600,
                                       fontSize: 13,
@@ -167,7 +166,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                                   width: 1.5,
                                 ),
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
@@ -177,8 +176,8 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                                   ),
                                   SizedBox(width: 6),
                                   Text(
-                                    'In-Person Only',
-                                    style: TextStyle(
+                                    l10n.inPersonOnly,
+                                    style: const TextStyle(
                                       color: Color(0xFFE65100),
                                       fontWeight: FontWeight.w600,
                                       fontSize: 13,
@@ -204,7 +203,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                                 color: Colors.orange,
                               ),
                               Text(
-                                " ${_avgRating.toStringAsFixed(1)} ($_totalReviews reviews)",
+                                " ${_avgRating.toStringAsFixed(1)} ${l10n.reviewsCount(_totalReviews)}",
                               ),
                             ],
                           ),
@@ -221,9 +220,12 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                 const SizedBox(height: 25),
 
                 // Bio
-                const Text(
-                  "Bio",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                Text(
+                  l10n.bio,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -240,9 +242,9 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "Specialty",
-                          style: TextStyle(
+                        Text(
+                          l10n.specialty,
+                          style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
                           ),
@@ -255,9 +257,9 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "Degree",
-                          style: TextStyle(
+                        Text(
+                          l10n.degree,
+                          style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
                           ),
@@ -274,7 +276,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
 
                 // Fees
                 Text(
-                  "Fees: ${widget.doctor.fees?['amount'] ?? 500} DZD",
+                  "${l10n.fees}: ${widget.doctor.fees?['amount'] ?? 500} ${l10n.dzd}",
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -304,9 +306,9 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                       Icons.message_outlined,
                       color: Color(0xFF6C5CE7),
                     ),
-                    label: const Text(
-                      "Message Doctor",
-                      style: TextStyle(
+                    label: Text(
+                      l10n.messageDoctor,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF6C5CE7),
@@ -333,7 +335,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                     onPressed: () {
                       if (widget.doctor.id.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Invalid Doctor')),
+                          SnackBar(content: Text(l10n.invalidDoctor)),
                         );
                         return;
                       }
@@ -351,9 +353,9 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                         borderRadius: BorderRadius.circular(15),
                       ),
                     ),
-                    child: const Text(
-                      "Book Now",
-                      style: TextStyle(
+                    child: Text(
+                      l10n.bookNow,
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -387,9 +389,10 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
   }
 
   String _getVisitingHours() {
+    final l10n = AppLocalizations.of(context)!;
     if (widget.doctor.weeklySchedule == null ||
         widget.doctor.weeklySchedule!.isEmpty) {
-      return 'Visiting Hours: Not set';
+      return '${l10n.visitingHours}: ${l10n.notSet}';
     }
 
     List<String> activeDays = [];
@@ -400,17 +403,18 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
     }
 
     if (activeDays.isEmpty) {
-      return 'Visiting Hours: Not set';
+      return '${l10n.visitingHours}: ${l10n.notSet}';
     }
 
     if (activeDays.length <= 3) {
-      return 'Visiting Hours: ${activeDays.join(', ')}';
+      return '${l10n.visitingHours}: ${activeDays.join(', ')}';
     } else {
-      return 'Visiting Hours: ${activeDays.first}-${activeDays.last}';
+      return '${l10n.visitingHours}: ${activeDays.first}-${activeDays.last}';
     }
   }
 
   void _openChatWithDoctor(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -423,8 +427,8 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
       if (doctorId.isEmpty) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Doctor ID not found'),
+          SnackBar(
+            content: Text(l10n.doctorIdNotFound),
             backgroundColor: Colors.red,
           ),
         );
@@ -445,8 +449,8 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
 
         if (chatId == null || chatId.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to create chat'),
+            SnackBar(
+              content: Text(l10n.failedCreateChat),
               backgroundColor: Colors.red,
             ),
           );
@@ -489,7 +493,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message'] ?? 'Failed to open chat'),
+            content: Text(result['message'] ?? l10n.failedOpenChat),
             backgroundColor: Colors.red,
           ),
         );

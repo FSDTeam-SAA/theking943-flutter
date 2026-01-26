@@ -7,7 +7,8 @@ class ApiConfig {
   // ═══════════════════════════════════════════════════════════════
 
   /// Production URL (Render) - ALWAYS works
-  static const String prodUrl = 'https://thekingbackend.onrender.com';
+  // static const String prodUrl = 'https://thekingbackend.onrender.com';
+  static const String prodUrl = 'https://api.docmobidz.com';
 
   /// Development URLs
   static const String localhostUrl = 'http://localhost:5005';
@@ -57,7 +58,7 @@ class ApiConfig {
   static const String register = '/api/v1/auth/register';
   static const String login = '/api/v1/auth/login';
   static const String logout = '/api/v1/auth/logout';
-  static const String forgotPassword = '/api/v1/auth/forgot-password';
+  static const String forgotPassword = '/api/v1/auth/forget';
   static const String resetPassword = '/api/v1/auth/reset-password';
   static const String verifyOTP = '/api/v1/auth/verify-otp';
   static const String refreshToken = '/api/v1/auth/refresh-token';

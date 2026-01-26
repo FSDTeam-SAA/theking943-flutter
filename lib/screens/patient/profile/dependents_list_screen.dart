@@ -2,6 +2,7 @@
 // 1️⃣ UPDATED: dependents_list_screen.dart
 // ============================================
 
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:docmobi/providers/dependent_provider.dart';
@@ -34,9 +35,9 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'My Dependents',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.myDependents,
+          style: const TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.bold,
             fontSize: 20,
@@ -45,7 +46,10 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_circle_outline, color: Color(0xFF0D53C1)),
+            icon: const Icon(
+              Icons.add_circle_outline,
+              color: Color(0xFF0D53C1),
+            ),
             onPressed: () => _navigateToAdd(),
           ),
         ],
@@ -77,7 +81,10 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0D53C1),
                     ),
-                    child: const Text('Retry', style: TextStyle(color: Colors.white)),
+                    child: Text(
+                      AppLocalizations.of(context)!.retry,
+                      style: const TextStyle(color: Colors.white),
+                    ),
                   ),
                 ],
               ),
@@ -94,7 +101,7 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
                   Icon(Icons.people_outline, size: 80, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
-                    'No dependents added yet',
+                    AppLocalizations.of(context)!.noDependentsAdded,
                     style: TextStyle(
                       fontSize: 18,
                       color: Colors.grey[600],
@@ -112,9 +119,9 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
                       ),
                     ),
                     icon: const Icon(Icons.add, color: Colors.white),
-                    label: const Text(
-                      'Add Dependent',
-                      style: TextStyle(color: Colors.white),
+                    label: Text(
+                      AppLocalizations.of(context)!.addDependent,
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ),
                 ],
@@ -142,7 +149,10 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
     );
   }
 
-  Widget _buildDependentCard(DependentModel dependent, DependentProvider provider) {
+  Widget _buildDependentCard(
+    DependentModel dependent,
+    DependentProvider provider,
+  ) {
     final bool isActive = dependent.isActive ?? true;
 
     return Container(
@@ -212,9 +222,9 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
                                 color: Colors.orange.shade50,
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: const Text(
-                                'Inactive',
-                                style: TextStyle(
+                              child: Text(
+                                AppLocalizations.of(context)!.inactive,
+                                style: const TextStyle(
                                   fontSize: 10,
                                   color: Colors.orange,
                                   fontWeight: FontWeight.bold,
@@ -248,18 +258,27 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
               child: Column(
                 children: [
                   if (dependent.age != null) ...[
-                    _buildInfoRow(Icons.cake_outlined, 'Age', dependent.age!),
+                    _buildInfoRow(
+                      Icons.cake_outlined,
+                      AppLocalizations.of(context)!.ageLabel,
+                      dependent.age!,
+                    ),
                     const SizedBox(height: 8),
                   ],
                   if (dependent.gender != null)
                     _buildInfoRow(
                       Icons.person_outline,
-                      'Gender',
-                      dependent.gender!,
+                      AppLocalizations.of(context)!.genderLabel,
+                      _getLocalizedGender(dependent.gender!),
                     ),
-                  if (dependent.phone != null && dependent.phone!.isNotEmpty) ...[
+                  if (dependent.phone != null &&
+                      dependent.phone!.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    _buildInfoRow(Icons.phone_outlined, 'Contact', dependent.phone!),
+                    _buildInfoRow(
+                      Icons.phone_outlined,
+                      AppLocalizations.of(context)!.contactLabel,
+                      dependent.phone!,
+                    ),
                   ],
                 ],
               ),
@@ -310,7 +329,7 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     icon: const Icon(Icons.edit, size: 18),
-                    label: const Text('Edit'),
+                    label: Text(AppLocalizations.of(context)!.edit),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -326,7 +345,7 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     icon: const Icon(Icons.delete_outline, size: 18),
-                    label: const Text('Delete'),
+                    label: Text(AppLocalizations.of(context)!.delete),
                   ),
                 ),
               ],
@@ -371,11 +390,9 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
   }
 
   void _navigateToEdit(DependentModel dependent) {
-    Navigator.pushNamed(
-      context,
-      '/edit-dependent',
-      arguments: dependent,
-    ).then((_) {
+    Navigator.pushNamed(context, '/edit-dependent', arguments: dependent).then((
+      _,
+    ) {
       context.read<DependentProvider>().fetchDependents();
     });
   }
@@ -384,9 +401,7 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
             Container(
@@ -402,10 +417,10 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
-                'Delete Dependent?',
-                style: TextStyle(fontSize: 18),
+                AppLocalizations.of(context)!.deleteDependentTitle,
+                style: const TextStyle(fontSize: 18),
               ),
             ),
           ],
@@ -415,7 +430,9 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Are you sure you want to delete "${dependent.fullName}"?',
+              AppLocalizations.of(
+                context,
+              )!.deleteDependentConfirm(dependent.fullName),
               style: const TextStyle(fontSize: 15),
             ),
             const SizedBox(height: 12),
@@ -434,10 +451,10 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
                     color: Colors.orange.shade700,
                   ),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'If they have active appointments, you must cancel those first.',
-                      style: TextStyle(fontSize: 12),
+                      AppLocalizations.of(context)!.deleteDependentWarning,
+                      style: const TextStyle(fontSize: 12),
                     ),
                   ),
                 ],
@@ -448,7 +465,7 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -459,7 +476,7 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete'),
+            child: Text(AppLocalizations.of(context)!.delete),
           ),
         ],
       ),
@@ -467,133 +484,139 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
   }
 
   Future<void> _deleteDependent(
-  DependentModel dependent,
-  DependentProvider provider,
-) async {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => const Center(
-      child: CircularProgressIndicator(),
-    ),
-  );
+    DependentModel dependent,
+    DependentProvider provider,
+  ) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
 
-  final success = await provider.deleteDependent(dependent.id);
+    final success = await provider.deleteDependent(dependent.id);
 
-  if (mounted) {
-    Navigator.pop(context); // Close loading
+    if (mounted) {
+      Navigator.pop(context); // Close loading
 
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${dependent.fullName} deleted successfully'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } else {
-      final errorMessage = provider.error ?? 'Failed to delete dependent';
-      
-      // ✅ UPDATED: Better error dialog with "Go to Appointments" button
-      showDialog(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.dependentDeletedSuccess(dependent.fullName),
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
           ),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(8),
+        );
+      } else {
+        final errorMessage = provider.error ?? 'Failed to delete dependent';
+
+        // ✅ UPDATED: Better error dialog with "Go to Appointments" button
+        showDialog(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.error_outline,
+                    color: Colors.red.shade700,
+                    size: 24,
+                  ),
                 ),
-                child: Icon(
-                  Icons.error_outline,
-                  color: Colors.red.shade700,
-                  size: 24,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    AppLocalizations.of(context)!.cannotDeleteTitle,
+                    style: const TextStyle(fontSize: 18),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Cannot Delete',
-                  style: TextStyle(fontSize: 18),
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                errorMessage,
-                style: const TextStyle(fontSize: 15),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.lightbulb_outline,
-                          size: 18,
-                          color: Colors.blue.shade700,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'How to fix:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(errorMessage, style: const TextStyle(fontSize: 15)),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.lightbulb_outline,
+                            size: 18,
+                            color: Colors.blue.shade700,
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '1. Go to My Appointments\n'
-                      '2. Cancel any pending/accepted appointments for this dependent\n'
-                      '3. Then try deleting again',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ],
+                          const SizedBox(width: 8),
+                          Text(
+                            AppLocalizations.of(context)!.howToFix,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        AppLocalizations.of(context)!.deleteFixInstructions,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(AppLocalizations.of(context)!.close),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext); // Close dialog
+                  Navigator.pushNamed(context, '/my-appointments');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0D53C1),
+                ),
+                child: Text(
+                  AppLocalizations.of(context)!.goToAppointments,
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Close'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(dialogContext); // Close dialog
-                Navigator.pushNamed(context, '/my-appointments'); // ✅ Navigate to appointments
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0D53C1),
-              ),
-              child: const Text(
-                'Go to Appointments',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      );
+        );
+      }
     }
   }
-}
+
+  String _getLocalizedGender(String gender) {
+    if (context.mounted) {
+      final l10n = AppLocalizations.of(context)!;
+      if (gender.toLowerCase() == 'male') return l10n.male;
+      if (gender.toLowerCase() == 'female') return l10n.female;
+    }
+    return gender;
+  }
 }

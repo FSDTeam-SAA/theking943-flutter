@@ -1,3 +1,4 @@
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:docmobi/screens/doctor/navigation/doctor_main_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -76,9 +77,10 @@ class _DoctorReelsScreenState extends State<DoctorReelsScreen> {
         isLoading = false;
       });
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error loading reels: $e')));
+        ).showSnackBar(SnackBar(content: Text('${l10n.failedLoadReels}: $e')));
       }
     }
   }
@@ -143,9 +145,9 @@ class _DoctorReelsScreenState extends State<DoctorReelsScreen> {
             );
           },
         ),
-        title: const Text(
-          'Reels',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.reelsLabel,
+          style: const TextStyle(
             color: Color(0xFF1A1A1A),
             fontWeight: FontWeight.w600,
             fontSize: 18,
@@ -162,17 +164,19 @@ class _DoctorReelsScreenState extends State<DoctorReelsScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('Failed to load reels'),
+                    Text(AppLocalizations.of(context)!.failedLoadReels),
                     const SizedBox(height: 10),
                     ElevatedButton(
                       onPressed: _loadReels,
-                      child: const Text('Retry'),
+                      child: Text(AppLocalizations.of(context)!.retryLabel),
                     ),
                   ],
                 ),
               )
             : reelsList.isEmpty
-            ? const Center(child: Text('No reels available'))
+            ? Center(
+                child: Text(AppLocalizations.of(context)!.noReelsAvailable),
+              )
             : Padding(
                 padding: const EdgeInsets.all(16),
                 child: GridView.builder(
@@ -206,7 +210,8 @@ class _DoctorReelsScreenState extends State<DoctorReelsScreen> {
   Widget _buildReelThumbnail(Map<String, dynamic> reel, int index) {
     final thumbnailUrl = reel['thumbnail']?['url'];
     final author = reel['author'];
-    final doctorName = author?['fullName'] ?? 'Unknown Doctor';
+    final doctorName =
+        author?['fullName'] ?? AppLocalizations.of(context)!.unknownDoctor;
     final caption = reel['caption'] ?? '';
     final likesCount = reel['likesCount'] ?? 0;
     final visibility = reel['visibility'] ?? 'public'; // ✅ Get visibility
@@ -332,14 +337,14 @@ class _DoctorReelsScreenState extends State<DoctorReelsScreen> {
                       color: Colors.orange.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.lock, color: Colors.white, size: 12),
-                        SizedBox(width: 4),
+                        const Icon(Icons.lock, color: Colors.white, size: 12),
+                        const SizedBox(width: 4),
                         Text(
-                          'Doctors Only',
-                          style: TextStyle(
+                          AppLocalizations.of(context)!.doctorsOnlyLabel,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -560,9 +565,12 @@ class _ReelCommentsBottomSheetState extends State<ReelCommentsBottomSheet> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Comments',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    AppLocalizations.of(context)!.commentsLabel,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
@@ -576,7 +584,9 @@ class _ReelCommentsBottomSheetState extends State<ReelCommentsBottomSheet> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _comments.isEmpty
-                  ? const Center(child: Text('No comments yet'))
+                  ? Center(
+                      child: Text(AppLocalizations.of(context)!.noCommentsYet),
+                    )
                   : ListView.builder(
                       controller: scrollController,
                       itemCount: _comments.length,
@@ -593,7 +603,8 @@ class _ReelCommentsBottomSheetState extends State<ReelCommentsBottomSheet> {
                                       as ImageProvider,
                           ),
                           title: Text(
-                            author?['fullName'] ?? 'Unknown',
+                            author?['fullName'] ??
+                                AppLocalizations.of(context)!.unknown,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -632,7 +643,7 @@ class _ReelCommentsBottomSheetState extends State<ReelCommentsBottomSheet> {
                       child: TextField(
                         controller: _commentController,
                         decoration: InputDecoration(
-                          hintText: 'Write a comment...',
+                          hintText: AppLocalizations.of(context)!.writeComment,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(25),
                           ),
@@ -675,7 +686,7 @@ class _ReelCommentsBottomSheetState extends State<ReelCommentsBottomSheet> {
   }
 
   String _formatTimeAgo(String? dateStr) {
-    if (dateStr == null) return 'Just now';
+    if (dateStr == null) return AppLocalizations.of(context)!.justNow;
 
     try {
       final date = DateTime.parse(dateStr);
@@ -688,10 +699,10 @@ class _ReelCommentsBottomSheetState extends State<ReelCommentsBottomSheet> {
       } else if (difference.inMinutes > 0) {
         return '${difference.inMinutes}m';
       } else {
-        return 'Just now';
+        return AppLocalizations.of(context)!.justNow;
       }
     } catch (e) {
-      return 'Just now';
+      return AppLocalizations.of(context)!.justNow;
     }
   }
 }
@@ -816,11 +827,12 @@ class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
       });
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to like reel'),
+          SnackBar(
+            content: Text(l10n.failedLikeReel),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -831,10 +843,12 @@ class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
   Future<void> _shareReel(Map<String, dynamic> reel) async {
     final author = reel['author'];
     final caption = reel['caption'] ?? '';
-    final doctorName = author?['fullName'] ?? 'Unknown Doctor';
+    final doctorName =
+        author?['fullName'] ?? AppLocalizations.of(context)!.unknownDoctor;
     final reelId = reel['_id'] ?? '';
 
-    String shareText = '$doctorName shared a reel\n\n';
+    String shareText =
+        '${AppLocalizations.of(context)!.authorSharedReel(doctorName)}\n\n';
     if (caption.isNotEmpty) {
       shareText += caption;
     }
@@ -989,7 +1003,8 @@ class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
 
   Widget _buildReelPage(Map<String, dynamic> reel, int index) {
     final author = reel['author'];
-    final doctorName = author?['fullName'] ?? 'Unknown Doctor';
+    final doctorName =
+        author?['fullName'] ?? AppLocalizations.of(context)!.unknownDoctor;
     final specialty = author?['specialty'] ?? '';
     final caption = reel['caption'] ?? '';
     final avatarUrl = author?['avatar']?['url'];
@@ -1155,7 +1170,10 @@ class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  '${videoController.value.playbackSpeed}x Speed',
+                                  AppLocalizations.of(context)!.playbackSpeed(
+                                    videoController.value.playbackSpeed
+                                        .toString(),
+                                  ),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 16,
@@ -1291,14 +1309,14 @@ class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
                       ),
                     ],
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.lock, color: Colors.white, size: 18),
-                      SizedBox(width: 6),
+                      const Icon(Icons.lock, color: Colors.white, size: 18),
+                      const SizedBox(width: 6),
                       Text(
-                        'Doctors Only',
-                        style: TextStyle(
+                        AppLocalizations.of(context)!.doctorsOnlyLabel,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
                           fontWeight: FontWeight.bold,

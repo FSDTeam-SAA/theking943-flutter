@@ -1,0 +1,897 @@
+{
+  "@@locale": "fr",
+  "appTitle": "DocMobi",
+  "@appTitle": {
+    "description": "Le titre de l'application"
+  },
+  "welcome": "Bienvenue",
+  "@welcome": {
+    "description": "Un message de bienvenue"
+  },
+  "settings": "Paramètres",
+  "@settings": {
+    "description": "Libellé des paramètres"
+  },
+  "changeLanguage": "Changer de langue",
+  "@changeLanguage": {
+    "description": "Libellé pour changer la langue"
+  },
+  "english": "Anglais",
+  "@english": {
+    "description": "Nom de la langue anglaise"
+  },
+  "arabic": "Arabe",
+  "@arabic": {
+    "description": "Nom de la langue arabe"
+  },
+  "selectLanguage": "Choisir la langue",
+  "@selectLanguage": {
+    "description": "Titre de la boîte de dialogue de sélection de langue"
+  },
+  "french": "Français",
+  "@french": {
+    "description": "Nom de la langue française"
+  },
+  "navHome": "Accueil",
+  "@navHome": {
+    "description": "Navigation Accueil"
+  },
+  "navAppointments": "Rendez-vous",
+  "@navAppointments": {
+    "description": "Navigation Rendez-vous"
+  },
+  "navReels": "Reels",
+  "@navReels": {
+    "description": "Navigation Reels"
+  },
+  "navMessages": "Messages",
+  "@navMessages": {
+    "description": "Navigation Messages"
+  },
+  "navProfile": "Profil",
+  "@navProfile": {
+    "description": "Navigation Profil"
+  },
+  "personalInfo": "Informations personnelles",
+  "@personalInfo": {
+    "description": "Menu de profil Informations personnelles"
+  },
+  "myAppointment": "Mes rendez-vous",
+  "@myAppointment": {
+    "description": "Menu de profil Mes rendez-vous"
+  },
+  "myDependents": "Mes dépendants",
+  "@myDependents": {
+    "description": "Menu de profil Mes dépendants"
+  },
+  "appointmentSetting": "Paramètres de rendez-vous",
+  "@appointmentSetting": {
+    "description": "Menu de profil Paramètres de rendez-vous"
+  },
+  "myEarning": "Mes gains",
+  "@myEarning": {
+    "description": "Menu de profil Mes gains"
+  },
+  "changePasswordLabel": "Changer le mot de passe",
+  "@changePasswordLabel": {
+    "description": "Menu de profil Changer le mot de passe"
+  },
+  "helpSupport": "Aide et support",
+  "@helpSupport": {
+    "description": "Menu de profil Aide et support"
+  },
+  "logOut": "Déconnexion",
+  "@logOut": {
+    "description": "Menu de profil Déconnexion"
+  },
+  "loading": "Chargement...",
+  "@loading": {
+    "description": "Texto de chargement général"
+  },
+  "checkingAuth": "Vérification de l'authentification",
+  "@checkingAuth": {
+    "description": "Texte affiché lors de la vérification du statut de connexion"
+  },
+  "invalidSession": "Session invalide",
+  "@invalidSession": {
+    "description": "Titre pour l'écran de session invalide"
+  },
+  "sessionExpiredMessage": "Votre session est invalide.\nVeuillez vous reconnecter.",
+  "@sessionExpiredMessage": {
+    "description": "Message pour session expirée"
+  },
+  "goToLogin": "Aller à la connexion",
+  "@goToLogin": {
+    "description": "Bouton pour naviguer vers la connexion"
+  },
+  "searchDoctorHint": "Rechercher un docteur...",
+  "@searchDoctorHint": {
+    "description": "Texte d'indice pour le champ de recherche de docteur"
+  },
+  "locationServicesDisabledTitle": "Services de localisation désactivés",
+  "@locationServicesDisabledTitle": {
+    "description": "Titre pour le dialogue de services de localisation désactivés"
+  },
+  "locationServicesDisabledMessage": "Les services de localisation sont désactivés. Veuillez les activer pour voir les docteurs à proximité.",
+  "@locationServicesDisabledMessage": {
+    "description": "Message pour le dialogue de services de localisation désactivés"
+  },
+  "locationPermissionRequiredTitle": "Autorisation de localisation requise",
+  "@locationPermissionRequiredTitle": {
+    "description": "Titre pour le dialogue d'autorisation de localisation requise"
+  },
+  "locationPermissionRequiredMessage": "L'autorisation de localisation est requise pour afficher les docteurs à proximité. Veuillez accorder l'autorisation dans les paramètres de l'application.",
+  "@locationPermissionRequiredMessage": {
+    "description": "Message pour le dialogue d'autorisation de localisation requise"
+  },
+  "openSettings": "Ouvrir les paramètres",
+  "@openSettings": {
+    "description": "Bouton pour ouvrir les paramètres de l'application/localisation"
+  },
+  "cancel": "Annuler",
+  "@cancel": {
+    "description": "Bouton d'annulation général"
+  },
+  "loadingRoute": "Chargement de l'itinéraire...",
+  "@loadingRoute": {
+    "description": "Texte affiché lors du chargement de l'itinéraire sur la carte"
+  },
+  "directionsApiDisabled": "API d'itinéraire non activée. Utilisation de l'itinéraire en ligne droite.",
+  "@directionsApiDisabled": {
+    "description": "Message affiché lorsque l'API d'itinéraire n'est pas disponible"
+  },
+  "retry": "Réessayer",
+  "@retry": {
+    "description": "Étiquette du bouton de réessai"
+  },
+  "loadingMap": "Chargement de la carte...",
+  "@loadingMap": {
+    "description": "Texte affiché pendant le chargement de la carte"
+  },
+  "distance": "Distance",
+  "@distance": {
+    "description": "Étiquette pour la distance"
+  },
+  "upcomingAppointment": "Rendez-vous à venir",
+  "@upcomingAppointment": {
+    "description": "En-tête de section pour les rendez-vous à venir"
+  },
+  "nearbyDoctors": "Docteurs à proximité",
+  "@nearbyDoctors": {
+    "description": "En-tête de section pour les docteurs à proximité"
+  },
+  "seeAll": "Voir tout",
+  "@seeAll": {
+    "description": "Bouton pour voir tous les éléments"
+  },
+  "noDoctorsFound": "Aucun docteur trouvé",
+  "@noDoctorsFound": {
+    "description": "Message affiché lorsqu'aucun docteur ne correspond aux critères"
+  },
+  "available": "Disponible",
+  "@available": {
+    "description": "Statut de disponibilité du docteur"
+  },
+  "noSchedule": "Aucun horaire",
+  "@noSchedule": {
+    "description": "Statut de docteur indisponible"
+  },
+  "videoConsultation": "Consultation vidéo",
+  "@videoConsultation": {
+    "description": "Étiquette pour la disponibilité de la consultation vidéo"
+  },
+  "bookNow": "Réserver maintenant",
+  "@bookNow": {
+    "description": "Bouton pour prendre un rendez-vous"
+  },
+  "notAvailable": "Pas disponible",
+  "@notAvailable": {
+    "description": "Statut lorsque la réservation est indisponible"
+  },
+  "noScheduleSet": "Aucun horaire défini",
+  "@noScheduleSet": {
+    "description": "Message lorsque le docteur n'a pas d'horaires"
+  },
+  "searchFailed": "La recherche a échoué : {error}",
+  "@searchFailed": {
+    "description": "Message d'erreur lorsque la recherche échoue",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionExpiredTitle": "Session expirée",
+  "@sessionExpiredTitle": {
+    "description": "Titre du dialogue de session expirée"
+  },
+  "sessionExpiredMessageDoc": "Votre session a expiré. Veuillez vous reconnecter.",
+  "@sessionExpiredMessageDoc": {
+    "description": "Message du dialogue de session expirée"
+  },
+  "ok": "D'accord",
+  "@ok": {
+    "description": "Texte du bouton OK"
+  },
+  "failedLoadPosts": "Échec du chargement des publications",
+  "@failedLoadPosts": {
+    "description": "Message d'erreur pour le chargement des publications"
+  },
+  "connectionError": "Erreur de connexion. Veuillez réessayer.",
+  "@connectionError": {
+    "description": "Message général d'erreur de connexion"
+  },
+  "searchHintDoctor": "Rechercher des médecins, des publications, des spécialités...",
+  "@searchHintDoctor": {
+    "description": "Texte d'indice pour le champ de recherche dans l'accueil du médecin"
+  },
+  "suggestions": "Suggestions",
+  "@suggestions": {
+    "description": "Titre des suggestions de recherche"
+  },
+  "searching": "Recherche en cours...",
+  "@searching": {
+    "description": "Texte de chargement pendant la recherche"
+  },
+  "searchAnything": "Rechercher n'importe quoi",
+  "@searchAnything": {
+    "description": "Titre de l'état vide pour la recherche"
+  },
+  "findEverything": "Trouver des médecins, des publications ou des spécialités",
+  "@findEverything": {
+    "description": "Sous-titre de l'état vide pour la recherche"
+  },
+  "noResultsFound": "Aucun résultat trouvé",
+  "@noResultsFound": {
+    "description": "Message lorsqu'aucun résultat de recherche ne correspond"
+  },
+  "tryDifferentKeywords": "Essayez de rechercher avec des mots-clés différents",
+  "@tryDifferentKeywords": {
+    "description": "Conseil pour les résultats de recherche vides"
+  },
+  "posts": "Publications",
+  "@posts": {
+    "description": "Titre de la section des publications"
+  },
+  "noPostsYet": "Pas encore de publications. Soyez le premier à partager !",
+  "@noPostsYet": {
+    "description": "Message lorsque la liste des publications est vide"
+  },
+  "shareInsights": "Partagez vos réflexions avec vos confrères...",
+  "@shareInsights": {
+    "description": "Texte d'indice dans la boîte de création de publication"
+  },
+  "photo": "Photo",
+  "@photo": {
+    "description": "Étiquette pour l'action photo"
+  },
+  "video": "Vidéo",
+  "@video": {
+    "description": "Étiquette pour l'action vidéo"
+  },
+  "reels": "Reels",
+  "@reels": {
+    "description": "Étiquette pour l'action reels"
+  },
+  "createPost": "Créer une publication",
+  "@createPost": {
+    "description": "Bouton pour naviguer vers la création de publication"
+  },
+  "yearsExperience": "{years} ans d'expérience",
+  "@yearsExperience": {
+    "description": "Étiquette des années d'expérience",
+    "placeholders": {
+      "years": {
+        "type": "int"
+      }
+    }
+  },
+  "noBioAvailable": "Aucune biographie disponible",
+  "@noBioAvailable": {
+    "description": "Texte de remplacement pour la biographie du médecin"
+  },
+  "message": "Message",
+  "@message": {
+    "description": "Texte du bouton pour envoyer un message à un médecin"
+  },
+  "welcomeBack": "Bon retour",
+  "@welcomeBack": {
+    "description": "Welcome message title"
+  },
+  "loginToAccountAs": "Veuillez vous connecter à votre compte en tant que {userType}",
+  "@loginToAccountAs": {
+    "description": "Login subtitle with user type",
+    "placeholders": {
+      "userType": {
+        "type": "String"
+      }
+    }
+  },
+  "emailAddress": "Adresse e-mail",
+  "@emailAddress": {
+    "description": "Label for email field"
+  },
+  "emailHint": "vous@gmail.com",
+  "@emailHint": {
+    "description": "Hint text for email field"
+  },
+  "password": "Mot de passe",
+  "@password": {
+    "description": "Label for password field"
+  },
+  "passwordHint": "****************",
+  "@passwordHint": {
+    "description": "Hint text for password field"
+  },
+  "forgotPassword": "Mot de passe oublié ?",
+  "@forgotPassword": {
+    "description": "Text for forgot password link"
+  },
+  "signIn": "Se connecter",
+  "@signIn": {
+    "description": "Button text for sign in"
+  },
+  "dontHaveAccount": "Vous n'avez pas de compte ? ",
+  "@dontHaveAccount": {
+    "description": "Text before signup link"
+  },
+  "signup": "S'inscrire",
+  "@signup": {
+    "description": "Text for signup link"
+  },
+  "welcomeBackUser": "Bon retour, {userName} !",
+  "@welcomeBackUser": {
+    "description": "Success message after login",
+    "placeholders": {
+      "userName": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidAccountType": "Type de compte invalide",
+  "@invalidAccountType": {
+    "description": "Error message for wrong account type"
+  },
+  "accountRegisteredAs": "Ce compte est enregistré en tant que {role}. Veuillez utiliser l'option de connexion correcte.",
+  "@accountRegisteredAs": {
+    "description": "Error message when role doesn't match",
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "loginFailed": "Échec de la connexion. Veuillez vérifier vos identifiants.",
+  "@loginFailed": {
+    "description": "General login failure message"
+  },
+  "enterEmail": "Veuillez entrer votre e-mail",
+  "@enterEmail": {
+    "description": "Validation error for empty email"
+  },
+  "createAccount": "Créer un compte {userType}",
+  "@createAccount": {
+    "description": "Title for signup screen",
+    "placeholders": {
+      "userType": {
+        "type": "String"
+      }
+    }
+  },
+  "fillDetails": "Veuillez remplir les détails ci-dessous",
+  "@fillDetails": {
+    "description": "Subtitle for signup screen"
+  },
+  "fullName": "Nom complet *",
+  "@fullName": {
+    "description": "Label for full name field"
+  },
+  "enterFullName": "Entrez votre nom complet",
+  "@enterFullName": {
+    "description": "Hint text for full name field"
+  },
+  "emailAddressStar": "Adresse e-mail *",
+  "@emailAddressStar": {
+    "description": "Label for email field with asterisk"
+  },
+  "emailExample": "vous@exemple.com",
+  "@emailExample": {
+    "description": "Hint text for email field"
+  },
+  "invalidEmail": "Veuillez entrer un e-mail valide",
+  "@invalidEmail": {
+    "description": "Validation error for invalid email"
+  },
+  "medicalLicenseNumber": "Numéro de licence médicale *",
+  "@medicalLicenseNumber": {
+    "description": "Label for medical license field"
+  },
+  "enterLicenseNumber": "Entrez le numéro de licence",
+  "@enterLicenseNumber": {
+    "description": "Hint text for medical license field"
+  },
+  "medicalSpecialty": "Spécialité médicale *",
+  "@medicalSpecialty": {
+    "description": "Label for medical specialty field"
+  },
+  "selectSpecialty": "Sélectionnez votre spécialité",
+  "@selectSpecialty": {
+    "description": "Hint text for medical specialty field"
+  },
+  "yearsExperienceStar": "Années d'expérience *",
+  "@yearsExperienceStar": {
+    "description": "Label for experience years field"
+  },
+  "yearsExperienceExample": "ex. : 5",
+  "@yearsExperienceExample": {
+    "description": "Hint text for experience years field"
+  },
+  "passwordStar": "Mot de passe *",
+  "@passwordStar": {
+    "description": "Label for password field with asterisk"
+  },
+  "passwordLength": "Au moins 6 caractères",
+  "@passwordLength": {
+    "description": "Description for password field"
+  },
+  "confirmPasswordStar": "Confirmer le mot de passe *",
+  "@confirmPasswordStar": {
+    "description": "Label for confirm password field"
+  },
+  "reenterPassword": "Re-saisissez votre mot de passe",
+  "@reenterPassword": {
+    "description": "Hint text for confirm password field"
+  },
+  "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
+  "@passwordsDoNotMatch": {
+    "description": "Validation error for passwords mismatch"
+  },
+  "passwordAtLeast6": "Le mot de passe doit contenir au moins 6 caractères",
+  "@passwordAtLeast6": {
+    "description": "Validation error for short password"
+  },
+  "licenseRequired": "Le numéro de licence médicale est requis",
+  "@licenseRequired": {
+    "description": "Validation error for missing license"
+  },
+  "specialtyRequired": "Veuillez sélectionner une spécialité",
+  "@specialtyRequired": {
+    "description": "Validation error for missing specialty"
+  },
+  "experienceRequired": "Les années d'expérience sont requises",
+  "@experienceRequired": {
+    "description": "Validation error for missing experience"
+  },
+  "registrationSuccessful": "Inscription réussie !",
+  "@registrationSuccessful": {
+    "description": "Success message after registration"
+  },
+  "alreadyHaveAccount": "Vous avez déjà un compte ? ",
+  "@alreadyHaveAccount": {
+    "description": "Text before sign-in link"
+  },
+  "signInLabel": "Se connecter",
+  "@signInLabel": {
+    "description": "Text for sign-in link"
+  },
+  "createAccountBtn": "Créer un compte",
+  "@createAccountBtn": {
+    "description": "Button text for creating account"
+  },
+  "forgotPasswordTitle": "Mot de passe oublié",
+  "@forgotPasswordTitle": {
+    "description": "Title for forgot password screen"
+  },
+  "selectContactReset": "Sélectionnez les coordonnées que nous devrions utiliser pour réinitialiser votre mot de passe",
+  "@selectContactReset": {
+    "description": "Subtitle for forgot password screen"
+  },
+  "emailLabel": "E-mail :",
+  "@emailLabel": {
+    "description": "Label for email in forgot password"
+  },
+  "enterYourEmail": "Entrez votre e-mail",
+  "@enterYourEmail": {
+    "description": "Hint text for email in forgot password"
+  },
+  "sending": "Envoi en cours...",
+  "@sending": {
+    "description": "Loading text during sending"
+  },
+  "continueText": "Continuer",
+  "@continueText": {
+    "description": "Button text for continue"
+  },
+  "otpTitle": "OTP",
+  "@otpTitle": {
+    "description": "Title for OTP screen"
+  },
+  "sentCodeEmail": "Nous vous avons envoyé un code unique sur votre e-mail",
+  "@sentCodeEmail": {
+    "description": "Subtitle for OTP screen"
+  },
+  "valid6DigitOtp": "Veuillez entrer un code OTP valide à 6 chiffres",
+  "@valid6DigitOtp": {
+    "description": "Validation error for invalid OTP"
+  },
+  "emailNotFound": "E-mail non trouvé. Veuillez recommencer le processus.",
+  "@emailNotFound": {
+    "description": "Error message when email is missing in OTP"
+  },
+  "otpSentAgain": "OTP renvoyé avec succès",
+  "@otpSentAgain": {
+    "description": "Success message after resending OTP"
+  },
+  "didntGetCode": "Vous n'avez pas reçu le code ? ",
+  "@didntGetCode": {
+    "description": "Text before resend link"
+  },
+  "resend": "Renvoyer",
+  "@resend": {
+    "description": "Text for resend link"
+  },
+  "resending": "Renvoi en cours...",
+  "@resending": {
+    "description": "Loading text during resending"
+  },
+  "verifying": "Vérification en cours...",
+  "@verifying": {
+    "description": "Loading text during verifying"
+  },
+  "resetPasswordTitle": "Réinitialiser le mot de passe",
+  "@resetPasswordTitle": {
+    "description": "Title for reset password screen"
+  },
+  "setNewPassword": "Définissez le nouveau mot de passe pour votre compte",
+  "@setNewPassword": {
+    "description": "Subtitle for reset password screen"
+  },
+  "newPassword": "Nouveau mot de passe",
+  "@newPassword": {
+    "description": "Hint text for new password field"
+  },
+  "confirmPassword": "Confirmer le mot de passe",
+  "@confirmPassword": {
+    "description": "Hint text for confirm password field"
+  },
+  "fillAllFields": "Veuillez remplir tous les champs",
+  "@fillAllFields": {
+    "description": "Validation error for empty fields"
+  },
+  "success": "Succès",
+  "@success": {
+    "description": "Title for success dialog"
+  },
+  "passwordResetSuccess": "Le mot de passe a été réinitialisé avec succès",
+  "@passwordResetSuccess": {
+    "description": "Success message for password reset"
+  },
+  "resetting": "Réinitialisation en cours...",
+  "@resetting": {
+    "description": "Loading text during resetting"
+  },
+  "appointmentManagement": "Gestion des rendez-vous",
+  "manageConsultations": "Gérez vos consultations vidéo\net physiques",
+  "pending": "En attente",
+  "confirmed": "Confirmé",
+  "completed": "Terminé",
+  "noAppointments": "Aucun rendez-vous {status}",
+  "forDependent": "Pour : {name}",
+  "physical": "Physique",
+  "seeDetails": "Voir détails",
+  "cancel": "Annuler",
+  "accept": "Accepter",
+  "startSession": "Démarrer la session",
+  "appointmentDetails": "Détails du rendez-vous",
+  "patientInformation": "Informations du patient",
+  "bookedFor": "Réservé pour : {name}",
+  "symptoms": "Symptômes",
+  "noSymptoms": "Aucun symptôme fourni",
+  "medicalDocuments": "Documents médicaux",
+  "docsUploaded": "{count} document(s) téléchargé(s)",
+  "noDocsUploaded": "Aucun document médical téléchargé",
+  "paymentScreenshot": "Capture d'écran du paiement",
+  "viewPaymentScreenshot": "Voir la capture d'écran du paiement",
+  "noPaymentScreenshot": "Aucune capture d'écran du paiement téléchargée",
+  "documentUrl": "URL du document",
+  "close": "Fermer",
+  "errorOpeningDoc": "Erreur lors de l'ouverture du document : {error}",
+  "cancelAppointment": "Annuler le rendez-vous",
+  "confirmCancel": "Êtes-vous sûr de vouloir annuler ce rendez-vous ?",
+  "no": "Non",
+  "yes": "Oui",
+  "appointmentAccepted": "Rendez-vous accepté avec succès",
+  "failedAccept": "Échec de l'acceptation du rendez-vous",
+  "appointmentCancelled": "Rendez-vous annulé",
+  "cancelled": "Annulé",
+  "failedCancel": "Échec de l'annulation du rendez-vous",
+  "loadingImage": "Chargement de l'image...",
+  "failedLoadImage": "Échec du chargement de l'image",
+  "medicalDocument": "Document médical",
+  "resetZoom": "Réinitialiser le zoom",
+  "zoomInstructions": "Pinçage pour zoomer • Glissement pour panoramique",
+  "myAppointment": "Mon rendez-vous",
+  "upcoming": "À venir",
+  "upcomingCount": "À venir ({count})",
+  "reschedule": "Reprogrammer",
+  "writeReview": "Écrire un avis",
+  "updateReview": "Mettre à jour votre avis",
+  "rateExperience": "Évaluez votre expérience",
+  "withDoctor": "avec {name}",
+  "reviewSubmitted": "Avis soumis avec succès ! ⭐",
+  "failedSubmitReview": "Échec de l'envoi de l'avis",
+  "submit": "Soumettre",
+  "video": "Vidéo",
+  "doctor": "Docteur",
+  "videoAvailable": "Consultation vidéo disponible",
+  "inPersonOnly": "En personne uniquement",
+  "reviewsCount": "({count} avis)",
+  "bio": "Biographie",
+  "specialty": "Spécialité",
+  "degree": "Diplôme",
+  "fees": "Honoraires",
+  "dzd": "DZD",
+  "visitingHours": "Heures de visite",
+  "notSet": "Non défini",
+  "messageDoctor": "Contacter le docteur",
+  "bookNow": "Réserver maintenant",
+  "invalidDoctor": "Docteur invalide",
+  "doctorIdNotFound": "ID du docteur non trouvé",
+  "failedCreateChat": "Échec de la création du chat",
+  "failedOpenChat": "Échec de l'ouverture du chat",
+  "physicalVisit": "Consultation physique",
+  "videoCall": "Consultation vidéo",
+  "rescheduleAppointment": "Reprogrammer le rendez-vous",
+  "bookAppointment": "Prendre rendez-vous",
+  "rescheduleBanner": "Vous reprogrammez votre rendez-vous. L'ancien rendez-vous sera annulé.",
+  "videoUploadWarning": "Consultations vidéo - le patient doit\ntélécharger une capture d'écran du paiement BaridiMob",
+  "appointmentTypeLabel": "Type de rendez-vous",
+  "payAtClinic": "Payer à la clinique",
+  "onlinePayment": "Paiement en ligne",
+  "bookAppointmentFor": "Prendre rendez-vous pour",
+  "myself": "Moi-même",
+  "orSelectDependent": "Ou sélectionnez un dépendant :",
+  "addNewDependent": "Ajouter un nouveau dépendant",
+  "selectDate": "Sélectionner une date",
+  "datePlaceholder": "jj/mm/aaaa",
+  "availableTime": "Heures disponibles",
+  "noTimeSlots": "Aucun créneau horaire disponible pour cette date",
+  "timeTo": "À",
+  "booked": "Réservé",
+  "describeSymptoms": "Décrivez vos symptômes",
+  "symptomsHint": "Veuillez décrire vos symptômes en détail....",
+  "uploadMedicalDocs": "Télécharger des documents médicaux",
+  "tapToUpload": "Appuyez pour télécharger une image ou un PDF",
+  "uploadPaymentScreenshot": "Télécharger une capture d'écran du paiement",
+  "tapToUploadPayment": "Appuyez pour télécharger votre preuve de paiement",
+  "confirmReschedule": "Confirmer la reprogrammation",
+  "submitAppointmentRequest": "Envoyer la demande de rendez-vous",
+  "invalidDoctorBooking": "Docteur invalide - Impossible de prendre rendez-vous",
+  "selectDateTime": "Veuillez sélectionner la date et l'heure",
+  "rescheduleFailed": "Échec de la reprogrammation : {error}",
+  "paymentRequired": "Capture d'écran de paiement requise pour la consultation vidéo",
+  "bookingFailed": "Échec de la réservation",
+  "completeSession": "Terminer la session",
+  "sessionCompleted": "Session terminée avec succès ! ✅",
+  "failedCompleteSession": "Échec de la fin de session",
+  "sessionPaymentDetails": "Détails du paiement de la session",
+  "enterSessionDetails": "Entrez les détails pour terminer cette session",
+  "patientFullName": "Nom complet du patient",
+  "enterPatientName": "Entrez le nom complet du patient",
+  "patientNameRequired": "Veuillez entrer le nom du patient",
+  "payableAmount": "Montant à payer (DZD)",
+  "enterAmountReceived": "Entrez le montant reçu",
+  "amountRequired": "Veuillez entrer le montant",
+  "validAmountRequired": "Veuillez entrer un montant valide",
+  "notificationTitle": "Notification",
+  "notificationsTitle": "Notifications",
+  "markAllAsRead": "Tout marquer comme lu",
+  "newNotifications": "Nouveau",
+  "earlierNotifications": "Plus tôt",
+  "noNotifications": "Aucune notification",
+  "noNotificationsYet": "Pas encore de notifications",
+  "doctorNotificationEmptySubtitle": "Nous vous informerons lorsqu'un patient réserve ou met à jour un rendez-vous.",
+  "upcomingPatient": "Patient à venir",
+  "addTextOrMedia": "Veuillez ajouter du texte ou un média à publier",
+  "reelPrivacy": "Confidentialité du Reel",
+  "reelVisibleDoctorsOnly": "🔒 Ce reel sera visible uniquement par les médecins.",
+  "reelVisibleEveryone": "🌍 Ce reel sera visible par tout le monde (médecins et patients).",
+  "currentPrivacy": "Confidentialité actuelle : {privacy}",
+  "privateDoctorsOnly": "Privé (Médecins uniquement)",
+  "publicEveryone": "Public (Tout le monde)",
+  "uploadReel": "Télécharger le Reel",
+  "privateReelUploaded": "✓ Reel privé téléchargé ! (Médecins uniquement)",
+  "publicReelUploaded": "✓ Reel public téléchargé ! (Visible par tous)",
+  "failedUploadReel": "Échec du téléchargement du reel",
+  "postSharedSuccessfully": "✓ Publication partagée avec succès !",
+  "failedCreatePost": "Échec de la création de la publication",
+  "whatsOnYourMind": "Qu'avez-vous en tête ?.......",
+  "videoSelected": "Vidéo sélectionnée",
+  "failedLikePost": "Échec du like",
+  "deletePost": "Supprimer la publication",
+  "reportPost": "Signaler la publication",
+  "reportComingSoon": "Signalement - Bientôt disponible !",
+  "confirmDeletePost": "Êtes-vous sûr de vouloir supprimer cette publication ?",
+  "delete": "Supprimer",
+  "postDeletedSuccessfully": "✓ Publication supprimée avec succès",
+  "failedDeletePost": "Échec de la suppression de la publication",
+  "sharePost": "Partager la publication",
+  "shareExternally": "Partager à l'extérieur",
+  "sendMessage": "Envoyer un message",
+  "shareMessageComingSoon": "Partager par message - Bientôt disponible !",
+  "authorPosted": "{name} a publié :",
+  "imagesCount": "{count} image(s)",
+  "videosCount": "{count} vidéo(s)",
+  "noCommentsYet": "Pas encore de commentaires",
+  "writeComment": "Écrire un commentaire...",
+  "likeLabel": "J'aime",
+  "commentLabel": "Commenter",
+  "shareLabel": "Partager",
+  "likesCount": "{count} {count, plural, =1{like} other{likes}}",
+  "commentsCount": "{count} {count, plural, =1{commentaire} other{commentaires}}",
+  "sharesCount": "{count} {count, plural, =1{partage} other{partages}}",
+  "post": "Publier",
+  "commentsLabel": "Commentaires",
+  "reelsLabel": "Reels",
+  "failedLoadReels": "Échec du chargement des réels",
+  "retryLabel": "Réessayer",
+  "noReelsAvailable": "Aucun réel disponible",
+  "unknownDoctor": "Docteur inconnu",
+  "unknown": "Inconnu",
+  "doctorsOnlyLabel": "Médecins seulement",
+  "failedLikeReel": "Échec de l'appréciation du réel",
+  "authorSharedReel": "{name} a partagé un réel",
+  "playbackSpeed": "Vitesse {speed}x",
+  "justNow": "À l'instant",
+  "messagesLabel": "Messages",
+  "allLabel": "Tous",
+  "doctorsLabel": "Médecins",
+  "patientsLabel": "Patients",
+  "noMessagesYet": "Pas encore de messages",
+  "noConversationsYet": "Pas encore de conversations",
+  "deleteChats": "Supprimer les chats",
+  "deleteMessages": "Supprimer les messages",
+  "deleteConversationsConfirm": "Êtes-vous sûr de vouloir supprimer {count} conversations ? Cela supprimera tous les messages.",
+  "deleteMessagesConfirm": "Êtes-vous sûr de vouloir supprimer {count} messages ?",
+  "deleteLabel": "Supprimer",
+  "conversationsDeleted": "Conversations supprimées",
+  "messagesDeleted": "Messages supprimés",
+  "failedToDelete": "Échec de la suppression: {error}",
+  "startConversationWith": "Démarrer une conversation avec {name}",
+  "typeAMessage": "Tapez un message...",
+  "failedToSendMessage": "Échec de l'envoi du message",
+  "cannotStartCallNoId": "Impossible de démarrer l'appel - ID utilisateur introuvable",
+  "failedToStartCall": "Échec du démarrage de l'appel: {error}",
+  "videoCall": "Appel vidéo",
+  "voiceCall": "Appel vocal",
+  "imageLabel": "[Image]",
+  "fileLabel": "[Fichier]",
+  "messageLabel": "[Message]",
+  "yesterday": "Hier",
+  "todayLabel": "Aujourd'hui",
+  "daysAgo": "Il y a {count}j",
+  "hoursAgo": "Il y a {count}h",
+  "minutesAgo": "Il y a {count}m",
+  "meLabel": "Moi",
+  "patientLabel": "Patient",
+  "doctorLabel": "Docteur",
+  "startConversation": "Démarrer la conversation",
+  "helpSupportComingSoon": "Aide et Support - Bientôt disponible",
+  "myDependents": "Mes Personnes à Charge",
+  "noDependentsAdded": "Aucune personne à charge ajoutée pour le moment",
+  "addDependent": "Ajouter une Personne à Charge",
+  "editDependent": "Modifier le Dépendant",
+  "inactive": "Inactif",
+  "active": "Actif",
+  "ageLabel": "Âge",
+  "genderLabel": "Genre",
+  "contactLabel": "Contact",
+  "deleteDependentTitle": "Supprimer le Dépendant ?",
+  "deleteDependentConfirm": "Êtes-vous sûr de vouloir supprimer \"{name}\" ?",
+  "deleteDependentWarning": "S'ils ont des rendez-vous actifs, vous devez d'abord les annuler.",
+  "cannotDeleteTitle": "Impossible de Supprimer",
+  "howToFix": "Comment réparer :",
+  "deleteFixInstructions": "1. Allez dans Mes Rendez-vous\n2. Annulez tout rendez-vous en attente/accepté pour ce dépendant\n3. Réessayez ensuite de supprimer",
+  "goToAppointments": "Aller aux Rendez-vous",
+  "dependentDeletedSuccess": "{name} supprimé avec succès",
+  "dependentAddedSuccess": "Dépendant ajouté avec succès !",
+  "dependentUpdatedSuccess": "Dépendant mis à jour avec succès !",
+  "failedToAddDependent": "Échec de l'ajout du dépendant",
+  "failedToUpdateDependent": "Échec de la mise à jour du dépendant",
+  "basicInformation": "Informations de Base",
+  "nameIsRequired": "Le nom est requis",
+  "selectRelationship": "Veuillez sélectionner la relation",
+  "selectDob": "Veuillez sélectionner la date de naissance",
+  "relationshipLabel": "Relation",
+  "relationshipHint": "Relation (ex: Enfant, Conjoint)",
+  "contactDetails": "Détails du Contact",
+  "guardianContactLabel": "Contact Parent/Tuteur (Principal)",
+  "userInfoWillBeUsed": "Vos informations d'utilisateur seront utilisées",
+  "dependentContactHint": "Contact du dépendant (le cas échéant)",
+  "additionalInformation": "Informations Additionnelles",
+  "medicalNotesHint": "Notes Médicales / Allergies (Optionnel)",
+  "saveDependent": "Enregistrer le Dépendant",
+  "updateDependent": "Mettre à jour le Dépendant",
+  "relChild": "Enfant",
+  "relSpouse": "Conjoint",
+  "relFather": "Père",
+  "relMother": "Mère",
+  "relBrother": "Frère",
+  "relSister": "Sœur",
+  "relGrandparent": "Grand-parent",
+  "relOther": "Autre",
+  "relSon": "Fils",
+  "relDaughter": "Fille",
+  "male": "Homme",
+  "female": "Femme",
+  "edit": "Modifier",
+  "dateOfBirth": "Date de Naissance",
+  "editYourProfile": "Modifier votre profil",
+  "profilePicture": "Photo de profil",
+  "tapToChangePicture": "Appuyez pour changer votre photo",
+  "phoneNumber": "Numéro de téléphone",
+  "address": "Adresse",
+  "updateProfile": "Mettre à jour le profil",
+  "profileUpdatedSuccess": "Profil mis à jour avec succès",
+  "updateFailed": "Échec de la mise à jour",
+  "nameEmptyError": "Le nom ne peut pas être vide",
+  "noChangesToSave": "Aucun changement à enregistrer",
+  "errorMsg": "Erreur : {error}",
+  "addBio": "Ajouter une biographie",
+  "bioHint": "Dites-nous en plus sur vous...",
+  "specialty": "Spécialité",
+  "selectSpecialty": "Sélectionner la spécialité",
+  "degree": "Diplôme",
+  "degreeHint": "MBBS, MD, etc.",
+  "emailLockedNote": "L'email ne peut pas être modifié",
+  "clinicLocation": "Emplacement de la clinique",
+  "clinicLocationHint": "Définir l'emplacement de votre clinique",
+  "contactNumberHint": "Numéro de contact",
+  "specCardiologist": "Cardiologue",
+  "specDermatologist": "Dermatologue",
+  "specNeurologist": "Neurologue",
+  "specOrthopedic": "Orthopédiste",
+  "specPediatrician": "Pédiatre",
+  "specPsychiatrist": "Psychiatre",
+  "specGeneralPhysician": "Médecin généraliste",
+  "specENT": "ORL",
+  "specGynecologist": "Gynécologue",
+  "specOphthalmologist": "Ophtalmologue",
+  "specDentist": "Dentiste",
+  "specUrologist": "Urologue",
+  "statusLabel": "Statut",
+  "changePassword": "Changer le mot de passe",
+  "passwordLengthRequirement": "Le mot de passe doit comporter au moins 6 caractères",
+  "currentPassword": "Mot de passe actuel",
+  "enterCurrentPassword": "Entrez le mot de passe actuel",
+  "newPassword": "Nouveau mot de passe",
+  "enterNewPassword": "Entrez le nouveau mot de passe",
+  "confirmNewPassword": "Confirmer le nouveau mot de passe",
+  "reEnterNewPassword": "Ré-entrez le nouveau mot de passe",
+  "passwordsDoNotMatchError": "Le nouveau mot de passe et la confirmation ne correspondent pas",
+  "passwordChangedSuccess": "Mot de passe changé avec succès",
+  "changePasswordFailed": "Échec du changement de mot de passe",
+  "earningOverview": "Aperçu des revenus",
+  "trackIncomeSubtitle": "Suivez vos revenus pour tous les types de rendez-vous.",
+  "daily": "Quotidien",
+  "weekly": "Hebdomadaire",
+  "monthly": "Mensuel",
+  "totalEarning": "Gain total",
+  "appointmentsCount": "{count} rendez-vous",
+  "sessionsCount": "{count} séances",
+  "weeklyPerformance": "Performance hebdomadaire",
+  "failedFetchEarnings": "Échec de la récupération des revenus",
+  "video": "Vidéo",
+  "onlineAppointment": "Rendez-vous en ligne",
+  "consultationFees": "Frais de consultation (DZD)",
+  "weeklySchedule": "Programme hebdomadaire",
+  "addNewSlot": "Ajouter un nouveau créneau",
+  "saveChanges": "Enregistrer les modifications",
+  "endTimeError": "L'heure de fin doit être après l'heure de début",
+  "enterConsultationFees": "Veuillez saisir les frais de consultation",
+  "scheduleSavedSuccess": "Programme enregistré avec succès!",
+  "to": "À",
+  "selectStartTime": "Sélectionner l'heure de début",
+  "selectEndTime": "Sélectionner l'heure de fin",
+  "selectTimeFromPicker": "Veuillez sélectionner l'heure dans le sélecteur ci-dessous"
+}

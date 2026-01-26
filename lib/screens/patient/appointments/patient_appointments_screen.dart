@@ -1,4 +1,5 @@
 import 'package:docmobi/screens/patient/doctor/book_appointment_screen.dart';
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:docmobi/models/appointment_model.dart';
@@ -36,6 +37,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -73,9 +75,9 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                           constraints: const BoxConstraints(),
                         ),
                         const SizedBox(width: 8),
-                        const Text(
-                          'My Appointment',
-                          style: TextStyle(
+                        Text(
+                          l10n.myAppointment,
+                          style: const TextStyle(
                             color: Color(0xFF1A1A1A),
                             fontWeight: FontWeight.w600,
                             fontSize: 22,
@@ -92,14 +94,15 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                   child: Row(
                     children: [
                       _buildTab(
-                        title:
-                            "Up Coming (${appointmentProvider.upcomingAppointments.length})",
+                        title: l10n.upcomingCount(
+                          appointmentProvider.upcomingAppointments.length,
+                        ),
                         active: isUpcoming,
                         onTap: () => setState(() => isUpcoming = true),
                       ),
                       const SizedBox(width: 15),
                       _buildTab(
-                        title: "Completed",
+                        title: l10n.completed,
                         active: !isUpcoming,
                         onTap: () => setState(() => isUpcoming = false),
                       ),
@@ -118,6 +121,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
   }
 
   Widget _buildContent(AppointmentProvider provider) {
+    final l10n = AppLocalizations.of(context)!;
     if (provider.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -149,7 +153,10 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                   vertical: 12,
                 ),
               ),
-              child: const Text('Retry', style: TextStyle(color: Colors.white)),
+              child: Text(
+                l10n.retry,
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
@@ -173,8 +180,8 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
             const SizedBox(height: 16),
             Text(
               isUpcoming
-                  ? 'No upcoming appointments'
-                  : 'No completed appointments',
+                  ? l10n.noAppointments(l10n.upcoming)
+                  : l10n.noAppointments(l10n.completed),
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],
@@ -230,6 +237,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
     AppointmentModel appointment,
     AppointmentProvider provider,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     bool isCompleted = appointment.status.toLowerCase() == 'completed';
     bool isCancelled = appointment.status.toLowerCase() == 'cancelled';
     bool isAccepted = appointment.status.toLowerCase() == 'accepted';
@@ -251,8 +259,10 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                     : const Color(0xFFFFA726)));
 
     String statusLabel = isCompleted
-        ? 'Completed'
-        : (isCancelled ? 'Cancelled' : (isAccepted ? 'Accepted' : 'Pending'));
+        ? l10n.completed
+        : (isCancelled
+              ? l10n.cancelled
+              : (isAccepted ? l10n.confirmed : l10n.pending));
 
     return GestureDetector(
       onTap: () {
@@ -296,7 +306,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              appointment.doctorName ?? 'Doctor',
+                              appointment.doctorName ?? l10n.doctor,
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -358,7 +368,9 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                'Booked for: ${appointment.bookedFor!.bookingLabel}',
+                                l10n.bookedFor(
+                                  appointment.bookedFor!.bookingLabel,
+                                ),
                                 style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
@@ -386,17 +398,12 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _infoRow(
-                    Icons.calendar_month_outlined,
-                    appointment.formattedDate,
-                  ),
-                  _infoRow(Icons.access_time, appointment.appointmentTime),
-                  _infoRow(
                     appointment.appointmentType == 'video'
                         ? Icons.videocam
                         : Icons.apartment,
                     appointment.appointmentType == 'video'
-                        ? 'Video'
-                        : 'Physical',
+                        ? l10n.video
+                        : l10n.physical,
                   ),
                 ],
               ),
@@ -411,7 +418,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                     child: InkWell(
                       onTap: () => _handleReschedule(context, appointment),
                       child: _buttonDesign(
-                        'Reschedule',
+                        l10n.reschedule,
                         const Color(0xFFF2F4F7),
                         Colors.black,
                       ),
@@ -423,7 +430,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                       onTap: () =>
                           _handleCancel(context, appointment, provider),
                       child: _buttonDesign(
-                        'Cancel',
+                        l10n.cancel,
                         const Color(0xFFD93B41),
                         Colors.white,
                       ),
@@ -449,12 +456,16 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                   alignment: Alignment.center,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.star_border, color: Colors.white, size: 20),
-                      SizedBox(width: 8),
+                    children: [
+                      const Icon(
+                        Icons.star_border,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
                       Text(
-                        'Write Review',
-                        style: TextStyle(
+                        l10n.writeReview,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
@@ -483,6 +494,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
           const Center(child: CircularProgressIndicator(color: Colors.white)),
     );
 
+    final l10n = AppLocalizations.of(context)!;
     try {
       final success = await provider.cancelAppointment(appointment.id);
 
@@ -524,7 +536,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      provider.error ?? 'Failed to cancel appointment',
+                      provider.error ?? l10n.failedCancel,
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -578,6 +590,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
     BuildContext context,
     AppointmentModel appointment,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     int selectedRating = 0;
     bool isLoadingExisting = true;
 
@@ -626,8 +639,8 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                 children: [
                   Text(
                     selectedRating > 0
-                        ? 'Update Your Review'
-                        : 'Rate Your Experience',
+                        ? l10n.updateReview
+                        : l10n.rateExperience,
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -636,7 +649,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'with ${appointment.doctorName}',
+                    l10n.withDoctor(appointment.doctorName ?? 'Doctor'),
                     style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                   const SizedBox(height: 24),
@@ -679,9 +692,9 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                       Expanded(
                         child: TextButton(
                           onPressed: () => Navigator.pop(dialogContext),
-                          child: const Text(
-                            'Cancel',
-                            style: TextStyle(
+                          child: Text(
+                            l10n.cancel,
+                            style: const TextStyle(
                               color: Colors.grey,
                               fontWeight: FontWeight.bold,
                             ),
@@ -711,9 +724,9 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                          child: const Text(
-                            'Submit',
-                            style: TextStyle(
+                          child: Text(
+                            l10n.submit,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
@@ -737,6 +750,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
     AppointmentModel appointment,
     int rating,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     // ✅ Show loading overlay
     final overlay = OverlayEntry(
       builder: (context) => Container(
@@ -774,22 +788,22 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
       if (context.mounted) {
         if (response['success'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Row(
                 children: [
-                  Icon(Icons.check_circle, color: Colors.white),
-                  SizedBox(width: 12),
-                  Text('Review submitted successfully! ⭐'),
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Text(l10n.reviewSubmitted),
                 ],
               ),
               backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
+              duration: const Duration(seconds: 2),
             ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(response['message'] ?? 'Failed to submit review'),
+              content: Text(response['message'] ?? l10n.failedSubmitReview),
               backgroundColor: Colors.red,
             ),
           );

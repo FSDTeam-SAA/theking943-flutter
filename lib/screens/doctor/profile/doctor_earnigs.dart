@@ -1,5 +1,6 @@
 import 'package:docmobi/services/earnings_service.dart';
 import 'package:flutter/material.dart';
+import 'package:docmobi/l10n/app_localizations.dart';
 
 class EarningOverviewScreen extends StatefulWidget {
   const EarningOverviewScreen({super.key});
@@ -58,7 +59,9 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
       } else {
         if (mounted) {
           setState(() {
-            error = response['message'] ?? 'Failed to fetch earnings';
+            error =
+                response['message'] ??
+                AppLocalizations.of(context)!.failedFetchEarnings;
             isLoading = false;
           });
         }
@@ -66,7 +69,7 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          error = 'Connection Error: $e';
+          error = '${AppLocalizations.of(context)!.connectionError}: $e';
           isLoading = false;
         });
       }
@@ -81,6 +84,20 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
     _fetchEarnings();
   }
 
+  String _getLocalizedPeriod(String period) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (period) {
+      case 'daily':
+        return l10n.daily;
+      case 'weekly':
+        return l10n.weekly;
+      case 'monthly':
+        return l10n.monthly;
+      default:
+        return period.substring(0, 1).toUpperCase() + period.substring(1);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -92,9 +109,9 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Earning Overview',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.earningOverview,
+          style: const TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.bold,
             fontSize: 20,
@@ -110,9 +127,9 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Track your income across all appointment types.',
-                style: TextStyle(color: Colors.black87, fontSize: 15),
+              Text(
+                AppLocalizations.of(context)!.trackIncomeSubtitle,
+                style: const TextStyle(color: Colors.black87, fontSize: 15),
               ),
               const SizedBox(height: 25),
 
@@ -163,9 +180,9 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
                           backgroundColor: const Color(0xFF2D5AF0),
                         ),
                         onPressed: _fetchEarnings,
-                        child: const Text(
-                          'Retry',
-                          style: TextStyle(color: Colors.white),
+                        child: Text(
+                          AppLocalizations.of(context)!.retry,
+                          style: const TextStyle(color: Colors.white),
                         ),
                       ),
                     ],
@@ -222,9 +239,9 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Total Earning',
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  Text(
+                    AppLocalizations.of(context)!.totalEarning,
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                   Text(
                     '${total.toDouble().toStringAsFixed(2)}', // DZD  Display
@@ -235,7 +252,7 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
                     ),
                   ),
                   Text(
-                    '$totalAppts appointments',
+                    AppLocalizations.of(context)!.appointmentsCount(totalAppts),
                     style: TextStyle(
                       color: Colors.green.shade600,
                       fontSize: 13,
@@ -254,18 +271,18 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
           children: [
             Expanded(
               child: _buildSmallCard(
-                'Physical',
+                AppLocalizations.of(context)!.physical,
                 '${physicalEarnings.toDouble().toStringAsFixed(1)}',
-                '$physicalCount sessions',
+                AppLocalizations.of(context)!.sessionsCount(physicalCount),
                 Icons.location_on_outlined,
               ),
             ),
             const SizedBox(width: 15),
             Expanded(
               child: _buildSmallCard(
-                'Video',
+                AppLocalizations.of(context)!.video,
                 videoEarnings.toDouble().toStringAsFixed(1),
-                '$videoCount sessions',
+                AppLocalizations.of(context)!.sessionsCount(videoCount),
                 Icons.videocam_outlined,
               ),
             ),
@@ -291,9 +308,9 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Weekly Performance',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.weeklyPerformance,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF1B2C49),
@@ -328,7 +345,7 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
         ),
         alignment: Alignment.center,
         child: Text(
-          period.substring(0, 1).toUpperCase() + period.substring(1),
+          _getLocalizedPeriod(period),
           style: TextStyle(
             color: isSelected ? Colors.white : const Color(0xFF1B2C49),
             fontWeight: FontWeight.bold,
@@ -338,45 +355,6 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
     );
   }
 
-  // Widget _buildSmallCard(
-  //   String title,
-  //   String amount,
-  //   String subtitle,
-  //   IconData icon,
-  // ) {
-  //   return Container(
-  //     padding: const EdgeInsets.all(15),
-  //     decoration: BoxDecoration(
-  //       color: Colors.white,
-  //       borderRadius: BorderRadius.circular(12),
-  //       boxShadow: [
-  //         BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5),
-  //       ],
-  //     ),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         CircleAvatar(
-  //           radius: 14,
-  //           backgroundColor: const Color(0xFFF1F4FF),
-  //           child: Icon(icon, size: 16, color: const Color(0xFF2D5AF0)),
-  //         ),
-  //         const SizedBox(height: 12),
-  //         Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-  //         const SizedBox(height: 4),
-  //         Text(
-  //           amount,
-  //           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-  //         ),
-  //         const SizedBox(height: 4),
-  //         Text(
-  //           subtitle,
-  //           style: const TextStyle(color: Colors.green, fontSize: 11),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
   Widget _buildSmallCard(
     String title,
     String amount,
