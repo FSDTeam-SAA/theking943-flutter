@@ -326,64 +326,64 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
                     },
                   ),
 
-                  /// Language Selector
-                  // _buildProfileItem(
-                  //   icon: Icons.language,
-                  //   title: l10n.changeLanguage,
-                  //   trailing: Text(
-                  //     currentLocale.languageCode == 'en'
-                  //         ? l10n.english
-                  //         : l10n.arabic,
-                  //     style: const TextStyle(
-                  //       color: Color(0xFF1664CD),
-                  //       fontWeight: FontWeight.bold,
-                  //     ),
-                  //   ),
-                  //   onTap: () {
-                  //     showDialog(
-                  //       context: context,
-                  //       builder: (context) => AlertDialog(
-                  //         title: Text(l10n.selectLanguage),
-                  //         content: Column(
-                  //           mainAxisSize: MainAxisSize.min,
-                  //           children: [
-                  //             ListTile(
-                  //               leading: const Icon(Icons.abc),
-                  //               title: Text(l10n.english),
-                  //               selected: currentLocale.languageCode == 'en',
-                  //               onTap: () {
-                  //                 ref
-                  //                     .read(localeProvider.notifier)
-                  //                     .setLocale(const Locale('en'));
-                  //                 Navigator.pop(context);
-                  //               },
-                  //             ),
-                  //             ListTile(
-                  //               leading: const Text(
-                  //                 'ع',
-                  //                 style: TextStyle(
-                  //                   fontSize: 24,
-                  //                   fontWeight: FontWeight.bold,
-                  //                 ),
-                  //               ),
-                  //               title: Text(l10n.arabic),
-                  //               selected: currentLocale.languageCode == 'ar',
-                  //               onTap: () {
-                  //                 ref
-                  //                     .read(localeProvider.notifier)
-                  //                     .setLocale(const Locale('ar'));
-                  //                 Navigator.pop(context);
-                  //               },
-                  //             ),
-                  //           ],
-                  //         ),
-                  //       ),
-                  //     );
-                  //   },
-                  // ),
+                  // Language Selector
+                  _buildProfileItem(
+                    icon: Icons.language,
+                    title: l10n.changeLanguage,
+                    trailing: Text(
+                      currentLocale.languageCode == 'en'
+                          ? l10n.english
+                          : l10n.arabic,
+                      style: const TextStyle(
+                        color: Color(0xFF1664CD),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text(l10n.selectLanguage),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.abc),
+                                title: Text(l10n.english),
+                                selected: currentLocale.languageCode == 'en',
+                                onTap: () {
+                                  ref
+                                      .read(localeProvider.notifier)
+                                      .setLocale(const Locale('en'));
+                                  Navigator.pop(context);
+                                },
+                              ),
+                              ListTile(
+                                leading: const Text(
+                                  'ع',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                title: Text(l10n.arabic),
+                                selected: currentLocale.languageCode == 'ar',
+                                onTap: () {
+                                  ref
+                                      .read(localeProvider.notifier)
+                                      .setLocale(const Locale('ar'));
+                                  Navigator.pop(context);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                   _buildProfileItem(
                     icon: Icons.lock_outline,
-                    title: 'Change Password',
+                    title: l10n.changePassword,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -393,6 +393,7 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
                       );
                     },
                   ),
+
                   const SizedBox(height: 25),
 
                   // Logout Button

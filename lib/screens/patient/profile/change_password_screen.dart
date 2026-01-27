@@ -1,3 +1,4 @@
+import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../../../services/api_service.dart';
 import '../../../utils/api_config.dart';
@@ -11,9 +12,11 @@ class ChangePasswordScreen extends StatefulWidget {
 
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _currentPasswordController = TextEditingController();
+  final TextEditingController _currentPasswordController =
+      TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   bool _isCurrentPasswordVisible = false;
   bool _isNewPasswordVisible = false;
@@ -38,20 +41,16 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     });
 
     try {
-      final response = await ApiService.put(
-        ApiConfig.changePassword,
-        {
-          'currentPassword': _currentPasswordController.text,
-          'newPassword': _newPasswordController.text,
-          'confirmPassword': _confirmPasswordController.text,
-        },
-        requiresAuth: true,
-      );
+      final response = await ApiService.put(ApiConfig.changePassword, {
+        'currentPassword': _currentPasswordController.text,
+        'newPassword': _newPasswordController.text,
+        'confirmPassword': _confirmPasswordController.text,
+      }, requiresAuth: true);
 
       if (response['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Password changed successfully'),
+            content: Text('Password changed successfully'),
             backgroundColor: Colors.green,
           ),
         );
@@ -74,10 +73,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     } finally {
       setState(() {
@@ -97,9 +93,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           icon: const Icon(Icons.arrow_back, color: Color(0xFF0B3267)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Change Password',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.changePassword,
+          style: const TextStyle(
             color: Color(0xFF0B3267),
             fontWeight: FontWeight.bold,
           ),
@@ -152,8 +148,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 controller: _currentPasswordController,
                 hintText: 'Enter current password',
                 isVisible: _isCurrentPasswordVisible,
-                onToggle: () => setState(() => 
-                  _isCurrentPasswordVisible = !_isCurrentPasswordVisible),
+                onToggle: () => setState(
+                  () => _isCurrentPasswordVisible = !_isCurrentPasswordVisible,
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter current password';
@@ -177,8 +174,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 controller: _newPasswordController,
                 hintText: 'Enter new password',
                 isVisible: _isNewPasswordVisible,
-                onToggle: () => setState(() => 
-                  _isNewPasswordVisible = !_isNewPasswordVisible),
+                onToggle: () => setState(
+                  () => _isNewPasswordVisible = !_isNewPasswordVisible,
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter new password';
@@ -205,8 +203,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 controller: _confirmPasswordController,
                 hintText: 'Re-enter new password',
                 isVisible: _isConfirmPasswordVisible,
-                onToggle: () => setState(() => 
-                  _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+                onToggle: () => setState(
+                  () => _isConfirmPasswordVisible = !_isConfirmPasswordVisible,
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please confirm new password';

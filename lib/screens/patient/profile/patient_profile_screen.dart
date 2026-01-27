@@ -1,6 +1,7 @@
 import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:docmobi/screens/patient/appointments/patient_appointments_screen.dart';
 import 'package:docmobi/screens/patient/profile/dependents_list_screen.dart';
+import 'package:docmobi/screens/patient/profile/help_support_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:docmobi/screens/patient/profile/personal_info_screen.dart';
 import 'package:docmobi/screens/patient/profile/change_password_screen.dart';
@@ -166,17 +167,6 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
                     );
                   },
                 ),
-
-                // _buildMenuItem(
-                //   icon: Icons.group_add_outlined,
-                //   title: 'Add Dependents',
-                //   onTap: () {
-                //     Navigator.push(
-                //       context,
-                //       MaterialPageRoute(builder: (context) => const AddDependentScreen()),
-                //     );
-                //   },
-                // ),
                 _buildMenuItem(
                   icon: Icons.group_add_outlined,
                   title: 'My Dependents',
@@ -190,19 +180,9 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
                   },
                 ),
 
-                // _buildMenuItem(
-                //   icon: Icons.favorite_outline,
-                //   title: 'My Wishlist',
-                //   onTap: () {
-                //     Navigator.push(
-                //       context,
-                //       MaterialPageRoute(builder: (context) => const MyWishlistScreen()),
-                //     );
-                //   },
-                // ),
                 _buildMenuItem(
                   icon: Icons.lock_outline,
-                  title: 'Change Password',
+                  title: l10n.changePassword,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -213,80 +193,80 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
                   },
                 ),
 
-                /// Language Selector
-                // Padding(
-                //   padding: const EdgeInsets.symmetric(
-                //     horizontal: 20,
-                //     vertical: 10,
-                //   ),
-                //   child: Container(
-                //     padding: const EdgeInsets.symmetric(
-                //       horizontal: 15,
-                //       vertical: 5,
-                //     ),
-                //     decoration: BoxDecoration(
-                //       border: Border.all(color: Colors.grey[300]!),
-                //       borderRadius: BorderRadius.circular(10),
-                //     ),
-                //     child: Row(
-                //       children: [
-                //         const Icon(Icons.language, color: Color(0xFF1664CD)),
-                //         const SizedBox(width: 15),
-                //         const Expanded(
-                //           child: Text(
-                //             'Language',
-                //             style: TextStyle(
-                //               fontSize: 16,
-                //               color: Color(0xFF0B3267),
-                //               fontWeight: FontWeight.w500,
-                //             ),
-                //           ),
-                //         ),
-                //         DropdownButton<String>(
-                //           value: currentLocale.languageCode == 'en'
-                //               ? 'English'
-                //               : 'Arabic',
-                //           underline: const SizedBox(),
-                //           icon: const Icon(Icons.keyboard_arrow_down),
-                //           items: [
-                //             DropdownMenuItem(
-                //               value: 'English',
-                //               child: Text(l10n.english),
-                //             ),
-                //             DropdownMenuItem(
-                //               value: 'Arabic',
-                //               child: Text(l10n.arabic),
-                //             ),
-                //           ],
-                //           onChanged: (value) {
-                //             if (value == 'English') {
-                //               ref
-                //                   .read(localeProvider.notifier)
-                //                   .setLocale(const Locale('en'));
-                //             } else {
-                //               ref
-                //                   .read(localeProvider.notifier)
-                //                   .setLocale(const Locale('ar'));
-                //             }
-                //           },
-                //         ),
-                //       ],
-                //     ),
-                //   ),
-                // ),
+                // Language Selector
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 15,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.language, color: Color(0xFF1664CD)),
+                        const SizedBox(width: 15),
+                        const Expanded(
+                          child: Text(
+                            'Language',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Color(0xFF0B3267),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        DropdownButton<String>(
+                          value: currentLocale.languageCode == 'en'
+                              ? 'English'
+                              : 'Arabic',
+                          underline: const SizedBox(),
+                          icon: const Icon(Icons.keyboard_arrow_down),
+                          items: [
+                            DropdownMenuItem(
+                              value: 'English',
+                              child: Text(l10n.english),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Arabic',
+                              child: Text(l10n.arabic),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            if (value == 'English') {
+                              ref
+                                  .read(localeProvider.notifier)
+                                  .setLocale(const Locale('en'));
+                            } else {
+                              ref
+                                  .read(localeProvider.notifier)
+                                  .setLocale(const Locale('ar'));
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
-                // _buildMenuItem(
-                //   icon: Icons.help_outline,
-                //   title: 'Help & Support',
-                //   onTap: () {
-                //     Navigator.push(
-                //       context,
-                //       MaterialPageRoute(
-                //         builder: (context) => const HelpSupportScreen(),
-                //       ),
-                //     );
-                //   },
-                // ),
+                _buildMenuItem(
+                  icon: Icons.help_outline,
+                  title: 'Help & Support',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const HelpSupportScreen(),
+                      ),
+                    );
+                  },
+                ),
                 const SizedBox(height: 20),
 
                 /// Logout Button with API Integration
@@ -331,7 +311,6 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
     );
   }
 
-  // Logout Dialog with API Integration
   // Logout Dialog with API Integration
   void _showLogoutConfirmationDialog(BuildContext context) {
     // নতুন নাম

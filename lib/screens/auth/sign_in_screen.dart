@@ -54,8 +54,7 @@ class _SignInScreenState extends State<SignInScreen> {
       );
 
       if (!mounted) return;
-      setState(() => _isLoading = false);
-
+      // Loading continues during background initialization
       debugPrint('📥 Login result: ${result['success']}');
 
       if (result['success'] == true) {
@@ -133,6 +132,7 @@ class _SignInScreenState extends State<SignInScreen> {
           debugPrint(
             '⚠️ Role mismatch: Expected ${widget.userType}, Got $userRole',
           );
+          setState(() => _isLoading = false);
           await ApiService.clearToken();
           _showSnackBar(
             'This account is registered as ${_capitalize(userRole ?? "user")}. '
@@ -142,6 +142,7 @@ class _SignInScreenState extends State<SignInScreen> {
         }
       } else {
         // Login failed
+        setState(() => _isLoading = false);
         debugPrint('❌ Login failed: ${result['message']}');
         _showSnackBar(
           result['message'] ?? 'Login failed. Please check your credentials.',

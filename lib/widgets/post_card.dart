@@ -28,7 +28,7 @@ class _PostCardState extends State<PostCard> {
   bool _isVideoInitialized = false;
   bool _isLiking = false;
   bool _isMuted = true;
-  
+
   @override
   void initState() {
     super.initState();
@@ -80,8 +80,8 @@ class _PostCardState extends State<PostCard> {
         setState(() {
           _currentPost = _currentPost.copyWith(
             isLiked: !_currentPost.isLiked,
-            likesCount: _currentPost.isLiked 
-                ? _currentPost.likesCount - 1 
+            likesCount: _currentPost.isLiked
+                ? _currentPost.likesCount - 1
                 : _currentPost.likesCount + 1,
           );
         });
@@ -226,10 +226,7 @@ class _PostCardState extends State<PostCard> {
                 padding: EdgeInsets.all(16.0),
                 child: Text(
                   'Share Post',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
               ListTile(
@@ -269,11 +266,11 @@ class _PostCardState extends State<PostCard> {
     try {
       String shareText = '${_currentPost.author.fullName} posted:\n\n';
       shareText += _currentPost.content;
-      
+
       if (_currentPost.media.isNotEmpty) {
         final images = _currentPost.media.where((m) => m.isImage).toList();
         final videos = _currentPost.media.where((m) => m.isVideo).toList();
-        
+
         if (images.isNotEmpty) {
           shareText += '\n\n📷 ${images.length} image(s)';
         }
@@ -337,7 +334,7 @@ class _PostCardState extends State<PostCard> {
                     backgroundImage: _currentPost.author.avatar != null
                         ? NetworkImage(_currentPost.author.avatar!)
                         : const AssetImage('assets/images/doctor_booking.png')
-                            as ImageProvider,
+                              as ImageProvider,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -406,26 +403,17 @@ class _PostCardState extends State<PostCard> {
               children: [
                 Text(
                   '${_currentPost.likesCount} ${_currentPost.likesCount == 1 ? 'like' : 'likes'}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 const Spacer(),
                 Text(
                   '${_currentPost.commentsCount} ${_currentPost.commentsCount == 1 ? 'comment' : 'comments'}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 const SizedBox(width: 10),
                 Text(
                   '${_currentPost.sharesCount} ${_currentPost.sharesCount == 1 ? 'share' : 'shares'}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),
@@ -509,17 +497,12 @@ class _PostCardState extends State<PostCard> {
                 return Container(
                   height: 250,
                   color: Colors.grey[300],
-                  child: const Center(
-                    child: Icon(Icons.error, size: 50),
-                  ),
+                  child: const Center(child: Icon(Icons.error, size: 50)),
                 );
               },
             )
           else
-            Container(
-              height: 250,
-              color: Colors.grey[300],
-            ),
+            Container(height: 250, color: Colors.grey[300]),
           Positioned.fill(
             child: Center(
               child: Container(
@@ -545,7 +528,7 @@ class _PostCardState extends State<PostCard> {
           aspectRatio: _videoController!.value.aspectRatio,
           child: VideoPlayer(_videoController!),
         ),
-        
+
         Positioned.fill(
           child: GestureDetector(
             onTap: () {
@@ -578,7 +561,7 @@ class _PostCardState extends State<PostCard> {
             ),
           ),
         ),
-        
+
         Positioned(
           top: 10,
           right: 10,
@@ -612,9 +595,7 @@ class _PostCardState extends State<PostCard> {
           return Container(
             height: 200,
             color: Colors.grey[300],
-            child: const Center(
-              child: Icon(Icons.error, size: 50),
-            ),
+            child: const Center(child: Icon(Icons.error, size: 50)),
           );
         },
       ),
@@ -625,16 +606,14 @@ class _PostCardState extends State<PostCard> {
     if (images.length == 2) {
       return Row(
         children: images
-            .map((img) => Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(1),
-                    child: Image.network(
-                      img.url,
-                      height: 200,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ))
+            .map(
+              (img) => Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(1),
+                  child: Image.network(img.url, height: 200, fit: BoxFit.cover),
+                ),
+              ),
+            )
             .toList(),
       );
     }
@@ -653,10 +632,7 @@ class _PostCardState extends State<PostCard> {
           return Stack(
             fit: StackFit.expand,
             children: [
-              Image.network(
-                images[index].url,
-                fit: BoxFit.cover,
-              ),
+              Image.network(images[index].url, fit: BoxFit.cover),
               Container(
                 color: Colors.black54,
                 child: Center(
@@ -673,10 +649,7 @@ class _PostCardState extends State<PostCard> {
             ],
           );
         }
-        return Image.network(
-          images[index].url,
-          fit: BoxFit.cover,
-        );
+        return Image.network(images[index].url, fit: BoxFit.cover);
       },
     );
   }
@@ -800,19 +773,14 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Colors.grey[300]!),
-                ),
+                border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
                     'Comments',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
@@ -826,95 +794,101 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _comments.isEmpty
-                      ? const Center(child: Text('No comments yet'))
-                      : ListView.builder(
-                          controller: scrollController,
-                          itemCount: _comments.length,
-                          itemBuilder: (context, index) {
-                            final comment = _comments[index];
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundImage: comment.author.avatar != null
-                                    ? NetworkImage(comment.author.avatar!)
-                                    : const AssetImage(
-                                            'assets/images/doctor_booking.png')
-                                        as ImageProvider,
-                              ),
-                              title: Text(
-                                comment.author.fullName,
+                  ? const Center(child: Text('No comments yet'))
+                  : ListView.builder(
+                      controller: scrollController,
+                      itemCount: _comments.length,
+                      itemBuilder: (context, index) {
+                        final comment = _comments[index];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: comment.author.avatar != null
+                                ? NetworkImage(comment.author.avatar!)
+                                : const AssetImage(
+                                        'assets/images/doctor_booking.png',
+                                      )
+                                      as ImageProvider,
+                          ),
+                          title: Text(
+                            comment.author.fullName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(comment.content),
+                              const SizedBox(height: 4),
+                              Text(
+                                comment.timeAgo,
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                                  fontSize: 12,
+                                  color: Colors.grey,
                                 ),
                               ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(comment.content),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    comment.timeAgo,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
             ),
 
-            Container(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  top: BorderSide(color: Colors.grey[300]!),
-                ),
+            Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
-              child: SafeArea(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _commentController,
-                        decoration: InputDecoration(
-                          hintText: 'Write a comment...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(25),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border(top: BorderSide(color: Colors.grey[300]!)),
+                ),
+                child: SafeArea(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _commentController,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _submitComment(),
+                          decoration: InputDecoration(
+                            hintText: 'Write a comment...',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
+                          maxLines: null,
                         ),
-                        maxLines: null,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor,
-                        shape: BoxShape.circle,
+                      const SizedBox(width: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).primaryColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: _isSubmitting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.send, color: Colors.white),
+                          onPressed: _isSubmitting ? null : _submitComment,
+                        ),
                       ),
-                      child: IconButton(
-                        icon: _isSubmitting
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.send, color: Colors.white),
-                        onPressed: _isSubmitting ? null : _submitComment,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

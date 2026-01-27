@@ -93,7 +93,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Profile updated successfully'),
+            content: Text('Profile updated successfully'),
             backgroundColor: Colors.green,
           ),
         );

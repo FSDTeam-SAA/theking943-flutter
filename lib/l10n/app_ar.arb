@@ -6,6 +6,8 @@
   "changeLanguage": "تغيير اللغة",
   "english": "الإنجليزية",
   "arabic": "العربية",
-  "selectLanguage": "اختر اللغة"
+  "selectLanguage": "اختر اللغة",
+  "forgotPassword": "هل نسيت كلمة المرور؟",
+  "changePassword": "تغيير كلمة المرور"
 }
 

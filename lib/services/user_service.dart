@@ -58,10 +58,12 @@ class UserService {
       if (degrees != null) body['degrees'] = degrees;
       if (fees != null) body['fees'] = fees;
       if (weeklySchedule != null) body['weeklySchedule'] = weeklySchedule;
-      if (visitingHoursText != null)
+      if (visitingHoursText != null) {
         body['visitingHoursText'] = visitingHoursText;
-      if (medicalLicenseNumber != null)
+      }
+      if (medicalLicenseNumber != null) {
         body['medicalLicenseNumber'] = medicalLicenseNumber;
+      }
 
       if (isVideoCallAvailable != null) {
         body['isVideoCallAvailable'] = isVideoCallAvailable;

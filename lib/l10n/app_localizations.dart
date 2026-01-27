@@ -139,6 +139,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select Language'**
   String get selectLanguage;
+
+  /// Forgot Password label
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot Password'**
+  String get forgotPassword;
+
+  /// Change Password label
+  ///
+  /// In en, this message translates to:
+  /// **'Change Password'**
+  String get changePassword;
 }
 
 class _AppLocalizationsDelegate

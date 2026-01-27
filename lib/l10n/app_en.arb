@@ -27,6 +27,14 @@
   "selectLanguage": "Select Language",
   "@selectLanguage": {
     "description": "Title for language selection dialog"
+  },
+  "forgotPassword": "Forgot Password",
+  "@forgotPassword": {
+    "description": "Forgot Password label"
+  },
+  "changePassword": "Change Password",
+  "@changePassword": {
+    "description": "Change Password label"
   }
 }
 

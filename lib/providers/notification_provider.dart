@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
 import '../services/notification_poller.dart';
+import '../services/socket_service.dart';
+import 'package:flutter/foundation.dart';
 
 /// Notifier for the list of notifications
 class NotificationListNotifier extends AsyncNotifier<List<NotificationModel>> {
@@ -12,7 +14,33 @@ class NotificationListNotifier extends AsyncNotifier<List<NotificationModel>> {
       ref.invalidateSelf();
     };
 
+    _initSocketListeners();
+
     return _fetch();
+  }
+
+  void _initSocketListeners() {
+    final socket = SocketService.instance;
+
+    final events = [
+      'like_post_notification',
+      'post_comment_notification',
+      'reel_like_notification',
+      'reel_comment_notification',
+      'appointment_booked',
+      'appointment_confirmed',
+      'appointment_cancelled',
+      'appointment_completed',
+      'appointment_status_change',
+    ];
+
+    for (final event in events) {
+      socket.on(event, (data) {
+        debugPrint('🔔 Socket Notification received: $event');
+        // Refresh notifications
+        ref.invalidateSelf();
+      });
+    }
   }
 
   Future<List<NotificationModel>> _fetch() async {

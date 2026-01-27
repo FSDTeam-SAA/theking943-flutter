@@ -249,7 +249,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
   Future<void> _pickMedicalDocuments() async {
     final List<XFile> picked = await _picker.pickMultiImage();
-    if (picked != null && picked.isNotEmpty && mounted) {
+    if (picked.isNotEmpty && mounted) {
       setState(() => _medicalDocuments.addAll(picked));
     }
   }
