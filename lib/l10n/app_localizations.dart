@@ -2913,6 +2913,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please select time from the picker below'**
   String get selectTimeFromPicker;
+
+  /// No description provided for @faqTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Frequently Asked Questions (FAQ)'**
+  String get faqTitle;
+
+  /// No description provided for @faq1Question.
+  ///
+  /// In en, this message translates to:
+  /// **'1. How do I create an account?'**
+  String get faq1Question;
+
+  /// No description provided for @faq1Answer.
+  ///
+  /// In en, this message translates to:
+  /// **'You can sign up as a patient or doctor by choosing your role and completing the registration steps in the app.'**
+  String get faq1Answer;
+
+  /// No description provided for @faq2Question.
+  ///
+  /// In en, this message translates to:
+  /// **'2. I forgot my password. What should I do?'**
+  String get faq2Question;
+
+  /// No description provided for @faq2Answer.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to the login screen and tap on “Forgot Password”. Follow the instructions to reset your password securely.'**
+  String get faq2Answer;
+
+  /// No description provided for @faq3Question.
+  ///
+  /// In en, this message translates to:
+  /// **'3. How can I book an appointment with a doctor?'**
+  String get faq3Question;
+
+  /// No description provided for @faq3Answer.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for a doctor or specialty, select an available time slot, and confirm your appointment.'**
+  String get faq3Answer;
+
+  /// No description provided for @faq4Question.
+  ///
+  /// In en, this message translates to:
+  /// **'4. Can I cancel or reschedule my appointment?'**
+  String get faq4Question;
+
+  /// No description provided for @faq4Answer.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, you can cancel or reschedule appointments from the “My Appointments” section, depending on the appointment status.'**
+  String get faq4Answer;
+
+  /// No description provided for @faq5Question.
+  ///
+  /// In en, this message translates to:
+  /// **'5. How do online audio/video consultations work?'**
+  String get faq5Question;
+
+  /// No description provided for @faq5Answer.
+  ///
+  /// In en, this message translates to:
+  /// **'Once your appointment is confirmed, you can start an audio or video call directly from the chat at the scheduled time (if enabled by the doctor).'**
+  String get faq5Answer;
+
+  /// No description provided for @faq6Question.
+  ///
+  /// In en, this message translates to:
+  /// **'6. Why can’t I start a call with the doctor?'**
+  String get faq6Question;
+
+  /// No description provided for @faq6Answer.
+  ///
+  /// In en, this message translates to:
+  /// **'The doctor may have disabled audio/video calls temporarily. Please try again later or contact support.'**
+  String get faq6Answer;
+
+  /// No description provided for @faq7Question.
+  ///
+  /// In en, this message translates to:
+  /// **'7. How do I change the app language?'**
+  String get faq7Question;
+
+  /// No description provided for @faq7Answer.
+  ///
+  /// In en, this message translates to:
+  /// **'You can change the language from the app settings at any time.'**
+  String get faq7Answer;
+
+  /// No description provided for @faq8Question.
+  ///
+  /// In en, this message translates to:
+  /// **'8. How can doctors manage their profile information?'**
+  String get faq8Question;
+
+  /// No description provided for @faq8Answer.
+  ///
+  /// In en, this message translates to:
+  /// **'Doctors can edit their personal and professional information from the profile settings.'**
+  String get faq8Answer;
+
+  /// No description provided for @faq9Question.
+  ///
+  /// In en, this message translates to:
+  /// **'9. How does the referral system work?'**
+  String get faq9Question;
+
+  /// No description provided for @faq9Answer.
+  ///
+  /// In en, this message translates to:
+  /// **'If referral codes are enabled, doctors can register using a valid referral code provided by the admin.'**
+  String get faq9Answer;
+
+  /// No description provided for @stillNeedHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Still need help?'**
+  String get stillNeedHelp;
+
+  /// No description provided for @emailUs.
+  ///
+  /// In en, this message translates to:
+  /// **'Email Us'**
+  String get emailUs;
+
+  /// No description provided for @callUs.
+  ///
+  /// In en, this message translates to:
+  /// **'Call Us'**
+  String get callUs;
+
+  /// No description provided for @emailSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Help & Support Request'**
+  String get emailSubject;
 }
 
 class _AppLocalizationsDelegate

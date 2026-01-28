@@ -8,6 +8,8 @@ class SocketService {
   IO.Socket? _socket;
   String? _currentUserId;
   bool _isConnecting = false;
+  final StreamController<bool> _connectionController =
+      StreamController<bool>.broadcast();
 
   static SocketService get instance {
     _instance ??= SocketService._();
@@ -18,6 +20,7 @@ class SocketService {
 
   IO.Socket? get socket => _socket;
   bool get isConnected => _socket?.connected ?? false;
+  Stream<bool> get connectionStream => _connectionController.stream;
   String? get currentUserId => _currentUserId;
 
   Future<bool> connect(String userId) async {
@@ -62,7 +65,8 @@ class SocketService {
           .setTransports(['websocket', 'polling'])
           .enableReconnection()
           .setReconnectionAttempts(10)
-          .setReconnectionDelay(1000)
+          .setReconnectionDelay(5000) // Increased to 5s to reduce polling spam
+          .setReconnectionDelayMax(10000)
           .setTimeout(20000)
           .setExtraHeaders({'userId': userId})
           .build(),
@@ -93,6 +97,7 @@ class SocketService {
 
       Future.delayed(const Duration(milliseconds: 800), () {
         debugPrint('✅ Socket ready');
+        _connectionController.add(true);
         if (!completer.isCompleted) {
           completer.complete(true);
           _isConnecting = false;
@@ -103,6 +108,7 @@ class SocketService {
     _socket!.onDisconnect((reason) {
       debugPrint('❌ Socket disconnected: $reason');
       _isConnecting = false;
+      _connectionController.add(false);
     });
 
     _socket!.onConnectError((error) {

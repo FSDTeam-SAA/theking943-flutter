@@ -24,7 +24,6 @@ class _DoctorMessagesListScreenState extends State<DoctorMessagesListScreen>
   List<Map<String, dynamic>> allChats = [];
   bool isLoading = true;
   String? currentUserId;
-  Timer? _autoRefreshTimer;
   Set<String> _selectedConversationIds = {}; // ✅ For multi-select delete
   bool _isSelectionMode = false; // ✅ Selection mode toggle
 
@@ -34,7 +33,6 @@ class _DoctorMessagesListScreenState extends State<DoctorMessagesListScreen>
     _tabController = TabController(length: 3, vsync: this);
     _loadCurrentUserId();
     _loadChats();
-    _startAutoRefresh(); // ✅ Auto-refresh every 3 seconds
     _setupAgoraListener(); // ✅ Listen to Agora messages
 
     if (widget.initialDoctorId != null) {
@@ -55,15 +53,6 @@ class _DoctorMessagesListScreenState extends State<DoctorMessagesListScreen>
         },
       ),
     );
-  }
-
-  // ✅ Start auto-refresh timer
-  void _startAutoRefresh() {
-    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (mounted) {
-        _loadChatsQuietly(); // Silent reload without loading indicator
-      }
-    });
   }
 
   // ✅ Silent reload (no loading indicator)
@@ -647,7 +636,6 @@ class _DoctorMessagesListScreenState extends State<DoctorMessagesListScreen>
   @override
   void dispose() {
     _tabController.dispose();
-    _autoRefreshTimer?.cancel(); // ✅ Cancel timer
     AgoraChatService.instance.removeMessageListener(
       'doctor_chat_list_refresher',
     );

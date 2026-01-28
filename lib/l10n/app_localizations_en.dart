@@ -1532,4 +1532,83 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectTimeFromPicker => 'Please select time from the picker below';
+
+  @override
+  String get faqTitle => 'Frequently Asked Questions (FAQ)';
+
+  @override
+  String get faq1Question => '1. How do I create an account?';
+
+  @override
+  String get faq1Answer =>
+      'You can sign up as a patient or doctor by choosing your role and completing the registration steps in the app.';
+
+  @override
+  String get faq2Question => '2. I forgot my password. What should I do?';
+
+  @override
+  String get faq2Answer =>
+      'Go to the login screen and tap on “Forgot Password”. Follow the instructions to reset your password securely.';
+
+  @override
+  String get faq3Question => '3. How can I book an appointment with a doctor?';
+
+  @override
+  String get faq3Answer =>
+      'Search for a doctor or specialty, select an available time slot, and confirm your appointment.';
+
+  @override
+  String get faq4Question => '4. Can I cancel or reschedule my appointment?';
+
+  @override
+  String get faq4Answer =>
+      'Yes, you can cancel or reschedule appointments from the “My Appointments” section, depending on the appointment status.';
+
+  @override
+  String get faq5Question => '5. How do online audio/video consultations work?';
+
+  @override
+  String get faq5Answer =>
+      'Once your appointment is confirmed, you can start an audio or video call directly from the chat at the scheduled time (if enabled by the doctor).';
+
+  @override
+  String get faq6Question => '6. Why can’t I start a call with the doctor?';
+
+  @override
+  String get faq6Answer =>
+      'The doctor may have disabled audio/video calls temporarily. Please try again later or contact support.';
+
+  @override
+  String get faq7Question => '7. How do I change the app language?';
+
+  @override
+  String get faq7Answer =>
+      'You can change the language from the app settings at any time.';
+
+  @override
+  String get faq8Question =>
+      '8. How can doctors manage their profile information?';
+
+  @override
+  String get faq8Answer =>
+      'Doctors can edit their personal and professional information from the profile settings.';
+
+  @override
+  String get faq9Question => '9. How does the referral system work?';
+
+  @override
+  String get faq9Answer =>
+      'If referral codes are enabled, doctors can register using a valid referral code provided by the admin.';
+
+  @override
+  String get stillNeedHelp => 'Still need help?';
+
+  @override
+  String get emailUs => 'Email Us';
+
+  @override
+  String get callUs => 'Call Us';
+
+  @override
+  String get emailSubject => 'Help & Support Request';
 }

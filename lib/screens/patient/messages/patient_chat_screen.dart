@@ -47,7 +47,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   String? _actualDoctorName;
 
   bool _isAutoScrollEnabled = true;
-  Timer? _autoRefreshTimer; // ✅ Auto-refresh timer
   final Set<String> _selectedMessageIds = {}; // ✅ For multi-select delete
   bool _isSelectionMode = false; // ✅ Selection mode toggle
 
@@ -60,7 +59,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       _loadMessages();
       _setupAgoraListeners();
       _ensureAgoraConnection();
-      _startAutoRefresh(); // ✅ Start polling as fallback
       AgoraChatService.instance.markAllMessagesAsRead(
         widget.chatId,
       ); // ✅ Mark as read on entry
@@ -264,15 +262,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         }
       }
     }
-  }
-
-  // ✅ New Auto-refresh polling
-  void _startAutoRefresh() {
-    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (mounted) {
-        _loadMessages();
-      }
-    });
   }
 
   void _scrollToBottom() {
@@ -1256,7 +1245,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   @override
   void dispose() {
-    _autoRefreshTimer?.cancel(); // ✅ Stop timer
     _controller.dispose();
     _scrollController.dispose();
     AgoraChatService.instance.removeMessageListener(widget.chatId);

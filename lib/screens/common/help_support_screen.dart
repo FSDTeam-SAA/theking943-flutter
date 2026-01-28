@@ -13,51 +13,15 @@ class HelpSupportScreen extends StatelessWidget {
     final bgColor = const Color(0xFFF8FAFF);
 
     final faqs = [
-      {
-        'question': '1. How do I create an account?',
-        'answer':
-            'You can sign up as a patient or doctor by choosing your role and completing the registration steps in the app.',
-      },
-      {
-        'question': '2. I forgot my password. What should I do?',
-        'answer':
-            'Go to the login screen and tap on “Forgot Password”. Follow the instructions to reset your password securely.',
-      },
-      {
-        'question': '3. How can I book an appointment with a doctor?',
-        'answer':
-            'Search for a doctor or specialty, select an available time slot, and confirm your appointment.',
-      },
-      {
-        'question': '4. Can I cancel or reschedule my appointment?',
-        'answer':
-            'Yes, you can cancel or reschedule appointments from the “My Appointments” section, depending on the appointment status.',
-      },
-      {
-        'question': '5. How do online audio/video consultations work?',
-        'answer':
-            'Once your appointment is confirmed, you can start an audio or video call directly from the chat at the scheduled time (if enabled by the doctor).',
-      },
-      {
-        'question': '6. Why can’t I start a call with the doctor?',
-        'answer':
-            'The doctor may have disabled audio/video calls temporarily. Please try again later or contact support.',
-      },
-      {
-        'question': '7. How do I change the app language?',
-        'answer':
-            'You can change the language from the app settings at any time.',
-      },
-      {
-        'question': '8. How can doctors manage their profile information?',
-        'answer':
-            'Doctors can edit their personal and professional information from the profile settings.',
-      },
-      {
-        'question': '9. How does the referral system work?',
-        'answer':
-            'If referral codes are enabled, doctors can register using a valid referral code provided by the admin.',
-      },
+      {'question': l10n.faq1Question, 'answer': l10n.faq1Answer},
+      {'question': l10n.faq2Question, 'answer': l10n.faq2Answer},
+      {'question': l10n.faq3Question, 'answer': l10n.faq3Answer},
+      {'question': l10n.faq4Question, 'answer': l10n.faq4Answer},
+      {'question': l10n.faq5Question, 'answer': l10n.faq5Answer},
+      {'question': l10n.faq6Question, 'answer': l10n.faq6Answer},
+      {'question': l10n.faq7Question, 'answer': l10n.faq7Answer},
+      {'question': l10n.faq8Question, 'answer': l10n.faq8Answer},
+      {'question': l10n.faq9Question, 'answer': l10n.faq9Answer},
     ];
 
     return Scaffold(
@@ -81,7 +45,7 @@ class HelpSupportScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Frequently Asked Questions (FAQ)',
+              l10n.faqTitle,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -99,7 +63,7 @@ class HelpSupportScreen extends StatelessWidget {
             ),
             const SizedBox(height: 30),
             Text(
-              'Still need help?',
+              l10n.stillNeedHelp,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -109,15 +73,16 @@ class HelpSupportScreen extends StatelessWidget {
             const SizedBox(height: 15),
             _buildContactCard(
               icon: Icons.email_outlined,
-              title: 'Email Us',
+              title: l10n.emailUs,
               subtitle: 'mydoctoralgerie@gmail.com',
               color: accentColor,
-              onTap: () => _launchEmail('mydoctoralgerie@gmail.com'),
+              onTap: () =>
+                  _launchEmail('mydoctoralgerie@gmail.com', l10n.emailSubject),
             ),
             const SizedBox(height: 12),
             _buildContactCard(
               icon: Icons.phone_outlined,
-              title: 'Call Us',
+              title: l10n.callUs,
               subtitle: '0558585400',
               color: Colors.green,
               onTap: () => _launchPhone('0558585400'),
@@ -242,11 +207,11 @@ class HelpSupportScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _launchEmail(String email) async {
+  Future<void> _launchEmail(String email, String subject) async {
     final Uri params = Uri(
       scheme: 'mailto',
       path: email,
-      query: 'subject=Help & Support Request',
+      query: 'subject=$subject',
     );
     if (await canLaunchUrl(params)) {
       await launchUrl(params);

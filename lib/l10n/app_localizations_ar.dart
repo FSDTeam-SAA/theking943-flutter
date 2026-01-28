@@ -1511,4 +1511,82 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get selectTimeFromPicker => 'يرجى اختيار الوقت من المختار بالأسفل';
+
+  @override
+  String get faqTitle => 'الأسئلة المتداولة (FAQ)';
+
+  @override
+  String get faq1Question => '1. كيف يمكنني إنشاء حساب؟';
+
+  @override
+  String get faq1Answer =>
+      'يمكنك التسجيل كطبيب أو مريض من خلال اختيار دورك وإكمال خطوات التسجيل في التطبيق.';
+
+  @override
+  String get faq2Question => '2. لقد نسيت كلمة المرور الخاصة بي. ماذا أفعل؟';
+
+  @override
+  String get faq2Answer =>
+      'انتقل إلى شاشة تسجيل الدخول واضغط على \"نسيت كلمة المرور\". اتبع التعليمات لإعادة تعيين كلمة المرور الخاصة بك بشكل آمن.';
+
+  @override
+  String get faq3Question => '3. كيف يمكنني حجز موعد مع الطبيب؟';
+
+  @override
+  String get faq3Answer =>
+      'ابحث عن طبيب أو تخصص، واعرف المواعيد المتاحة، ثم قم بتأكيد موعدك.';
+
+  @override
+  String get faq4Question => '4. هل يمكنني إلغاء أو إعادة جدولة موعدي؟';
+
+  @override
+  String get faq4Answer =>
+      'نعم، يمكنك إلغاء أو إعادة جدولة المواعيد من قسم \"مواعيدي\"، اعتماداً على حالة الموعد.';
+
+  @override
+  String get faq5Question =>
+      '5. كيف تعمل الاستشارات الصوتية والمرئية عبر الإنترنت؟';
+
+  @override
+  String get faq5Answer =>
+      'بمجرد تأكيد موعدك، يمكنك بدء مكالمة صوتية أو مرئية مباشرة من الدردشة في الوقت المحدد (إذا تم تفعيلها من قبل الطبي).';
+
+  @override
+  String get faq6Question => '6. لماذا لا يمكنني بدء مكالمة مع الطبيب؟';
+
+  @override
+  String get faq6Answer =>
+      'قد يكون الطبيب قد قام بتعطيل المكالمات الصوتية/المرئية مؤقتاً. يرجى المحاولة مرة أخرى لاحقاً أو الاتصال بالدعم.';
+
+  @override
+  String get faq7Question => '7. كيف يمكنني تغيير لغة التطبيق؟';
+
+  @override
+  String get faq7Answer => 'يمكنك تغيير اللغة من إعدادات التطبيق في أي وقت.';
+
+  @override
+  String get faq8Question => '8. كيف يمكن للأطباء إدارة معلومات ملفهم الشخصي؟';
+
+  @override
+  String get faq8Answer =>
+      'يمكن للأطباء تعديل معلوماتهم الشخصية والمهنية من إعدادات الملف الشخصي.';
+
+  @override
+  String get faq9Question => '9. كيف يعمل نظام الإحالة؟';
+
+  @override
+  String get faq9Answer =>
+      'إذا تم تفعيل رموز الإحالة، يمكن للأطباء التسجيل باستخدام رمز إحالة صالح يقدمه المسؤول.';
+
+  @override
+  String get stillNeedHelp => 'هل مازلت بحاجة إلى مساعدة؟';
+
+  @override
+  String get emailUs => 'راسلنا عبر البريد الإلكتروني';
+
+  @override
+  String get callUs => 'اتصل بنا';
+
+  @override
+  String get emailSubject => 'طلب المساعدة والدعم';
 }

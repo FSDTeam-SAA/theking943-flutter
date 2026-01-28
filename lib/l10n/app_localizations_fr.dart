@@ -1563,4 +1563,87 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get selectTimeFromPicker =>
       'Veuillez sélectionner l\'heure dans le sélecteur ci-dessous';
+
+  @override
+  String get faqTitle => 'Foire Aux Questions (FAQ)';
+
+  @override
+  String get faq1Question => '1. Comment créer un compte ?';
+
+  @override
+  String get faq1Answer =>
+      'Vous pouvez vous inscrire en tant que patient ou médecin en choisissant votre rôle et en suivant les étapes d\'inscription dans l\'application.';
+
+  @override
+  String get faq2Question =>
+      '2. J\'ai oublié mon mot de passe. Que dois-je faire ?';
+
+  @override
+  String get faq2Answer =>
+      'Allez sur l\'écran de connexion et appuyez sur « Mot de passe oublié ». Suivez les instructions pour réinitialiser votre mot de passe en toute sécurité.';
+
+  @override
+  String get faq3Question => '3. Comment prendre rendez-vous avec un médecin ?';
+
+  @override
+  String get faq3Answer =>
+      'Recherchez un médecin ou une spécialité, sélectionnez un créneau horaire disponible et confirmez votre rendez-vous.';
+
+  @override
+  String get faq4Question =>
+      '4. Puis-je annuler ou reprogrammer mon rendez-vous ?';
+
+  @override
+  String get faq4Answer =>
+      'Oui, vous pouvez annuler ou reprogrammer vos rendez-vous dans la section « Mes rendez-vous », selon l\'état du rendez-vous.';
+
+  @override
+  String get faq5Question =>
+      '5. Comment fonctionnent les consultations audio/vidéo en ligne ?';
+
+  @override
+  String get faq5Answer =>
+      'Une fois votre rendez-vous confirmé, vous pouvez démarrer un appel audio ou vidéo directement depuis le chat à l\'heure prévue (si activé par le médecin).';
+
+  @override
+  String get faq6Question =>
+      '6. Pourquoi ne puis-je pas démarrer un appel avec le médecin ?';
+
+  @override
+  String get faq6Answer =>
+      'Le médecin a peut-être désactivé temporairement les appels audio/vidéo. Veuillez réessayer plus tard ou contacter l\'assistance.';
+
+  @override
+  String get faq7Question => '7. Comment changer la langue de l\'application ?';
+
+  @override
+  String get faq7Answer =>
+      'Vous pouvez changer la langue dans les paramètres de l\'application à tout moment.';
+
+  @override
+  String get faq8Question =>
+      '8. Comment les médecins gèrent-ils les informations de leur profil ?';
+
+  @override
+  String get faq8Answer =>
+      'Les médecins peuvent modifier leurs informations personnelles et professionnelles dans les paramètres du profil.';
+
+  @override
+  String get faq9Question => '9. Comment fonctionne le système de parrainage ?';
+
+  @override
+  String get faq9Answer =>
+      'Si les codes de parrainage sont activés, les médecins peuvent s\'inscrire en utilisant un code de parrainage valide fourni par l\'administrateur.';
+
+  @override
+  String get stillNeedHelp => 'Besoin d\'aide supplémentaire ?';
+
+  @override
+  String get emailUs => 'Envoyez-nous un e-mail';
+
+  @override
+  String get callUs => 'Appelez-nous';
+
+  @override
+  String get emailSubject => 'Demande d\'aide et de support';
 }

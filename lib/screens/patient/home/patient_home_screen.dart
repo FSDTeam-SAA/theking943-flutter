@@ -38,7 +38,6 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
   final TextEditingController _searchController = TextEditingController();
   GoogleMapController? _mapController;
-  Timer? _socketCheckTimer;
 
   // Default location (Dhaka, Bangladesh)
   LatLng _currentPosition = const LatLng(23.8103, 90.4125);
@@ -52,11 +51,6 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   @override
   void initState() {
     super.initState();
-
-    // Start periodic check for socket status
-    _socketCheckTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      if (mounted) setState(() {});
-    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeScreen();
@@ -100,7 +94,6 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
   @override
   void dispose() {
-    _socketCheckTimer?.cancel();
     _searchController.dispose();
     _mapController?.dispose();
     super.dispose();

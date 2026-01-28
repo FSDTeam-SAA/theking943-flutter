@@ -50,13 +50,13 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
           _loadingReviews = false;
         });
 
-        print('✅ Loaded ${_reviews.length} reviews, avg: $_avgRating');
+        debugPrint('✅ Loaded ${_reviews.length} reviews, avg: $_avgRating');
       } else {
-        print('❌ Reviews fetch failed: ${response['message']}');
+        debugPrint('❌ Reviews fetch failed: ${response['message']}');
         setState(() => _loadingReviews = false);
       }
     } catch (e) {
-      print('❌ Error loading reviews: $e');
+      debugPrint('❌ Error loading reviews: $e');
       setState(() => _loadingReviews = false);
     }
   }
@@ -68,7 +68,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
         widget.doctor.isVideoCallAvailable; // ✅ Read from model
 
     debugPrint('📄 Details Screen: ${widget.doctor.fullName}');
-    print('   - isVideoCallAvailable: $hasVideoCall');
+    debugPrint('   - isVideoCallAvailable: $hasVideoCall');
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -121,7 +121,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                           if (hasVideoCall)
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
+                                horizontal: 20,
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
@@ -138,15 +138,15 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                                   Icon(
                                     Icons.videocam,
                                     color: Color(0xFF1976D2),
-                                    size: 18,
+                                    size: 14,
                                   ),
-                                  SizedBox(width: 6),
+                                  SizedBox(width: 2),
                                   Text(
                                     l10n.videoAvailable,
                                     style: const TextStyle(
                                       color: Color(0xFF1565C0),
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 10,
                                     ),
                                   ),
                                 ],

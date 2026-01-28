@@ -139,7 +139,8 @@ class ApiService {
         if (attempts > retries) {
           return {'success': false, 'message': _getErrorMessage(e)};
         }
-        await Future.delayed(delay * attempts);
+        // Exponential backoff: 1s, 4s, 9s...
+        await Future.delayed(delay * (attempts * attempts));
       }
     }
     return {'success': false, 'message': 'Request failed after retries'};
@@ -1100,81 +1101,83 @@ class ApiService {
     );
 
     try {
-    final body = response.body;
-    dynamic data;
-    try {
-      data = json.decode(body);
-    } catch (e) {
-      debugPrint('⚠️ JSON Decode Error: $e');
-      
-      // Detect HTML response (like 502 Bad Gateway)
-      if (body.contains('<html>') || body.contains('nginx')) {
-         return {
+      final body = response.body;
+      dynamic data;
+      try {
+        data = json.decode(body);
+      } catch (e) {
+        debugPrint('⚠️ JSON Decode Error: $e');
+
+        // Detect HTML response (like 502 Bad Gateway)
+        if (body.contains('<html>') || body.contains('nginx')) {
+          return {
+            'success': false,
+            'message':
+                'Server is currently unavailable (502 Bad Gateway). Please try again later.',
+            'statusCode': response.statusCode,
+            'error': '502 Bad Gateway',
+          };
+        }
+
+        // If it's not JSON, it might be a plain text error from nginx/server
+        return {
           'success': false,
-          'message': 'Server is currently unavailable (502 Bad Gateway). Please try again later.',
+          'message': body.isNotEmpty
+              ? body.substring(0, min(body.length, 200))
+              : 'Unknown server error',
           'statusCode': response.statusCode,
-          'error': '502 Bad Gateway'
         };
       }
 
-      // If it's not JSON, it might be a plain text error from nginx/server
-      return {
-        'success': false,
-        'message': body.isNotEmpty ? body.substring(0, min(body.length, 200)) : 'Unknown server error',
-        'statusCode': response.statusCode,
-      };
-    }
+      if (data is! Map<String, dynamic>) {
+        return {
+          'success': false,
+          'message': 'Invalid response format (not a valid JSON object)',
+          'statusCode': response.statusCode,
+        };
+      }
 
-    if (data is! Map<String, dynamic>) {
-       return {
-        'success': false,
-        'message': 'Invalid response format (not a valid JSON object)',
-        'statusCode': response.statusCode,
-      };
-    }
+      // Success response (200-299)
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return {'success': true, 'statusCode': response.statusCode, ...data};
+      }
 
-    // Success response (200-299)
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return {'success': true, 'statusCode': response.statusCode, ...data};
-    }
-    
-    // Extract error message safely
-    String errorMessage = data['message'] ?? 'Request failed';
-    if(data['error'] != null && data['error'] is String) {
+      // Extract error message safely
+      String errorMessage = data['message'] ?? 'Request failed';
+      if (data['error'] != null && data['error'] is String) {
         errorMessage = data['error'];
-    }
+      }
 
-    // Unauthorized (401) - Token invalid/expired
-    if (response.statusCode == 401) {
-      debugPrint('⚠️ 401 Unauthorized - Clearing token');
-      clearToken();
+      // Unauthorized (401) - Token invalid/expired
+      if (response.statusCode == 401) {
+        debugPrint('⚠️ 401 Unauthorized - Clearing token');
+        clearToken();
+        return {
+          'success': false,
+          'message': errorMessage,
+          'requiresLogin': true,
+          'statusCode': response.statusCode,
+        };
+      }
+
+      // Return structured error
       return {
         'success': false,
         'message': errorMessage,
-        'requiresLogin': true,
+        'statusCode': response.statusCode,
+        'errors': data['errors'] ?? [],
+        'data': data, // Include data just in case
+      };
+    } catch (e, stack) {
+      debugPrint('❌ Response handling error: $e');
+      debugPrint(stack.toString());
+      return {
+        'success': false,
+        'message': 'Failed to process server response',
         'statusCode': response.statusCode,
       };
     }
-    
-    // Return structured error
-    return {
-      'success': false,
-      'message': errorMessage,
-      'statusCode': response.statusCode,
-      'errors': data['errors'] ?? [],
-      'data': data // Include data just in case
-    };
-
-  } catch (e, stack) {
-    debugPrint('❌ Response handling error: $e');
-    debugPrint(stack.toString());
-    return {
-      'success': false,
-      'message': 'Failed to process server response',
-      'statusCode': response.statusCode,
-    };
   }
-}
 
   /// Error message generator
   static String _getErrorMessage(dynamic error) {

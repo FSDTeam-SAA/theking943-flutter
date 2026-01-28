@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../../../services/location_service.dart';
 import '../../../providers/user_provider.dart';
+import 'package:geolocator/geolocator.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   const PersonalInfoScreen({super.key});
@@ -21,6 +24,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   final ImagePicker _picker = ImagePicker();
   File? _selectedImage;
   bool _isUpdating = false;
+  double? _currentLat;
+  double? _currentLng;
+  bool _isLocating = false;
 
   @override
   void initState() {
@@ -37,7 +43,99 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       _emailController.text = user.email;
       _phoneController.text = user.phone ?? '';
       _addressController.text = user.address ?? '';
+      _currentLat = user.latitude;
+      _currentLng = user.longitude;
     }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() => _isLocating = true);
+
+    try {
+      final locationService = LocationService();
+
+      bool serviceEnabled = await locationService.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          _showLocationDialog(
+            l10n.locationServicesDisabledTitle,
+            l10n.locationServicesDisabledMessage,
+            () => Geolocator.openLocationSettings(),
+          );
+        }
+        return;
+      }
+
+      LocationPermission permission = await locationService.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await locationService.requestPermission();
+        if (permission == LocationPermission.denied) return;
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          _showLocationDialog(
+            l10n.locationPermissionRequiredTitle,
+            l10n.locationPermissionRequiredMessage,
+            () => Geolocator.openAppSettings(),
+          );
+        }
+        return;
+      }
+
+      final position = await locationService.getCurrentPosition();
+      final latLng = LatLng(position.latitude, position.longitude);
+      final address = await locationService.getAddressFromLatLng(latLng);
+
+      if (mounted) {
+        setState(() {
+          _currentLat = position.latitude;
+          _currentLng = position.longitude;
+          _addressController.text = address;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('✅ Location updated')));
+      }
+    } catch (e) {
+      debugPrint('❌ Error getting location: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.errorMsg(e))));
+      }
+    } finally {
+      if (mounted) setState(() => _isLocating = false);
+    }
+  }
+
+  void _showLocationDialog(
+    String title,
+    String message,
+    VoidCallback onOpenSettings,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              onOpenSettings();
+            },
+            child: Text(l10n.openSettings),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _pickImage() async {
@@ -87,6 +185,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         address: _addressController.text.trim().isEmpty
             ? null
             : _addressController.text.trim(),
+        latitude: _currentLat,
+        longitude: _currentLng,
         profileImage:
             _selectedImage, // ✅ Pass File directly, provider will convert
       );
@@ -227,6 +327,19 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
               icon: Icons.location_on_outlined,
               controller: _addressController,
               label: AppLocalizations.of(context)!.address,
+              suffixIcon: _isLocating
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : IconButton(
+                      icon: const Icon(
+                        Icons.my_location,
+                        color: Color(0xFF1664CD),
+                      ),
+                      onPressed: _getCurrentLocation,
+                    ),
             ),
             const SizedBox(height: 40),
 
@@ -274,6 +387,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     required String label,
     bool enabled = true,
     TextInputType? keyboardType,
+    Widget? suffixIcon,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
@@ -297,7 +411,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
               ),
             ),
           ),
-          if (enabled) const Icon(Icons.edit, size: 20, color: Colors.grey),
+          if (enabled && suffixIcon == null)
+            const Icon(Icons.edit, size: 20, color: Colors.grey),
+          if (suffixIcon != null) suffixIcon,
         ],
       ),
     );

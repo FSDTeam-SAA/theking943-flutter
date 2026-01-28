@@ -430,6 +430,7 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
                 _buildInfoCard(
                   icon: Icons.school_outlined,
                   controller: _degreeController,
+                  enabled: false,
                   hint: AppLocalizations.of(context)!.degreeHint,
                 ),
                 _buildInfoCard(
