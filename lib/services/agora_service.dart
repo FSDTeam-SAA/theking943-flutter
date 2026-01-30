@@ -35,7 +35,17 @@ class AgoraService {
         ),
       );
 
-      // 3. Register event handlers
+      // 3. Set Video Profile (Optimized for Mobile Data/Performance)
+      await _engine!.setVideoEncoderConfiguration(
+        const VideoEncoderConfiguration(
+          dimensions: VideoDimensions(width: 640, height: 360),
+          frameRate: 15,
+          bitrate: 0, // Standard bitrate
+          orientationMode: OrientationMode.orientationModeAdaptive,
+        ),
+      );
+
+      // 4. Register event handlers
       _engine!.registerEventHandler(
         RtcEngineEventHandler(
           onJoinChannelSuccess: (RtcConnection connection, int elapsed) {

@@ -937,5 +937,6 @@
   "stillNeedHelp": "Besoin d'aide supplémentaire ?",
   "emailUs": "Envoyez-nous un e-mail",
   "callUs": "Appelez-nous",
-  "emailSubject": "Demande d'aide et de support"
+  "emailSubject": "Demande d'aide et de support",
+  "bookingSuccess": "Rendez-vous pris avec succès !"
 }

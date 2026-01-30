@@ -3051,6 +3051,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Help & Support Request'**
   String get emailSubject;
+
+  /// Success message for booking
+  ///
+  /// In en, this message translates to:
+  /// **'Appointment booked successfully!'**
+  String get bookingSuccess;
 }
 
 class _AppLocalizationsDelegate

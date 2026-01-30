@@ -1399,6 +1399,10 @@
   "stillNeedHelp": "Still need help?",
   "emailUs": "Email Us",
   "callUs": "Call Us",
-  "emailSubject": "Help & Support Request"
+  "emailSubject": "Help & Support Request",
+  "bookingSuccess": "Appointment booked successfully!",
+  "@bookingSuccess": {
+    "description": "Success message for booking"
+  }
 }
 

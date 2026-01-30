@@ -12,6 +12,8 @@ import 'package:docmobi/models/appointment_model.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
 import 'package:docmobi/providers/dependent_provider.dart';
 import 'package:docmobi/utils/api_config.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'dart:io';
 
 class BookAppointmentScreen extends StatefulWidget {
   final dynamic doctor;
@@ -330,9 +332,34 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     }
   }
 
-  // ✅ NEW: Handle new appointment creation
+  // ✅ NEW: Helper to compress images
+  Future<File> _compressImage(String path) async {
+    try {
+      final String targetPath = '${path}_compressed.jpg';
+      final XFile? result = await FlutterImageCompress.compressAndGetFile(
+        path,
+        targetPath,
+        quality: 70, // Good balance of size/quality
+        minWidth: 1280, // Reasonable max dimension
+        minHeight: 1280,
+      );
+
+      if (result != null) {
+        debugPrint(
+          '✅ Compressed: ${(await File(path).length()) / 1024}KB -> ${(await File(result.path).length()) / 1024}KB',
+        );
+        return File(result.path);
+      }
+    } catch (e) {
+      debugPrint('⚠️ Compression failed: $e');
+    }
+    return File(path); // Fallback to original
+  }
+
+  // ✅ NEW: Handle new appointment creation logic
   Future<void> _handleNewAppointment() async {
     try {
+      // 1. Prepare Request
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.appointments}'),
@@ -344,6 +371,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         request.headers['Authorization'] = 'Bearer $token';
       }
 
+      // 2. Prepare Data Payload
       String backendType = selectedType == "Physical Visit"
           ? "physical"
           : "video";
@@ -355,49 +383,66 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         bookedForPayload = {
           'type': 'dependent',
           'dependentId': selectedDependent!.id,
+          'dependentName': selectedDependent!.fullName, // Added for clarity
+          'relationship': selectedDependent!.relationship, // Added for clarity
         };
       }
 
-      request.fields.addAll({
+      // 3. Add Fields
+      // Note: We send symptoms as a plain field. If backend logic relies on this being
+      // saved BEFORE file processing completes, compression helps by speeding up the request.
+      final fields = {
         'doctorId': doctorId,
         'appointmentType': backendType,
         'date': DateFormat('yyyy-MM-dd').format(selectedDate!),
         'time': selectedTimeSlot!.start,
         'symptoms': _symptomsController.text.trim(),
         'bookedFor': json.encode(bookedForPayload),
-      });
+      };
 
-      for (var file in _medicalDocuments) {
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'medicalDocuments',
-            file.path,
-            filename: file.name,
-          ),
+      request.fields.addAll(fields);
+      debugPrint('📤 Sending Appointment Fields: $fields');
+
+      // 4. Compress & Add Medical Documents
+      if (_medicalDocuments.isNotEmpty) {
+        debugPrint(
+          '📸 Compressing ${_medicalDocuments.length} medical documents...',
         );
+        for (var file in _medicalDocuments) {
+          final compressedFile = await _compressImage(file.path);
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'medicalDocuments',
+              compressedFile.path,
+              filename: '${DateTime.now().millisecondsSinceEpoch}.jpg',
+            ),
+          );
+        }
       }
 
-      if (selectedType == "Video Call") {
-        if (_paymentScreenshot == null) {
-          final l10n = AppLocalizations.of(context)!;
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.paymentRequired)));
-          return;
-        }
+      // 5. Compress & Add Payment Screenshot
+      if (selectedType == "Video Call" && _paymentScreenshot != null) {
+        debugPrint('📸 Compressing payment screenshot...');
+        final compressedFile = await _compressImage(_paymentScreenshot!.path);
         request.files.add(
           await http.MultipartFile.fromPath(
             'paymentScreenshot',
-            _paymentScreenshot!.path,
-            filename: _paymentScreenshot!.name,
+            compressedFile.path,
+            filename: 'payment_${DateTime.now().millisecondsSinceEpoch}.jpg',
           ),
         );
       }
 
+      // 6. Send Request
+      debugPrint('🚀 Sending Multipart Request...');
       final streamedResponse = await request.send().timeout(
-        const Duration(seconds: 30),
+        const Duration(seconds: 60), // Increased timeout for uploads
       );
+
       final response = await http.Response.fromStream(streamedResponse);
+      debugPrint('📥 Response Code: ${response.statusCode}');
+      debugPrint('📥 Response Body: ${response.body}');
+
       final jsonResponse = response.body.isNotEmpty
           ? json.decode(response.body)
           : {};
@@ -406,8 +451,16 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         if (mounted) {
           // Optimization: Trigger appointment fetch
           context.read<AppointmentProvider>().fetchAppointments();
-          if (!mounted) return;
-          Navigator.pop(context);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(AppLocalizations.of(context)!.bookingSuccess),
+                backgroundColor: Colors.green,
+              ),
+            );
+            Navigator.pop(context);
+          }
         }
       } else {
         final l10n = AppLocalizations.of(context)!;
@@ -419,6 +472,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         }
       }
     } catch (e) {
+      debugPrint('❌ Booking Exception: $e');
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -792,7 +846,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _submitAppointment,
+                onPressed: _isLoading ? () {} : _submitAppointment,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0D53C1),
                   shape: RoundedRectangleBorder(
@@ -800,7 +854,14 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                   ),
                 ),
                 child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      )
                     : Text(
                         widget.isReschedule
                             ? l10n.confirmReschedule

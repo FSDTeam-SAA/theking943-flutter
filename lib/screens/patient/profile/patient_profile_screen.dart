@@ -131,12 +131,12 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
                 const SizedBox(height: 5),
 
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.location_on, size: 14),
-
                     const SizedBox(width: 4),
-
-                    Expanded(
+                    Flexible(
                       child: Text(
                         userLocation,
                         style: const TextStyle(

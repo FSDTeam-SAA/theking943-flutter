@@ -5,8 +5,11 @@ import 'package:provider/provider.dart';
 import 'package:docmobi/models/appointment_model.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
 import 'package:docmobi/screens/doctor/appointments/session_holder_screen.dart';
+import 'package:docmobi/services/pdf_service.dart';
+import 'package:docmobi/providers/user_provider.dart';
 import 'package:docmobi/utils/api_config.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:docmobi/widgets/full_screen_image_viewer.dart';
 
 class DoctorAppointmentsScreen extends StatefulWidget {
   const DoctorAppointmentsScreen({super.key});
@@ -55,6 +58,41 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
             fontSize: 20,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf, color: Colors.indigo),
+            tooltip: 'Export Report',
+            onPressed: () async {
+              final provider = context.read<AppointmentProvider>();
+              final appointments = [
+                ...provider.pendingAppointments,
+                ...provider.acceptedAppointments,
+                ...provider.completedAppointments,
+              ];
+
+              if (appointments.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('No appointments to export')),
+                );
+                return;
+              }
+
+              // Use UserProvider if available, else fallback
+              String doctorName = 'Doctor';
+              try {
+                doctorName =
+                    context.read<UserProvider>().user?.fullName ?? 'Doctor';
+              } catch (e) {
+                // UserProvider might not be available or user null
+              }
+
+              await PdfService.generateAppointmentListPdf(
+                appointments,
+                doctorName,
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<AppointmentProvider>(
         builder: (context, provider, child) {
@@ -1066,7 +1104,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => _ImageViewerScreen(imageUrl: cleanUrl),
+            builder: (context) => FullScreenImageViewer(imageUrls: [cleanUrl]),
           ),
         );
       } else {
@@ -1183,17 +1221,17 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(l10n.cancelAppointment),
         content: Text(l10n.confirmCancel),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(l10n.no),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
 
               showDialog(
                 context: context,
@@ -1253,156 +1291,5 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
         context.read<AppointmentProvider>().fetchAppointments();
       }
     });
-  }
-}
-
-//  Image Viewer Screen for viewing uploaded documents
-class _ImageViewerScreen extends StatefulWidget {
-  final String imageUrl;
-
-  const _ImageViewerScreen({required this.imageUrl});
-
-  @override
-  State<_ImageViewerScreen> createState() => _ImageViewerScreenState();
-}
-
-class _ImageViewerScreenState extends State<_ImageViewerScreen> {
-  final TransformationController _transformationController =
-      TransformationController();
-
-  @override
-  void dispose() {
-    _transformationController.dispose();
-    super.dispose();
-  }
-
-  void _resetZoom() {
-    _transformationController.value = Matrix4.identity();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          l10n.medicalDocument,
-          style: const TextStyle(color: Colors.white),
-        ),
-        actions: [
-          //  Reset Zoom Button
-          IconButton(
-            icon: const Icon(Icons.zoom_out_map, color: Colors.white),
-            tooltip: l10n.resetZoom,
-            onPressed: _resetZoom,
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          Center(
-            child: InteractiveViewer(
-              transformationController: _transformationController,
-              panEnabled: true,
-              minScale: 0.5,
-              maxScale: 5.0, //  Increased max zoom
-              child: Image.network(
-                widget.imageUrl,
-                fit: BoxFit.contain,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
-                              : null,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.loadingImage,
-                          style: TextStyle(color: Colors.grey[400]),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          color: Colors.red,
-                          size: 60,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.failedLoadImage,
-                          style: TextStyle(color: Colors.grey[400]),
-                        ),
-                        const SizedBox(height: 8),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Text(
-                            error.toString(),
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-
-          // ✅ Zoom Instructions (shows temporarily)
-          Positioned(
-            bottom: 30,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.pinch, color: Colors.grey[400], size: 16),
-                    const SizedBox(width: 8),
-                    Text(
-                      l10n.zoomInstructions,
-                      style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

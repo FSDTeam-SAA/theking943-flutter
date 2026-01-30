@@ -762,6 +762,11 @@ class ApiService {
     );
   }
 
+  /// Get All Categories
+  static Future<Map<String, dynamic>> getAllCategories() async {
+    return await get('/api/v1/category', requiresAuth: false);
+  }
+
   // ========================================
   // 💰 PAYMENT/EARNINGS APIs
   // ========================================

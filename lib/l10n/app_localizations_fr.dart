@@ -1646,4 +1646,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get emailSubject => 'Demande d\'aide et de support';
+
+  @override
+  String get bookingSuccess => 'Rendez-vous pris avec succès !';
 }

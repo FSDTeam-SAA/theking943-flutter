@@ -1611,4 +1611,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get emailSubject => 'Help & Support Request';
+
+  @override
+  String get bookingSuccess => 'Appointment booked successfully!';
 }

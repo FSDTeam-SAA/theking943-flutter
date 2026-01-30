@@ -1589,4 +1589,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get emailSubject => 'طلب المساعدة والدعم';
+
+  @override
+  String get bookingSuccess => 'تم حجز الموعد بنجاح!';
 }

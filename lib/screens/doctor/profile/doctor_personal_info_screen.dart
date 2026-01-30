@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:docmobi/services/api_service.dart';
 import '../../../providers/user_provider.dart';
 
 class DoctorPersonalInfoScreen extends StatefulWidget {
@@ -35,26 +36,15 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
 
   final ImagePicker _picker = ImagePicker();
 
-  // Specialty options
-  final List<String> _specialtyOptions = [
-    'Cardiologist',
-    'Dermatologist',
-    'Neurologist',
-    'Orthopedic',
-    'Pediatrician',
-    'Psychiatrist',
-    'General Physician',
-    'ENT Specialist',
-    'Gynecologist',
-    'Ophthalmologist',
-    'Dentist',
-    'Urologist',
-  ];
+  // Specialty options (Fetched from backend)
+  List<String> _specialtyOptions = [];
+  bool _isLoadingCategories = true;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _fetchCategories();
 
     // Track changes
     _bioController.addListener(() => setState(() => _hasChanges = true));
@@ -63,6 +53,26 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
     _degreeController.addListener(() => setState(() => _hasChanges = true));
     _addressController.addListener(() => setState(() => _hasChanges = true));
     _phoneController.addListener(() => setState(() => _hasChanges = true));
+  }
+
+  Future<void> _fetchCategories() async {
+    try {
+      final response = await ApiService.getAllCategories();
+      if (response['success'] == true && response['data'] != null) {
+        final List<dynamic> categoryData = response['data'];
+        setState(() {
+          _specialtyOptions = categoryData
+              .map((c) => c['speciality_name'] as String)
+              .toList();
+          _isLoadingCategories = false;
+        });
+      } else {
+        setState(() => _isLoadingCategories = false);
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching categories: $e');
+      setState(() => _isLoadingCategories = false);
+    }
   }
 
   void _loadUserData() {
@@ -147,27 +157,37 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
             ),
             const SizedBox(height: 15),
             Expanded(
-              child: ListView.builder(
-                itemCount: _specialtyOptions.length,
-                itemBuilder: (context, index) {
-                  final specialty = _specialtyOptions[index];
-                  final isSelected = _specialtyController.text == specialty;
+              child: _isLoadingCategories
+                  ? const Center(child: CircularProgressIndicator())
+                  : _specialtyOptions.isEmpty
+                  ? Center(
+                      child: Text(AppLocalizations.of(context)!.noResultsFound),
+                    )
+                  : ListView.builder(
+                      itemCount: _specialtyOptions.length,
+                      itemBuilder: (context, index) {
+                        final specialty = _specialtyOptions[index];
+                        final isSelected =
+                            _specialtyController.text == specialty;
 
-                  return ListTile(
-                    title: Text(_getLocalizedSpecialty(specialty)),
-                    trailing: isSelected
-                        ? const Icon(Icons.check, color: Color(0xFF1664CD))
-                        : null,
-                    onTap: () {
-                      setState(() {
-                        _specialtyController.text = specialty;
-                        _hasChanges = true;
-                      });
-                      Navigator.pop(context);
-                    },
-                  );
-                },
-              ),
+                        return ListTile(
+                          title: Text(_getLocalizedSpecialty(specialty)),
+                          trailing: isSelected
+                              ? const Icon(
+                                  Icons.check,
+                                  color: Color(0xFF1664CD),
+                                )
+                              : null,
+                          onTap: () {
+                            setState(() {
+                              _specialtyController.text = specialty;
+                              _hasChanges = true;
+                            });
+                            Navigator.pop(context);
+                          },
+                        );
+                      },
+                    ),
             ),
           ],
         ),

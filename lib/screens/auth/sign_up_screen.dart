@@ -32,18 +32,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
 
-  final List<String> _specialties = [
-    'Cardiologists',
-    'Orthopedic',
-    'Dermatologists',
-    'Nephrologists',
-    'General Medicine',
-    'Nutrition & Dietetics',
-    'Psychiatry',
-    'Pediatrics',
-    'Gynecology',
-    'ENT Specialist',
-  ];
+  // Specialty options (Fetched from backend)
+  List<String> _specialties = [];
+  bool _isLoadingCategories = true;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.userType.toLowerCase() == 'doctor') {
+      _fetchCategories();
+    }
+  }
+
+  Future<void> _fetchCategories() async {
+    try {
+      final response = await ApiService.getAllCategories();
+      if (response['success'] == true && response['data'] != null) {
+        final List<dynamic> categoryData = response['data'];
+        setState(() {
+          _specialties = categoryData
+              .map((c) => c['speciality_name'] as String)
+              .toList();
+          _isLoadingCategories = false;
+        });
+      } else {
+        setState(() => _isLoadingCategories = false);
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching categories: $e');
+      setState(() => _isLoadingCategories = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -373,28 +392,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        isExpanded: true,
-                        value: _selectedSpecialty,
-                        hint: Text(l10n.selectSpecialty),
-                        icon: const Icon(
-                          Icons.arrow_drop_down,
-                          color: Color(0xFF1664CD),
-                        ),
-                        items: _specialties
-                            .map(
-                              (specialty) => DropdownMenuItem(
-                                value: specialty,
-                                child: Text(specialty),
+                      child: _isLoadingCategories
+                          ? const Padding(
+                              padding: EdgeInsets.all(12.0),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               ),
                             )
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedSpecialty = value;
-                          });
-                        },
-                      ),
+                          : DropdownButton<String>(
+                              isExpanded: true,
+                              value: _selectedSpecialty,
+                              hint: Text(l10n.selectSpecialty),
+                              icon: const Icon(
+                                Icons.arrow_drop_down,
+                                color: Color(0xFF1664CD),
+                              ),
+                              items: _specialties
+                                  .map(
+                                    (specialty) => DropdownMenuItem(
+                                      value: specialty,
+                                      child: Text(specialty),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedSpecialty = value;
+                                });
+                              },
+                            ),
                     ),
                   ),
 

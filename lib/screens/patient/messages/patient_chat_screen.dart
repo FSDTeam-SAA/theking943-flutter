@@ -11,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:docmobi/services/agora_chat_service.dart';
 import 'package:agora_chat_sdk/agora_chat_sdk.dart';
 import 'package:intl/intl.dart';
+import 'package:docmobi/widgets/full_screen_image_viewer.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String chatId;
@@ -1022,22 +1023,32 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                           if (url != null && url.isNotEmpty) {
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 8),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child:
-                                    (url.startsWith('https://') ||
-                                        url.startsWith('http://'))
-                                    ? CustomImage(
-                                        imageUrl: url,
-                                        width: 200,
-                                        height: 200,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : Image.file(
-                                        File(url),
-                                        width: 200,
-                                        fit: BoxFit.cover,
-                                      ),
+                              child: GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => FullScreenImageViewer(
+                                      imageUrls: [url!],
+                                    ),
+                                  ),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child:
+                                      (url.startsWith('https://') ||
+                                          url.startsWith('http://'))
+                                      ? CustomImage(
+                                          imageUrl: url,
+                                          width: 200,
+                                          height: 200,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Image.file(
+                                          File(url),
+                                          width: 200,
+                                          fit: BoxFit.cover,
+                                        ),
+                                ),
                               ),
                             );
                           }
