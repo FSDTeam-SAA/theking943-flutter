@@ -180,10 +180,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       final success = await userProvider.updateUserProfile(
         fullName: _nameController.text.trim(),
         phone: _phoneController.text.trim().isEmpty
-            ? null
+            ? ""
             : _phoneController.text.trim(),
         address: _addressController.text.trim().isEmpty
-            ? null
+            ? ""
             : _addressController.text.trim(),
         latitude: _currentLat,
         longitude: _currentLng,
