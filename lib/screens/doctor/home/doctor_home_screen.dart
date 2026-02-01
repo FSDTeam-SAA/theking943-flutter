@@ -322,22 +322,22 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
     });
   }
 
-  void _toggleSearch() {
-    setState(() {
-      _isSearching = !_isSearching;
-      if (!_isSearching) {
-        _searchController.clear();
-        _searchResults.clear();
-        _searchSuggestions.clear();
-        _currentSearchQuery = '';
-        _selectedSuggestionIndex = -1;
-      } else {
-        Future.delayed(const Duration(milliseconds: 100), () {
-          _searchFocusNode.requestFocus();
-        });
-      }
-    });
-  }
+  // void _toggleSearch() {
+  //   setState(() {
+  //     _isSearching = !_isSearching;
+  //     if (!_isSearching) {
+  //       _searchController.clear();
+  //       _searchResults.clear();
+  //       _searchSuggestions.clear();
+  //       _currentSearchQuery = '';
+  //       _selectedSuggestionIndex = -1;
+  //     } else {
+  //       Future.delayed(const Duration(milliseconds: 100), () {
+  //         _searchFocusNode.requestFocus();
+  //       });
+  //     }
+  //   });
+  // }
 
   void _showDoctorInfo(Map<String, dynamic> doctor) {
     showModalBottomSheet(
@@ -443,14 +443,14 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                               ),
                             ),
 
-                            IconButton(
-                              icon: Icon(
-                                _isSearching ? Icons.close : Icons.search,
-                                color: const Color(0xFF1B2C49),
-                                size: 24,
-                              ),
-                              onPressed: _toggleSearch,
-                            ),
+                            // IconButton(
+                            //   icon: Icon(
+                            //     _isSearching ? Icons.close : Icons.search,
+                            //     color: const Color(0xFF1B2C49),
+                            //     size: 24,
+                            //   ),
+                            //   onPressed: _toggleSearch,
+                            // ),
                             Stack(
                               clipBehavior: Clip.none,
                               children: [

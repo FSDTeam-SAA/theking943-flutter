@@ -736,30 +736,30 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 20),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.black.withValues(alpha: 0.1),
-                              ),
-                            ),
-                            child: TextField(
-                              controller: _searchController,
-                              decoration: InputDecoration(
-                                hintText: l10n.searchDoctorHint,
-                                prefixIcon: const Icon(
-                                  Icons.search,
-                                  color: Colors.grey,
-                                ),
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(
-                                  vertical: 15,
-                                ),
-                              ),
-                            ),
-                          ),
+                          // const SizedBox(height: 20),
+                          // Container(
+                          //   decoration: BoxDecoration(
+                          //     color: Colors.white,
+                          //     borderRadius: BorderRadius.circular(12),
+                          //     border: Border.all(
+                          //       color: Colors.black.withValues(alpha: 0.1),
+                          //     ),
+                          //   ),
+                          //   child: TextField(
+                          //     controller: _searchController,
+                          //     decoration: InputDecoration(
+                          //       hintText: l10n.searchDoctorHint,
+                          //       prefixIcon: const Icon(
+                          //         Icons.search,
+                          //         color: Colors.grey,
+                          //       ),
+                          //       border: InputBorder.none,
+                          //       contentPadding: EdgeInsets.symmetric(
+                          //         vertical: 15,
+                          //       ),
+                          //     ),
+                          //   ),
+                          // ),
                         ],
                       ),
                     ),

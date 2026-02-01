@@ -12,6 +12,8 @@ import 'package:docmobi/services/agora_chat_service.dart';
 import 'package:agora_chat_sdk/agora_chat_sdk.dart';
 import 'package:intl/intl.dart';
 import 'package:docmobi/widgets/full_screen_image_viewer.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String chatId;
@@ -716,22 +718,38 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 // Audio Call icon
                 IconButton(
                   icon: const Icon(
-                    Icons.phone_outlined,
+                    Icons.phone_disabled,
                     color: Colors.black,
                     size: 26,
                   ),
-                  onPressed: () => _initiateCall(isVideo: false),
-                ),
-                // Video icon
-                IconButton(
-                  icon: const Icon(
-                    Icons.videocam_outlined,
-                    color: Colors.black,
-                    size: 28,
-                  ),
-                  onPressed: () => _initiateCall(isVideo: true),
+                  onPressed: () {
+                    showTopSnackBar(
+                      Overlay.of(context),
+                      const CustomSnackBar.error(
+                        message: "Calling is not allowed",
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(width: 10),
+                // IconButton(
+                //   icon: const Icon(
+                //     Icons.phone_outlined,
+                //     color: Colors.black,
+                //     size: 26,
+                //   ),
+                //   onPressed: () => _initiateCall(isVideo: false),
+                // ),
+                // // Video icon
+                // IconButton(
+                //   icon: const Icon(
+                //     Icons.videocam_outlined,
+                //     color: Colors.black,
+                //     size: 28,
+                //   ),
+                //   onPressed: () => _initiateCall(isVideo: true),
+                // ),
+                // const SizedBox(width: 10),
               ],
       ),
       body: Column(
