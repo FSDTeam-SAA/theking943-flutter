@@ -36,11 +36,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
   List<String> _specialties = [];
   bool _isLoadingCategories = true;
 
+  // Referral System Setting
+  bool _isReferralSystemEnabled = false;
+  bool _isLoadingReferralSetting = true;
+
   @override
   void initState() {
     super.initState();
     if (widget.userType.toLowerCase() == 'doctor') {
       _fetchCategories();
+      _fetchReferralSetting();
     }
   }
 
@@ -61,6 +66,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
     } catch (e) {
       debugPrint('❌ Error fetching categories: $e');
       setState(() => _isLoadingCategories = false);
+    }
+  }
+
+  Future<void> _fetchReferralSetting() async {
+    try {
+      final response = await ApiService.getReferralSetting();
+      if (response['success'] == true && response['data'] != null) {
+        setState(() {
+          _isReferralSystemEnabled =
+              response['data']['referralSystemEnabled'] ?? false;
+          _isLoadingReferralSetting = false;
+        });
+        debugPrint('✅ Referral system enabled: $_isReferralSystemEnabled');
+      } else {
+        setState(() => _isLoadingReferralSetting = false);
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching referral setting: $e');
+      setState(() => _isLoadingReferralSetting = false);
     }
   }
 
@@ -109,6 +133,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       if (_experienceController.text.trim().isEmpty) {
         _showSnackBar(l10n.experienceRequired, isError: true);
+        return false;
+      }
+
+      // Referral code mandatory check if system is enabled
+      if (_isReferralSystemEnabled && _referralController.text.trim().isEmpty) {
+        _showSnackBar(l10n.enterReferralCode, isError: true);
         return false;
       }
     }
@@ -356,25 +386,40 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                   const SizedBox(height: 15),
 
-                  // Referral Code
-                  Text(
-                    l10n.referralCode,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF0B3267),
+                  // Referral Code (Dynamic Visibility)
+                  if (_isLoadingReferralSetting)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  else if (_isReferralSystemEnabled) ...[
+                    Text(
+                      l10n.referralCode,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0B3267),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  CustomTextField(
-                    hintText: l10n.enterReferralCode,
-                    controller: _referralController,
-                    prefixIcon: const Icon(
-                      Icons.discount_outlined,
-                      color: Color(0xFF1664CD),
+                    const SizedBox(height: 8),
+                    CustomTextField(
+                      hintText: l10n.enterReferralCode,
+                      controller: _referralController,
+                      prefixIcon: const Icon(
+                        Icons.discount_outlined,
+                        color: Color(0xFF1664CD),
+                      ),
+                      validator: (value) {
+                        if (_isReferralSystemEnabled &&
+                            (value == null || value.trim().isEmpty)) {
+                          return l10n.enterReferralCode;
+                        }
+                        return null;
+                      },
                     ),
-                  ),
-
-                  const SizedBox(height: 15),
+                    const SizedBox(height: 15),
+                  ],
 
                   // Specialty
                   Text(

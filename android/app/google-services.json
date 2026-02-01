@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "754436212878",
+    "project_id": "docmobi-7a0c7",
+    "storage_bucket": "docmobi-7a0c7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:754436212878:android:e24c953e6b1c46e41de1df",
+        "android_client_info": {
+          "package_name": "com.docmobi.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBCbjNy5NpoBtdoYyzWbVMSUVUUjhCPwgo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

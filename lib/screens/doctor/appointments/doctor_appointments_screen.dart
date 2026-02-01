@@ -64,31 +64,75 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
             tooltip: 'Export Report',
             onPressed: () async {
               final provider = context.read<AppointmentProvider>();
-              final appointments = [
+              final allAppointments = [
                 ...provider.pendingAppointments,
                 ...provider.acceptedAppointments,
                 ...provider.completedAppointments,
               ];
 
-              if (appointments.isEmpty) {
+              if (allAppointments.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('No appointments to export')),
                 );
                 return;
               }
 
-              // Use UserProvider if available, else fallback
+              // ✅ 1. Show Date Range Picker
+              final DateTimeRange? pickedRange = await showDateRangePicker(
+                context: context,
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2030),
+                helpText: 'Select Appointment Date Range',
+                confirmText: 'Export PDF',
+                builder: (context, child) {
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      colorScheme: ColorScheme.light(
+                        primary: Colors.indigo,
+                        onPrimary: Colors.white,
+                        onSurface: Colors.black,
+                      ),
+                    ),
+                    child: child!,
+                  );
+                },
+              );
+
+              if (pickedRange == null) return; // User cancelled
+
+              // ✅ 2. Filter Appointments
+              final filteredAppointments = allAppointments.where((apt) {
+                final aptDate = DateTime(
+                  apt.appointmentDate.year,
+                  apt.appointmentDate.month,
+                  apt.appointmentDate.day,
+                );
+                return aptDate.isAtSameMomentAs(pickedRange.start) ||
+                    aptDate.isAtSameMomentAs(pickedRange.end) ||
+                    (aptDate.isAfter(pickedRange.start) &&
+                        aptDate.isBefore(pickedRange.end));
+              }).toList();
+
+              if (filteredAppointments.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('No appointments found in this date range'),
+                  ),
+                );
+                return;
+              }
+
+              // ✅ 3. Export
               String doctorName = 'Doctor';
               try {
                 doctorName =
                     context.read<UserProvider>().user?.fullName ?? 'Doctor';
-              } catch (e) {
-                // UserProvider might not be available or user null
-              }
+              } catch (e) {}
 
               await PdfService.generateAppointmentListPdf(
-                appointments,
+                filteredAppointments,
                 doctorName,
+                dateRange: pickedRange,
               );
             },
           ),
@@ -361,11 +405,11 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                 ),
                 _smallIconText(Icons.access_time, appointment.appointmentTime),
                 _smallIconText(
-                  appointment.appointmentType == "video"
+                  appointment.appointmentType?.toLowerCase() == "video"
                       ? Icons.videocam_outlined
                       : Icons.location_on_outlined,
-                  appointment.appointmentType == "video"
-                      ? "Video"
+                  appointment.appointmentType?.toLowerCase() == "video"
+                      ? l10n.videoCall
                       : l10n.physical,
                 ),
               ],
@@ -520,11 +564,11 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                       runSpacing: 4,
                       children: [
                         _smallIconText(
-                          appointment.appointmentType == "video"
+                          appointment.appointmentType?.toLowerCase() == "video"
                               ? Icons.videocam_outlined
                               : Icons.location_on_outlined,
-                          appointment.appointmentType == "video"
-                              ? "Video"
+                          appointment.appointmentType?.toLowerCase() == "video"
+                              ? l10n.videoCall
                               : l10n.physical,
                         ),
                         _smallIconText(
@@ -700,11 +744,11 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                   runSpacing: 5,
                   children: [
                     _smallIconText(
-                      appointment.appointmentType == "video"
+                      appointment.appointmentType?.toLowerCase() == "video"
                           ? Icons.videocam_outlined
                           : Icons.location_on_outlined,
-                      appointment.appointmentType == "video"
-                          ? "Video"
+                      appointment.appointmentType?.toLowerCase() == "video"
+                          ? l10n.videoCall
                           : l10n.physical,
                     ),
                     _smallIconText(

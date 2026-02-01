@@ -32,7 +32,7 @@
 -keep class * implements com.google.gson.JsonDeserializer
 
 # Keep data model classes (update with your actual package name)
--keep class com.example.docmobi.models.** { *; }
+-keep class com.docmobi.app.models.** { *; }
 
 # Keep Flutter wrapper classes
 -keep class io.flutter.app.** { *; }

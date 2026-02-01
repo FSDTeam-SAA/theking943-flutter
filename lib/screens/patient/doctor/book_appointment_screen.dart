@@ -284,17 +284,20 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       return;
     }
 
-    if (widget.isReschedule) {
-      await _handleReschedule();
-    } else {
-      await _handleNewAppointment();
+    setState(() => _isLoading = true);
+    try {
+      if (widget.isReschedule) {
+        await _handleReschedule();
+      } else {
+        await _handleNewAppointment();
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   // ✅ NEW: Handle reschedule
   Future<void> _handleReschedule() async {
-    setState(() => _isLoading = true);
-
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
@@ -327,8 +330,6 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 

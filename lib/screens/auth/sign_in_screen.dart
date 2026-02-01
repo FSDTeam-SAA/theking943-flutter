@@ -1,3 +1,4 @@
+import 'package:docmobi/services/notification_service.dart';
 import 'package:docmobi/screens/onboarding/profile/select_profile_screen.dart';
 import 'package:docmobi/services/socket_service.dart';
 import 'package:flutter/material.dart';
@@ -28,6 +29,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -48,7 +50,6 @@ class _SignInScreenState extends State<SignInScreen> {
     try {
       debugPrint('🔄 Starting login process...');
 
-      // ✅ Use ApiService.login() instead of AuthService.login()
       final result = await ApiService.login(
         email: _emailController.text.trim(),
         password: _passwordController.text,
@@ -58,7 +59,6 @@ class _SignInScreenState extends State<SignInScreen> {
       debugPrint('📥 Login result: ${result['success']}');
 
       if (result['success'] == true) {
-        // ✅ Get role from response
         final userData = result['data'];
         final userRole =
             userData?['user']?['role']?.toString().toLowerCase() ??
@@ -66,21 +66,17 @@ class _SignInScreenState extends State<SignInScreen> {
         final userName =
             userData?['user']?['fullName'] ?? userData?['fullName'] ?? 'User';
 
-        // ✅ ADD THIS SECTION:
         final userId =
             userData?['user']?['_id']?.toString() ??
             userData?['_id']?.toString();
 
         if (userId != null) {
-          // Save user ID
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('user_id', userId);
 
-          // ✅ Socket connected after login
           await SocketService.instance.connect(userId);
           debugPrint('✅ Socket connected after login');
 
-          // ✅ Initialize and login to Agora Chat
           try {
             await AgoraChatService.instance.init();
             await AgoraChatService.instance.login(userId);
@@ -88,24 +84,27 @@ class _SignInScreenState extends State<SignInScreen> {
           } catch (e) {
             debugPrint('❌ Agora Chat init error: $e');
           }
+
+          // ✅ FCM Initialization after login
+          try {
+            await NotificationService.init();
+            debugPrint('✅ FCM Token registered after login');
+          } catch (e) {
+            debugPrint('❌ FCM registration error: $e');
+          }
         }
 
         debugPrint('✅ Login successful - Role: $userRole');
-        debugPrint('   Expected role: ${widget.userType.toLowerCase()}');
 
-        // ✅ Check if role matches expected type
         if (userRole == widget.userType.toLowerCase()) {
           final l10n = AppLocalizations.of(context)!;
           _showSnackBar(l10n.welcomeBackUser(userName), isError: false);
 
-          // Small delay for better UX
           await Future.delayed(const Duration(milliseconds: 500));
 
           if (!mounted) return;
 
-          // ✅ Navigate based on actual role
           if (userRole == 'patient') {
-            debugPrint('🚀 Navigating to Patient screen');
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(
@@ -114,7 +113,6 @@ class _SignInScreenState extends State<SignInScreen> {
               (route) => false,
             );
           } else if (userRole == 'doctor') {
-            debugPrint('🚀 Navigating to Doctor screen');
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(
@@ -122,15 +120,8 @@ class _SignInScreenState extends State<SignInScreen> {
               ),
               (route) => false,
             );
-          } else {
-            // Unknown role
-            debugPrint('⚠️ Unknown role: $userRole');
-            if (mounted) setState(() => _isLoading = false);
-            _showSnackBar('Invalid account type', isError: true);
-            await ApiService.clearToken();
           }
         } else {
-          // Wrong login type
           debugPrint(
             '⚠️ Role mismatch: Expected ${widget.userType}, Got $userRole',
           );
@@ -143,7 +134,6 @@ class _SignInScreenState extends State<SignInScreen> {
           );
         }
       } else {
-        // Login failed
         debugPrint('❌ Login failed: ${result['message']}');
         if (mounted) setState(() => _isLoading = false);
         final l10n = AppLocalizations.of(context)!;
@@ -151,9 +141,7 @@ class _SignInScreenState extends State<SignInScreen> {
       }
     } catch (e) {
       debugPrint('❌ Login error: $e');
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-
+      if (mounted) setState(() => _isLoading = false);
       final l10n = AppLocalizations.of(context)!;
       _showSnackBar(l10n.connectionError, isError: true);
     }

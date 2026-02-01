@@ -80,51 +80,12 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       final role = prefs.getString('user_role');
       final userId = prefs.getString('user_id');
 
-      final apiServiceLoggedIn = ApiService.isLoggedIn;
-
       debugPrint('📦 SharedPreferences Check:');
       debugPrint('   • Token: ${token != null ? "✅ Found" : "❌ Not found"}');
       debugPrint('   • Role: ${role ?? "❌ Not found"}');
       debugPrint('   • User ID: ${userId ?? "❌ Not found"}');
-      debugPrint('');
-      debugPrint('🔧 ApiService Check:');
-      debugPrint(
-        '   • Status: ${apiServiceLoggedIn ? "✅ Logged In" : "❌ Not Logged In"}',
-      );
-      debugPrint(
-        '   • Token in memory: ${ApiService.token != null ? "✅ Loaded" : "❌ Not loaded"}',
-      );
-      debugPrint('');
 
-      if (token != null && !apiServiceLoggedIn) {
-        debugPrint('⚠️ Token exists but ApiService not initialized properly');
-        debugPrint('🔄 Reinitializing ApiService...');
-        await ApiService.init();
-        debugPrint('✅ ApiService reinitialized');
-      }
-
-      // ✅ Initialize socket if logged in
-      if (token != null && userId != null && userId.isNotEmpty) {
-        if (!SocketService.instance.isConnected) {
-          debugPrint('🔌 Initializing Socket Service...');
-          try {
-            await SocketService.instance.connect(userId);
-            debugPrint('✅ Socket connected for user: $userId');
-
-            // ✅ Initialize CallManager after socket connection
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (_navigatorKey.currentContext != null) {
-                CallManager.instance.initialize(_navigatorKey.currentContext!);
-              }
-            });
-          } catch (e) {
-            debugPrint('⚠️ Socket connection failed: $e');
-          }
-        } else {
-          debugPrint('✅ Socket already connected');
-        }
-      }
-
+      // Update state immediately
       setState(() {
         _isLoggedIn = token != null && token.isNotEmpty;
         _userRole = role?.toLowerCase();
@@ -136,6 +97,14 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         debugPrint(
           '🚀 Will navigate to: ${_userRole == "doctor" ? "Doctor Dashboard" : "Patient Dashboard"}',
         );
+
+        // Initialize CallManager after navigation is ready
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_navigatorKey.currentContext != null) {
+            CallManager.instance.initialize(_navigatorKey.currentContext!);
+            debugPrint('✅ CallManager initialized');
+          }
+        });
       } else {
         debugPrint('⚠️ User not logged in - Will show SplashScreen');
       }
@@ -144,7 +113,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       debugPrint('');
     } catch (e) {
       debugPrint('❌ Error checking login status: $e');
-      debugPrint('Stack trace: ${StackTrace.current}');
 
       setState(() {
         _isLoading = false;

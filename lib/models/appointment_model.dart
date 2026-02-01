@@ -193,7 +193,7 @@ class AppointmentModel {
       appointmentDate: appointmentDate,
       appointmentTime: json['time'] ?? json['appointmentTime'] ?? '',
       status: json['status'] ?? 'pending',
-      appointmentType: json['appointmentType'],
+      appointmentType: json['appointmentType']?.toString().toLowerCase(),
       symptoms: json['symptoms'],
       notes: json['notes'],
       reason: json['reason'],

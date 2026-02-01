@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+import 'package:flutter/material.dart';
 import 'package:docmobi/models/appointment_model.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -8,8 +8,9 @@ import 'package:intl/intl.dart';
 class PdfService {
   static Future<void> generateAppointmentListPdf(
     List<AppointmentModel> appointments,
-    String doctorName,
-  ) async {
+    String doctorName, {
+    DateTimeRange? dateRange, // Optional date range
+  }) async {
     final pdf = pw.Document();
 
     // Sort appointments by date
@@ -21,7 +22,7 @@ class PdfService {
         margin: const pw.EdgeInsets.all(32),
         build: (context) {
           return [
-            _buildHeader(doctorName),
+            _buildHeader(doctorName, dateRange),
             pw.SizedBox(height: 20),
             _buildAppointmentTable(appointments),
           ];
@@ -36,7 +37,14 @@ class PdfService {
     );
   }
 
-  static pw.Widget _buildHeader(String doctorName) {
+  static pw.Widget _buildHeader(String doctorName, DateTimeRange? dateRange) {
+    String dateText = DateFormat('MMMM d, y').format(DateTime.now());
+    if (dateRange != null) {
+      final start = DateFormat('MMM d, y').format(dateRange.start);
+      final end = DateFormat('MMM d, y').format(dateRange.end);
+      dateText = '$start - $end';
+    }
+
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -46,10 +54,7 @@ class PdfService {
         ),
         pw.SizedBox(height: 8),
         pw.Text('Doctor: $doctorName', style: const pw.TextStyle(fontSize: 16)),
-        pw.Text(
-          'Date: ${DateFormat('MMMM d, y').format(DateTime.now())}',
-          style: const pw.TextStyle(fontSize: 14),
-        ),
+        pw.Text('Date: $dateText', style: const pw.TextStyle(fontSize: 14)),
         pw.Divider(),
       ],
     );

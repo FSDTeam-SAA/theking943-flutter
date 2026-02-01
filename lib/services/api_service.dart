@@ -9,7 +9,7 @@ class ApiService {
   static String? _token;
   static String get _baseUrl => ApiConfig.baseUrl; // ✅ Use ApiConfig
 
-  /// Initialize - Token load kora
+  /// Initialize - Token load kora (Fast version - no network calls)
   static Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -22,30 +22,42 @@ class ApiService {
         debugPrint(
           '🔍 Token status: ${isLoggedIn ? "Logged In" : "Not Logged In"}',
         );
-
-        // ✅ SYNC SESSION: Fetch profile to ensure user_id in SharedPreferences is correct
-        try {
-          final profile = await getUserProfile();
-          if (profile['success'] == true) {
-            final realId = profile['data']['_id']?.toString();
-            if (realId != null) {
-              final currentSavedId = prefs.getString('user_id');
-              if (realId != currentSavedId) {
-                debugPrint(
-                  '⚠️ Session ID Mismatch! Syncing $currentSavedId -> $realId',
-                );
-                await prefs.setString('user_id', realId);
-              } else {
-                debugPrint('✅ Session ID synced: $realId');
-              }
-            }
-          }
-        } catch (e) {
-          debugPrint('⚠️ Profile sync failed during init: $e');
-        }
       }
     } catch (e) {
       debugPrint('❌ Error initializing ApiService: $e');
+    }
+  }
+
+  /// Sync user session - Call this AFTER app launch to verify user_id
+  /// This is deferred to avoid blocking app startup with network calls
+  static Future<void> syncUserSession() async {
+    try {
+      if (!isLoggedIn) {
+        debugPrint('⚠️ Not logged in - skipping session sync');
+        return;
+      }
+
+      debugPrint('🔄 Syncing user session...');
+      final prefs = await SharedPreferences.getInstance();
+
+      final profile = await getUserProfile();
+      if (profile['success'] == true) {
+        final realId = profile['data']['_id']?.toString();
+        if (realId != null) {
+          final currentSavedId = prefs.getString('user_id');
+          if (realId != currentSavedId) {
+            debugPrint(
+              '⚠️ Session ID Mismatch! Syncing $currentSavedId -> $realId',
+            );
+            await prefs.setString('user_id', realId);
+          } else {
+            debugPrint('✅ Session ID synced: $realId');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Profile sync failed: $e');
+      // Non-critical - don't block the app
     }
   }
 
@@ -682,6 +694,17 @@ class ApiService {
     );
   }
 
+  /// Register FCM Token
+  static Future<Map<String, dynamic>> registerFCMToken({
+    required String token,
+    required String platform,
+  }) async {
+    return await post('/api/v1/user/fcm-token', {
+      'token': token,
+      'platform': platform,
+    }, requiresAuth: true);
+  }
+
   // ========================================
   // 📅 APPOINTMENT APIs
   // ========================================
@@ -765,6 +788,14 @@ class ApiService {
   /// Get All Categories
   static Future<Map<String, dynamic>> getAllCategories() async {
     return await get('/api/v1/category', requiresAuth: false);
+  }
+
+  /// Get Referral Setting
+  static Future<Map<String, dynamic>> getReferralSetting() async {
+    return await get(
+      '/api/v1/app-setting/get-referral-setting',
+      requiresAuth: false,
+    );
   }
 
   // ========================================
