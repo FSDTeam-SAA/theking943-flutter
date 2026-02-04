@@ -71,31 +71,54 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
   Future<void> _initializeScreen() async {
     try {
-      // 1. Fetch appointments first (doesn't depend on location)
-      await legacy_provider.Provider.of<AppointmentProvider>(
+      // ✅ Start all operations in parallel WITHOUT blocking
+      // UI will render immediately with loading states
+
+      // 1. Fetch appointments (non-blocking)
+      legacy_provider.Provider.of<AppointmentProvider>(
         context,
         listen: false,
-      ).fetchAppointments();
+      ).fetchAppointments().then(
+        (_) {
+          debugPrint('✅ Appointments loaded');
+        },
+        onError: (e) {
+          debugPrint('Error fetching appointments: $e');
+          return false; // Return value for onError handler
+        },
+      );
 
-      // 2. Get Location immediately to optimize doctor fetch
-      await _getCurrentLocation();
+      // 2. Get Location (non-blocking, with timeout)
+      _getCurrentLocation()
+          .then((_) {
+            // After location is obtained, fetch doctors
+            if (mounted) {
+              double? lat = _currentPosition.latitude;
+              double? lng = _currentPosition.longitude;
 
-      // 3. Fetch doctors using the location we just got
-      if (mounted) {
-        double? lat = _currentPosition.latitude;
-        double? lng = _currentPosition.longitude;
+              // If location is default, don't pass it
+              if (lat == 0 && lng == 0) {
+                lat = null;
+                lng = null;
+              }
 
-        // If location is default (0,0), don't pass it to avoid issues
-        if (lat == 0 && lng == 0) {
-          lat = null;
-          lng = null;
-        }
+              legacy_provider.Provider.of<DoctorProvider>(
+                context,
+                listen: false,
+              ).fetchNearbyDoctors(lat: lat, lng: lng).catchError((e) {
+                debugPrint('Error fetching doctors: $e');
+              });
+            }
+          })
+          .catchError((e) {
+            debugPrint('Error getting location: $e');
+            if (mounted) {
+              setState(() => _isLoadingLocation = false);
+            }
+          });
 
-        await legacy_provider.Provider.of<DoctorProvider>(
-          context,
-          listen: false,
-        ).fetchNearbyDoctors(lat: lat, lng: lng);
-      }
+      // 3. Fetch doctors will be called after location updates
+      // This happens automatically via the location callback
     } catch (e) {
       debugPrint('Error initializing screen: $e');
       setState(() {
@@ -162,9 +185,10 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
         });
       }
 
+      // ✅ Use medium accuracy for faster GPS lock (2-5s vs 10-20s)
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10),
+        desiredAccuracy: LocationAccuracy.medium,
+        timeLimit: const Duration(seconds: 5), // Shorter timeout
       );
 
       debugPrint(

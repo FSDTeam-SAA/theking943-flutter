@@ -21,6 +21,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('📩 Background Message: ${message.notification?.title}');
 }
 
+// ✅ Guard flags for service initialization (module level)
+bool _chatSocketInitializing = false;
+bool _chatSocketInitialized = false;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -122,6 +126,19 @@ Future<void> _syncUserSession() async {
 
 /// Initialize Chat and Socket services for logged-in users
 Future<void> _initChatAndSocketServices() async {
+  // ✅ Guard against redundant initialization during hot restart
+  if (_chatSocketInitialized) {
+    debugPrint('⏭️ Chat/Socket services already initialized, skipping');
+    return;
+  }
+
+  if (_chatSocketInitializing) {
+    debugPrint('⏳ Chat/Socket services initialization in progress, skipping');
+    return;
+  }
+
+  _chatSocketInitializing = true;
+
   try {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
@@ -143,10 +160,14 @@ Future<void> _initChatAndSocketServices() async {
       } catch (e) {
         debugPrint('⚠️ Socket initialization failed: $e');
       }
+
+      _chatSocketInitialized = true;
     } else {
       debugPrint('⚠️ User ID not found - Socket & Agora Chat not connected');
     }
   } catch (e) {
     debugPrint('❌ Chat/Socket initialization error: $e');
+  } finally {
+    _chatSocketInitializing = false;
   }
 }
