@@ -421,8 +421,26 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
       child: InkWell(
         onTap: _isSelectionMode
             ? () => _toggleSelection(convId)
-            : () {
-                Navigator.push(
+            : () async {
+                // ✅ Mark as read immediately (optimistic UI update)
+                if (unreadCount > 0) {
+                  setState(() {
+                    chat['unreadCount'] = 0;
+                  });
+
+                  // Mark all messages as read in Agora
+                  try {
+                    await AgoraChatService.instance.markAllMessagesAsRead(
+                      convId,
+                    );
+                    debugPrint('✅ Marked conversation $convId as read');
+                  } catch (e) {
+                    debugPrint('⚠️ Failed to mark as read: $e');
+                  }
+                }
+
+                // Navigate to chat screen
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => ChatDetailScreen(
@@ -432,9 +450,10 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
                       doctorId: doctorId,
                     ),
                   ),
-                ).then((_) {
-                  _loadChats();
-                });
+                );
+
+                // Reload chats when returning
+                _loadChats();
               },
         onLongPress: () => _toggleSelection(convId),
         borderRadius: BorderRadius.circular(16),

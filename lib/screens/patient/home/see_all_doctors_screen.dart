@@ -3,11 +3,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:docmobi/services/api_service.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'dart:math' show cos, sqrt;
 import 'package:docmobi/models/doctor_model.dart';
 import 'package:docmobi/screens/patient/doctor/doctor_detail_screen.dart';
 
 class SeeAllDoctorsScreen extends StatefulWidget {
-  const SeeAllDoctorsScreen({super.key});
+  final LatLng? userPosition;
+  const SeeAllDoctorsScreen({super.key, this.userPosition});
 
   @override
   State<SeeAllDoctorsScreen> createState() => _SeeAllDoctorsScreenState();
@@ -41,17 +44,30 @@ class _SeeAllDoctorsScreenState extends State<SeeAllDoctorsScreen> {
       if (result['success'] == true) {
         final doctorsData = result['data'] as List? ?? [];
 
-        setState(() {
-          _doctors = doctorsData.map((json) {
-            // Debug log
-            debugPrint('🔍 Doctor: ${json['fullName']}');
-            debugPrint(
-              '   - isVideoCallAvailable: ${json['isVideoCallAvailable']}',
-            );
-            debugPrint('   - weeklySchedule: ${json['weeklySchedule']}');
+        List<Doctor> loadedDoctors = doctorsData.map((json) {
+          return Doctor.fromJson(json);
+        }).toList();
 
-            return Doctor.fromJson(json);
-          }).toList();
+        // ✅ If user position is provided, calculate distance and sort
+        if (widget.userPosition != null) {
+          loadedDoctors.sort((a, b) {
+            if (a.latitude == null || a.longitude == null) return 1;
+            if (b.latitude == null || b.longitude == null) return -1;
+
+            final distA = _calculateDistanceInKm(
+              widget.userPosition!,
+              LatLng(a.latitude!, a.longitude!),
+            );
+            final distB = _calculateDistanceInKm(
+              widget.userPosition!,
+              LatLng(b.latitude!, b.longitude!),
+            );
+            return distA.compareTo(distB);
+          });
+        }
+
+        setState(() {
+          _doctors = loadedDoctors;
           _isLoading = false;
         });
 
@@ -69,6 +85,36 @@ class _SeeAllDoctorsScreenState extends State<SeeAllDoctorsScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  double _calculateDistanceInKm(LatLng p1, LatLng p2) {
+    const double p = 0.017453292519943295; // Math.PI / 180
+    final double a =
+        0.5 -
+        cos((p2.latitude - p1.latitude) * p) / 2 +
+        cos(p1.latitude * p) *
+            cos(p2.latitude * p) *
+            (1 - cos((p2.longitude - p1.longitude) * p)) /
+            2;
+    return 12742 * sqrt(a); // 2 * R; R = 6371 km
+  }
+
+  String _getDistanceText(Doctor doctor) {
+    if (widget.userPosition == null ||
+        doctor.latitude == null ||
+        doctor.longitude == null) {
+      return doctor.distance;
+    }
+
+    final distance = _calculateDistanceInKm(
+      widget.userPosition!,
+      LatLng(doctor.latitude!, doctor.longitude!),
+    );
+
+    if (distance < 1) {
+      return '${(distance * 1000).toInt()} m';
+    }
+    return '${distance.toStringAsFixed(1)} km';
   }
 
   /// ✅ Check if doctor has schedule (is available)
@@ -423,7 +469,7 @@ class _SeeAllDoctorsScreenState extends State<SeeAllDoctorsScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            doctor.distance,
+                            _getDistanceText(doctor),
                             style: const TextStyle(
                               fontSize: 13,
                               color: Colors.grey,

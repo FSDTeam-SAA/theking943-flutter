@@ -74,7 +74,21 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
       // ✅ Start all operations in parallel WITHOUT blocking
       // UI will render immediately with loading states
 
-      // 1. Fetch appointments (non-blocking)
+      // 1. Fetch user profile (non-blocking) - for name and avatar
+      legacy_provider.Provider.of<UserProvider>(
+        context,
+        listen: false,
+      ).fetchUserProfile().then(
+        (_) {
+          debugPrint('✅ User profile loaded');
+        },
+        onError: (e) {
+          debugPrint('Error fetching user profile: $e');
+          return false;
+        },
+      );
+
+      // 2. Fetch appointments (non-blocking)
       legacy_provider.Provider.of<AppointmentProvider>(
         context,
         listen: false,
@@ -88,7 +102,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
         },
       );
 
-      // 2. Get Location (non-blocking, with timeout)
+      // 3. Get Location (non-blocking, with timeout)
       _getCurrentLocation()
           .then((_) {
             // After location is obtained, fetch doctors
@@ -103,11 +117,17 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
               }
 
               legacy_provider.Provider.of<DoctorProvider>(
-                context,
-                listen: false,
-              ).fetchNearbyDoctors(lat: lat, lng: lng).catchError((e) {
-                debugPrint('Error fetching doctors: $e');
-              });
+                    context,
+                    listen: false,
+                  )
+                  .fetchNearbyDoctors(lat: lat, lng: lng)
+                  .then(
+                    (_) => debugPrint('✅ Doctors loaded'),
+                    onError: (e) {
+                      debugPrint('Error fetching doctors: $e');
+                      return false;
+                    },
+                  );
             }
           })
           .catchError((e) {
@@ -117,7 +137,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
             }
           });
 
-      // 3. Fetch doctors will be called after location updates
+      // 4. Fetch doctors will be called after location updates
       // This happens automatically via the location callback
     } catch (e) {
       debugPrint('Error initializing screen: $e');
@@ -591,17 +611,56 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   }
 
   Future<void> _onRefresh() async {
-    await Future.wait([
-      legacy_provider.Provider.of<DoctorProvider>(
-        context,
-        listen: false,
-      ).fetchNearbyDoctors(),
-      legacy_provider.Provider.of<AppointmentProvider>(
-        context,
-        listen: false,
-      ).fetchAppointments(),
-    ]);
-    await _addDoctorMarkers();
+    try {
+      debugPrint('🔄 Refreshing patient home screen...');
+
+      // Get current location for doctor fetch
+      double? lat = _currentPosition.latitude;
+      double? lng = _currentPosition.longitude;
+
+      // If location is default, don't pass it
+      if (lat == 0 && lng == 0) {
+        lat = null;
+        lng = null;
+      }
+
+      await Future.wait([
+        // Refresh user profile (name, avatar)
+        legacy_provider.Provider.of<UserProvider>(
+          context,
+          listen: false,
+        ).fetchUserProfile().catchError((e) {
+          debugPrint('⚠️ Error refreshing user profile: $e');
+          return false;
+        }),
+        // Refresh doctors with location
+        legacy_provider.Provider.of<DoctorProvider>(
+          context,
+          listen: false,
+        ).fetchNearbyDoctors(lat: lat, lng: lng).catchError((e) {
+          debugPrint('⚠️ Error refreshing doctors: $e');
+          return false;
+        }),
+        // Refresh appointments
+        legacy_provider.Provider.of<AppointmentProvider>(
+          context,
+          listen: false,
+        ).fetchAppointments().catchError((e) {
+          debugPrint('⚠️ Error refreshing appointments: $e');
+          return false;
+        }),
+      ]);
+
+      // Only update markers if still mounted
+      if (mounted) {
+        await _addDoctorMarkers();
+      }
+
+      debugPrint('✅ Refresh complete');
+    } catch (e) {
+      debugPrint('❌ Error during refresh: $e');
+      // Don't rethrow - let the RefreshIndicator complete gracefully
+    }
   }
 
   String _calculateDistance(Doctor doctor) {
@@ -682,6 +741,8 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                                             Text(
                                               userProvider.user?.fullName ??
                                                   'The King',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                               style: const TextStyle(
                                                 fontSize: 18,
                                                 fontWeight: FontWeight.bold,
@@ -1123,7 +1184,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                             onPressed: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const SeeAllDoctorsScreen(),
+                                builder: (_) => SeeAllDoctorsScreen(
+                                  userPosition: _currentPosition,
+                                ),
                               ),
                             ),
                             child: Text(
@@ -1160,8 +1223,20 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                           );
                         }
 
-                        // ✅ কোনো distance filter নেই, সব ডাক্তার দেখাবে
-                        final nearbyDoctors = doctorProvider.nearbyDoctors;
+                        // ✅ Distance Filter: Only show doctors within 50 km
+                        final nearbyDoctors = doctorProvider.nearbyDoctors
+                            .where((doc) {
+                              if (doc.latitude == null ||
+                                  doc.longitude == null) {
+                                return false;
+                              }
+                              final distance = _calculateDistanceInKm(
+                                _currentPosition,
+                                LatLng(doc.latitude!, doc.longitude!),
+                              );
+                              return distance <= 50;
+                            })
+                            .toList();
 
                         if (nearbyDoctors.isEmpty) {
                           return Center(
