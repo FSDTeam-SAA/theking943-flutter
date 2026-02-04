@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:docmobi/services/api_service.dart';
+import 'package:docmobi/services/notification_service.dart';
 import 'package:docmobi/services/socket_service.dart';
 import 'package:docmobi/screens/common/calls/video_call_screen.dart';
 import 'package:docmobi/screens/common/calls/audio_call_screen.dart';
@@ -56,6 +57,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
   bool _isAutoScrollEnabled = true;
   final Set<String> _selectedMessageIds = {}; // ✅ For multi-select delete
   bool _isSelectionMode = false; // ✅ Selection mode toggle
+  bool _isOtherUserOnline = false; // ✅ Track online status
   bool _isOtherUserTyping = false;
   Timer? _myTypingTimer;
   Timer? _otherUserTypingTimer;
@@ -74,8 +76,13 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
       final targetId = _resolvedOtherUserId ?? widget.otherUserId;
       if (targetId != null) {
         AgoraChatService.instance.markAllMessagesAsRead(targetId);
+        // ✅ Sync with backend
+        ApiService.markChatAsRead(chatId: widget.chatId);
       }
     });
+
+    // ✅ Track active chat to suppress notifications
+    NotificationService.currentChatId = widget.chatId;
 
     _scrollController.addListener(() {
       if (_scrollController.hasClients) {
@@ -125,7 +132,37 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
           _currentUserAvatar = profileResult['data']['avatar']?['url']
               ?.toString();
           _currentUserName = profileResult['data']['fullName']?.toString();
+          _actualUserName = profileResult['data']['fullName']?.toString();
         });
+
+        // ✅ Join chat room for online status check
+        if (_currentUserId != null) {
+          SocketService.instance.emit('chat:join', {
+            'chatId': widget.chatId,
+            'userId': _currentUserId,
+          });
+
+          // Listen for other user status
+          SocketService.instance.on('user:online', (data) {
+            if (!mounted) return;
+            final userId = data['userId'];
+            // Or if 'count' is sent for initial status
+            if (data['count'] != null && data['count'] > 1) {
+              setState(() => _isOtherUserOnline = true);
+            } else if (userId != null && userId != _currentUserId) {
+              setState(() => _isOtherUserOnline = true);
+            }
+          });
+
+          SocketService.instance.on('user:offline', (data) {
+            if (!mounted) return;
+            final userId = data['userId'];
+            if (userId != null && userId != _currentUserId) {
+              setState(() => _isOtherUserOnline = false);
+            }
+          });
+        }
+
         debugPrint('✅ Current user profile loaded:');
         debugPrint('   ID: $_currentUserId');
         debugPrint('   Role: $_currentUserRole');
@@ -574,28 +611,23 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
         placeholderAsset: 'assets/images/doctor1.png',
         isSelectionMode: _isSelectionMode,
         selectedCount: _selectedMessageIds.length,
-        onCancelSelection: _cancelSelection,
+        onCancelSelection: () => setState(() {
+          _selectedMessageIds.clear();
+          _isSelectionMode = false;
+        }),
         onDeleteSelected: _deleteSelectedMessages,
         onBack: () => Navigator.pop(context),
         actions: [
           IconButton(
-            icon: const Icon(
-              Icons.phone_outlined,
-              color: Colors.black,
-              size: 24,
-            ),
-            onPressed: () => _initiateCall(isVideo: false),
-          ),
-          IconButton(
-            icon: const Icon(
-              Icons.videocam_outlined,
-              color: Colors.black,
-              size: 28,
-            ),
+            icon: const Icon(Icons.videocam_outlined, color: Colors.blue),
             onPressed: () => _initiateCall(isVideo: true),
           ),
-          const SizedBox(width: 10),
+          IconButton(
+            icon: const Icon(Icons.call_outlined, color: Colors.blue),
+            onPressed: () => _initiateCall(isVideo: false),
+          ),
         ],
+        isOnline: _isOtherUserOnline, // ✅ Pass dynamic status
       ),
       body: Column(
         children: [
@@ -774,6 +806,9 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
               AgoraChatService.instance.markAllMessagesAsRead(
                 currentCheckId,
               ); // ✅ Clear unread badge live
+
+              // ✅ Sync with backend
+              ApiService.markChatAsRead(chatId: widget.chatId);
             }
           }
         },
@@ -819,8 +854,25 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     _controller.dispose();
     _scrollController.dispose();
     SocketService.instance.off('chat:typing');
-    SocketService.instance.off('chat:stopTyping');
-    AgoraChatService.instance.removeMessageListener(widget.chatId);
+    AgoraChatService.instance.removeMessageListener(
+      'doctor_chat_${widget.chatId}',
+    );
+
+    // ✅ Leave chat room
+    if (_currentUserId != null) {
+      SocketService.instance.emit('chat:leave', {
+        'chatId': widget.chatId,
+        'userId': _currentUserId,
+      });
+    }
+    SocketService.instance.off('user:online');
+    SocketService.instance.off('user:offline');
+
+    // ✅ Clear active chat
+    if (NotificationService.currentChatId == widget.chatId) {
+      NotificationService.currentChatId = null;
+    }
+
     super.dispose();
   }
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:docmobi/widgets/custom_image.dart';
-import 'package:docmobi/services/agora_chat_service.dart';
 
 class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? userName;
@@ -12,6 +11,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onDeleteSelected;
   final VoidCallback onBack;
   final List<Widget>? actions;
+  final bool isOnline;
 
   const ChatAppBar({
     super.key,
@@ -24,6 +24,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onDeleteSelected,
     required this.onBack,
     this.actions,
+    this.isOnline = false,
   });
 
   @override
@@ -88,32 +89,26 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      FutureBuilder<bool>(
-                        future: AgoraChatService.instance.checkConnection(),
-                        builder: (context, snapshot) {
-                          final isLive = snapshot.data ?? false;
-                          return Row(
-                            children: [
-                              Container(
-                                width: 7,
-                                height: 7,
-                                decoration: BoxDecoration(
-                                  color: isLive ? Colors.green : Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                isLive ? 'Online' : 'Offline',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: isLive ? Colors.green : Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          );
-                        },
+                      Row(
+                        children: [
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: isOnline ? Colors.green : Colors.grey,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isOnline ? 'Online' : 'Offline',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isOnline ? Colors.green : Colors.grey,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

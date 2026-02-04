@@ -98,8 +98,17 @@ class NotificationService {
     }
   }
 
+  static String? currentChatId; // ✅ Track active chat to suppress notifications
+
   /// Show Local Notification when in foreground
   static Future<void> _showLocalNotification(RemoteMessage message) async {
+    // ✅ Check if user is currently in this chat
+    final msgChatId = message.data['chatId'];
+    if (msgChatId != null && msgChatId == currentChatId) {
+      debugPrint('🔕 Suppressing notification for active chat: $msgChatId');
+      return;
+    }
+
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
           'docmobi_notifications',

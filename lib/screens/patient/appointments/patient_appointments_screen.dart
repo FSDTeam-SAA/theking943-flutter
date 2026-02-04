@@ -495,14 +495,17 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
     );
 
     final l10n = AppLocalizations.of(context)!;
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     try {
       final success = await provider.cancelAppointment(appointment.id);
 
-      if (mounted) Navigator.pop(context);
+      if (mounted) navigator.pop();
 
       if (success) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Row(
                 children: [
@@ -528,7 +531,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Row(
                 children: [
@@ -554,8 +557,8 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
+        navigator.pop();
+        scaffoldMessenger.showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
@@ -563,6 +566,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
   }
 
   void _handleReschedule(BuildContext context, AppointmentModel appointment) {
+    final provider = context.read<AppointmentProvider>();
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -581,7 +585,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
       ),
     ).then((_) {
       if (mounted) {
-        context.read<AppointmentProvider>().fetchAppointments();
+        provider.fetchAppointments();
       }
     });
   }

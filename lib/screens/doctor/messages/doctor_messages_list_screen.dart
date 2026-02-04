@@ -500,8 +500,32 @@ class _DoctorMessagesListScreenState extends State<DoctorMessagesListScreen>
     return InkWell(
       onTap: _isSelectionMode
           ? () => _toggleSelection(convId)
-          : () {
-              Navigator.push(
+          : () async {
+              // ✅ Mark as read immediately (optimistic UI update)
+              if (unreadCount > 0) {
+                setState(() {
+                  chat['unreadCount'] = 0;
+                });
+
+                // Mark all messages as read in both Agora and backend
+                try {
+                  // Agora SDK
+                  await AgoraChatService.instance.markAllMessagesAsRead(convId);
+                  debugPrint('✅ Marked conversation $convId as read in Agora');
+
+                  // Backend API
+                  await ApiService.markChatAsRead(chatId: chat['_id']);
+                  debugPrint(
+                    '✅ Marked conversation $convId as read in backend',
+                  );
+                } catch (e) {
+                  debugPrint('⚠️ Failed to mark as read: $e');
+                }
+              }
+
+              // Navigate to chat screen
+              if (!mounted) return;
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => DoctorChatDetailScreen(
@@ -512,7 +536,10 @@ class _DoctorMessagesListScreenState extends State<DoctorMessagesListScreen>
                     otherUserId: otherUser!['_id'],
                   ),
                 ),
-              ).then((_) => _loadChats());
+              );
+
+              // ✅ Don't reload chats here - we've already optimistically updated the UI
+              // The real-time listener will handle any new messages that arrive
             },
       onLongPress: () => _toggleSelection(convId),
       child: Container(

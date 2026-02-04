@@ -21,7 +21,7 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
   List<dynamic> _chats = [];
   bool _isLoading = true;
   String? _currentUserId;
-  Set<String> _selectedConversationIds = {}; // ✅ For multi-select delete
+  final Set<String> _selectedConversationIds = {}; // ✅ For multi-select delete
   bool _isSelectionMode = false; // ✅ Selection mode toggle
 
   @override
@@ -120,6 +120,8 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
       tempChats.sort((a, b) => (b['time'] as int).compareTo(a['time'] as int));
 
       // 3. Resolve user details from API in PARALLEL
+      // ✅ Get l10n before async operations to avoid context usage across async gap
+      if (!mounted) return;
       final l10n = AppLocalizations.of(context);
       final List<Map<String, dynamic>> formattedChats = await Future.wait(
         tempChats.map((item) async {
@@ -428,18 +430,28 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
                     chat['unreadCount'] = 0;
                   });
 
-                  // Mark all messages as read in Agora
+                  // Mark all messages as read in both Agora and backend
                   try {
+                    // Agora SDK
                     await AgoraChatService.instance.markAllMessagesAsRead(
                       convId,
                     );
-                    debugPrint('✅ Marked conversation $convId as read');
+                    debugPrint(
+                      '✅ Marked conversation $convId as read in Agora',
+                    );
+
+                    // Backend API
+                    await ApiService.markChatAsRead(chatId: chat['_id']);
+                    debugPrint(
+                      '✅ Marked conversation $convId as read in backend',
+                    );
                   } catch (e) {
                     debugPrint('⚠️ Failed to mark as read: $e');
                   }
                 }
 
                 // Navigate to chat screen
+                if (!mounted) return;
                 await Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -452,8 +464,8 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
                   ),
                 );
 
-                // Reload chats when returning
-                _loadChats();
+                // ✅ Don't reload chats here - we've already optimistically updated the UI
+                // The real-time listener will handle any new messages that arrive
               },
         onLongPress: () => _toggleSelection(convId),
         borderRadius: BorderRadius.circular(16),

@@ -493,6 +493,14 @@ class ApiService {
     return await post('/api/v1/chat', {'userId': userId}, requiresAuth: true);
   }
 
+  /// Mark Chat as Read
+  static Future<Map<String, dynamic>> markChatAsRead({
+    required String chatId,
+  }) async {
+    debugPrint('📖 Marking chat as read: $chatId');
+    return await patch('/api/v1/chat/$chatId/read', {}, requiresAuth: true);
+  }
+
   /// Send Message
   static Future<Map<String, dynamic>> sendMessage({
     required String chatId,

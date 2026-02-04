@@ -719,9 +719,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                   onDependentSelected: (dep) =>
                       setState(() => selectedDependent = dep),
                   onAddNewDependent: () {
+                    final provider = context.read<DependentProvider>();
                     Navigator.pushNamed(context, '/add-dependent').then((_) {
                       if (mounted) {
-                        context.read<DependentProvider>().fetchDependents();
+                        provider.fetchDependents();
                       }
                     });
                   },

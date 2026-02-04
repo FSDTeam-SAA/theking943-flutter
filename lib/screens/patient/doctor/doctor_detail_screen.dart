@@ -441,13 +441,16 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
           const Center(child: CircularProgressIndicator()),
     );
 
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     try {
       final doctorId = widget.doctor.id;
 
       if (doctorId.isEmpty) {
-        if (mounted) Navigator.pop(context);
+        if (mounted) navigator.pop();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Text(l10n.doctorIdNotFound),
               backgroundColor: Colors.red,
@@ -461,7 +464,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
 
       final result = await ApiService.createOrGetChat(userId: doctorId);
 
-      if (mounted) Navigator.pop(context);
+      if (mounted) navigator.pop();
 
       debugPrint('📥 Chat result: $result');
 
@@ -471,7 +474,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
 
         if (chatId == null || chatId.isEmpty) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            scaffoldMessenger.showSnackBar(
               SnackBar(
                 content: Text(l10n.failedCreateChat),
                 backgroundColor: Colors.red,
@@ -516,12 +519,11 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
         }
       } else {
         if (mounted) {
-          final l10n = AppLocalizations.of(context);
-          ScaffoldMessenger.of(context).showSnackBar(
+          scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Text(
                 result['message'] ??
-                    l10n?.failedOpenChat ??
+                    l10n.failedOpenChat ??
                     'Failed to open chat',
               ),
               backgroundColor: Colors.red,
@@ -531,9 +533,9 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context);
+        navigator.pop();
         debugPrint('❌ Error opening chat: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }

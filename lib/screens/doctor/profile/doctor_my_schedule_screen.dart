@@ -122,6 +122,7 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
     if (startTime == null) return;
 
     // Show info dialog and select end time
+    if (!mounted) return;
     await showDialog(
       context: context,
       builder: (BuildContext context) {

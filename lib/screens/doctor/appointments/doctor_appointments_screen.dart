@@ -76,12 +76,15 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                 );
                 return;
               }
+              // Capture context values before async operations
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              final userProvider = context.read<UserProvider>();
 
               // ✅ 1. Show Date Range Picker
-              final DateTimeRange? pickedRange = await showDateRangePicker(
+              final pickedRange = await showDateRangePicker(
                 context: context,
                 firstDate: DateTime(2020),
-                lastDate: DateTime(2030),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
                 helpText: 'Select Appointment Date Range',
                 confirmText: 'Export PDF',
                 builder: (context, child) {
@@ -115,7 +118,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
 
               if (filteredAppointments.isEmpty) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     const SnackBar(
                       content: Text('No appointments found in this date range'),
                     ),
@@ -125,12 +128,10 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
               }
 
               // ✅ 3. Export
+              // Capture context values before async operations
               String doctorName = 'Doctor';
               try {
-                if (mounted) {
-                  doctorName =
-                      context.read<UserProvider>().user?.fullName ?? 'Doctor';
-                }
+                doctorName = userProvider.user?.fullName ?? 'Doctor';
               } catch (e) {
                 debugPrint('⚠️ Error getting doctor name for export: $e');
               }

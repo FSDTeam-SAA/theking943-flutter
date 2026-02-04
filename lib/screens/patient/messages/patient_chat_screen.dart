@@ -4,6 +4,7 @@ import 'package:docmobi/services/agora_chat_service.dart';
 import 'package:docmobi/services/socket_service.dart';
 import 'package:docmobi/services/api_service.dart';
 import 'package:agora_chat_sdk/agora_chat_sdk.dart';
+import 'package:docmobi/services/notification_service.dart';
 import 'dart:io';
 import 'dart:async';
 import 'package:image_picker/image_picker.dart';
@@ -48,6 +49,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   String? _otherUserId;
   String? _actualDoctorAvatar; // ✅ Real avatar from API
   String? _actualDoctorName;
+  bool _isOtherUserOnline = false; // ✅ Track online status
   bool _isOtherUserTyping = false;
   Timer? _myTypingTimer;
   Timer? _otherUserTypingTimer; // To auto-hide if they don't stop properly
@@ -68,8 +70,41 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       _setupSocketListeners(); // ✅ Setup socket for real-time typing
       if (widget.doctorId != null) {
         AgoraChatService.instance.markAllMessagesAsRead(widget.doctorId!);
+        // ✅ Sync with backend
+        ApiService.markChatAsRead(chatId: widget.chatId);
+      }
+
+      // ✅ Join chat room for online status check
+      if (_currentUserId != null) {
+        SocketService.instance.emit('chat:join', {
+          'chatId': widget.chatId,
+          'userId': _currentUserId,
+        });
+
+        // Listen for other user status
+        SocketService.instance.on('user:online', (data) {
+          if (!mounted) return;
+          final userId = data['userId'];
+          // Or if 'count' is sent for initial status
+          if (data['count'] != null && data['count'] > 1) {
+            setState(() => _isOtherUserOnline = true);
+          } else if (userId != null && userId != _currentUserId) {
+            setState(() => _isOtherUserOnline = true);
+          }
+        });
+
+        SocketService.instance.on('user:offline', (data) {
+          if (!mounted) return;
+          final userId = data['userId'];
+          if (userId != null && userId != _currentUserId) {
+            setState(() => _isOtherUserOnline = false);
+          }
+        });
       }
     });
+
+    // ✅ Track active chat to suppress notifications
+    NotificationService.currentChatId = widget.chatId;
 
     _scrollController.addListener(() {
       if (_scrollController.hasClients) {
@@ -397,6 +432,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             AgoraChatService.instance.markAllMessagesAsRead(
               widget.doctorId!,
             ); // ✅ Clear unread badge live
+
+            // ✅ Sync with backend
+            ApiService.markChatAsRead(chatId: widget.chatId);
           }
         },
       ),
@@ -540,6 +578,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         onCancelSelection: _cancelSelection,
         onDeleteSelected: _deleteSelectedMessages,
         onBack: () => Navigator.pop(context),
+        isOnline: _isOtherUserOnline, // ✅ Pass dynamic status
       ),
       body: Column(
         children: [
@@ -720,6 +759,20 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     AgoraChatService.instance.removeMessageListener(
       'patient_chat_${widget.chatId}',
     );
+    // ✅ Leave chat room
+    if (_currentUserId != null) {
+      SocketService.instance.emit('chat:leave', {
+        'chatId': widget.chatId,
+        'userId': _currentUserId,
+      });
+    }
+    SocketService.instance.off('user:online');
+    SocketService.instance.off('user:offline');
+
+    // ✅ Clear active chat
+    if (NotificationService.currentChatId == widget.chatId) {
+      NotificationService.currentChatId = null;
+    }
     super.dispose();
   }
 }
