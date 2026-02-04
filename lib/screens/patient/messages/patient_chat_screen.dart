@@ -1,19 +1,21 @@
-import 'package:docmobi/l10n/app_localizations.dart';
-import 'package:docmobi/widgets/custom_image.dart';
 import 'package:flutter/material.dart';
-import 'package:docmobi/services/api_service.dart';
+import 'package:docmobi/l10n/app_localizations.dart';
+import 'package:docmobi/services/agora_chat_service.dart';
 import 'package:docmobi/services/socket_service.dart';
+import 'package:docmobi/services/api_service.dart';
+import 'package:agora_chat_sdk/agora_chat_sdk.dart';
 import 'package:docmobi/screens/common/calls/video_call_screen.dart';
 import 'package:docmobi/screens/common/calls/audio_call_screen.dart';
 import 'dart:io';
 import 'dart:async';
 import 'package:image_picker/image_picker.dart';
-import 'package:docmobi/services/agora_chat_service.dart';
-import 'package:agora_chat_sdk/agora_chat_sdk.dart';
-import 'package:intl/intl.dart';
-import 'package:docmobi/widgets/full_screen_image_viewer.dart';
-import 'package:top_snackbar_flutter/custom_snack_bar.dart';
-import 'package:top_snackbar_flutter/top_snack_bar.dart';
+
+// Modular Widgets
+import 'package:docmobi/widgets/chat/chat_bubble.dart';
+import 'package:docmobi/widgets/chat/call_log_bubble.dart';
+import 'package:docmobi/widgets/chat/chat_date_separator.dart';
+import 'package:docmobi/widgets/chat/chat_app_bar.dart';
+import 'package:docmobi/widgets/chat/chat_input.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String chatId;
@@ -48,6 +50,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   String? _otherUserId;
   String? _actualDoctorAvatar; // ✅ Real avatar from API
   String? _actualDoctorName;
+  bool _isOtherUserTyping = false;
+  Timer? _myTypingTimer;
+  Timer? _otherUserTypingTimer; // To auto-hide if they don't stop properly
 
   bool _isAutoScrollEnabled = true;
   final Set<String> _selectedMessageIds = {}; // ✅ For multi-select delete
@@ -62,9 +67,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       _loadMessages();
       _setupAgoraListeners();
       _ensureAgoraConnection();
+      _setupSocketListeners(); // ✅ Setup socket for real-time typing
       AgoraChatService.instance.markAllMessagesAsRead(
-        widget.chatId,
-      ); // ✅ Mark as read on entry
+        widget.doctorId!,
+      ); // ✅ Mark as read on entry using peer ID (doctorId)
     });
 
     _scrollController.addListener(() {
@@ -73,6 +79,54 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         final currentScroll = _scrollController.position.pixels;
         _isAutoScrollEnabled = (maxScroll - currentScroll) < 100;
       }
+    });
+  }
+
+  // ✅ Real-time Socket Listeners
+  void _setupSocketListeners() {
+    if (_currentUserId != null) {
+      SocketService.instance.ensureConnected();
+
+      // Listen for typing
+      SocketService.instance.on('chat:typing', (data) {
+        if (data['chatId'] == widget.chatId && mounted) {
+          setState(() => _isOtherUserTyping = true);
+
+          // Auto-hide after 5 seconds if no stop signal
+          _otherUserTypingTimer?.cancel();
+          _otherUserTypingTimer = Timer(const Duration(seconds: 5), () {
+            if (mounted) setState(() => _isOtherUserTyping = false);
+          });
+        }
+      });
+
+      // Listen for stop typing
+      SocketService.instance.on('chat:stopTyping', (data) {
+        if (data['chatId'] == widget.chatId && mounted) {
+          setState(() => _isOtherUserTyping = false);
+          _otherUserTypingTimer?.cancel();
+        }
+      });
+    }
+  }
+
+  void _onTextChanged(String value) {
+    if (widget.doctorId == null) return;
+
+    // Only emit if not already "typing" in the last 2 seconds
+    if (_myTypingTimer == null || !_myTypingTimer!.isActive) {
+      SocketService.instance.emit('chat:typing', {
+        'toUserId': widget.doctorId,
+        'chatId': widget.chatId,
+      });
+    }
+
+    _myTypingTimer?.cancel();
+    _myTypingTimer = Timer(const Duration(seconds: 3), () {
+      SocketService.instance.emit('chat:stopTyping', {
+        'toUserId': widget.doctorId,
+        'chatId': widget.chatId,
+      });
     });
   }
 
@@ -281,47 +335,53 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   void _setupAgoraListeners() {
     AgoraChatService.instance.addMessageListener(
-      widget.chatId,
+      'patient_chat_${widget.chatId}',
       ChatEventHandler(
         onMessagesReceived: (messages) {
-          bool hasNewForThisChat = false;
-          final List<dynamic> newMessages = [];
+          List<dynamic> incomingFormatted = [];
 
           for (var msg in messages) {
             debugPrint(
-              '📩 Received message: ${msg.msgId} from ${msg.from} conversationId: ${msg.conversationId}',
+              '📩 [PatientChat] Received message SDK: ID=${msg.msgId}, From=${msg.from}, Conv=${msg.conversationId}',
             );
 
-            // Check if message is from the doctor we are chatting with
             if (msg.conversationId == widget.doctorId ||
                 msg.from == widget.doctorId) {
-              hasNewForThisChat = true;
-              newMessages.add(_convertAgoraMessage(msg));
+              debugPrint('   ✅ Match found for this chat');
+
+              // Prevent duplicates
+              final bool alreadyExists = _messages.any(
+                (m) => m['_id'] == msg.msgId,
+              );
+              if (!alreadyExists) {
+                incomingFormatted.add(_convertAgoraMessage(msg));
+              }
             }
           }
 
-          if (hasNewForThisChat && mounted) {
-            debugPrint(
-              '🔄 Appending ${newMessages.length} new messages locally',
-            );
+          if (incomingFormatted.isNotEmpty && mounted) {
             setState(() {
-              _messages.addAll(newMessages);
-              // Ensure we sort by time if needed, although Agora usually delivers in order
+              _messages.addAll(incomingFormatted);
+              // Sort by date just in case they arrived out of order
               _messages.sort(
-                (a, b) => (a['createdAt'] as String).compareTo(
-                  b['createdAt'] as String,
-                ),
+                (a, b) => (DateTime.parse(
+                  a['createdAt'],
+                )).compareTo(DateTime.parse(b['createdAt'])),
               );
             });
+
             _scrollToBottom();
+
             AgoraChatService.instance.markAllMessagesAsRead(
-              widget.chatId,
-            ); // ✅ Clear count live
+              widget.doctorId!,
+            ); // ✅ Clear unread badge live
           }
         },
       ),
     );
-    debugPrint('✅ Agora Chat listeners setup for ${widget.doctorId}');
+    debugPrint(
+      '✅ Agora Chat listeners setup for ID: patient_chat_${widget.chatId}',
+    );
   }
 
   Map<String, dynamic> _convertAgoraMessage(ChatMessage message) {
@@ -390,7 +450,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         throw Exception('Recipient ID missing');
       }
 
-      debugPrint('✉️ Sending to DoctorID: ${widget.doctorId}');
+      debugPrint('✉️ [Patient] Sending to DoctorID: ${widget.doctorId}');
+      debugPrint('   - Me (UID): $_currentUserId');
 
       final sentMessage = await AgoraChatService.instance.sendMessage(
         conversationId: widget.doctorId!,
@@ -630,127 +691,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF8FAFF),
-        elevation: 0,
-        leading: _isSelectionMode
-            ? IconButton(
-                icon: const Icon(Icons.close, color: Colors.black),
-                onPressed: _cancelSelection,
-              )
-            : IconButton(
-                icon: const Icon(
-                  Icons.arrow_back,
-                  color: Colors.black,
-                  size: 26,
-                ),
-                onPressed: () => Navigator.pop(context),
-              ),
-        title: _isSelectionMode
-            ? Text(
-                '${_selectedMessageIds.length} selected',
-                style: const TextStyle(color: Colors.black, fontSize: 18),
-              )
-            : Row(
-                children: [
-                  Stack(
-                    children: [
-                      ClipOval(
-                        child: CustomImage(
-                          imageUrl: _actualDoctorAvatar,
-                          width: 40,
-                          height: 40,
-                          fit: BoxFit.cover,
-                          placeholderAsset: 'assets/images/doctor1.png',
-                        ),
-                      ),
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _actualDoctorName ?? widget.doctorName,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          AppLocalizations.of(context)!.doctorLabel,
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-        actions: _isSelectionMode
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  onPressed: _deleteSelectedMessages,
-                ),
-                const SizedBox(width: 10),
-              ]
-            : [
-                // Audio Call icon
-                IconButton(
-                  icon: const Icon(
-                    Icons.phone_disabled,
-                    color: Colors.black,
-                    size: 26,
-                  ),
-                  onPressed: () {
-                    showTopSnackBar(
-                      Overlay.of(context),
-                      const CustomSnackBar.error(
-                        message: "Calling is not allowed",
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 10),
-                // IconButton(
-                //   icon: const Icon(
-                //     Icons.phone_outlined,
-                //     color: Colors.black,
-                //     size: 26,
-                //   ),
-                //   onPressed: () => _initiateCall(isVideo: false),
-                // ),
-                // // Video icon
-                // IconButton(
-                //   icon: const Icon(
-                //     Icons.videocam_outlined,
-                //     color: Colors.black,
-                //     size: 28,
-                //   ),
-                //   onPressed: () => _initiateCall(isVideo: true),
-                // ),
-                // const SizedBox(width: 10),
-              ],
+      appBar: ChatAppBar(
+        userName: _actualDoctorName ?? widget.doctorName,
+        userAvatar: _actualDoctorAvatar ?? widget.doctorAvatar,
+        placeholderAsset: 'assets/images/doctor1.png',
+        isSelectionMode: _isSelectionMode,
+        selectedCount: _selectedMessageIds.length,
+        onCancelSelection: _cancelSelection,
+        onDeleteSelected: _deleteSelectedMessages,
+        onBack: () => Navigator.pop(context),
       ),
       body: Column(
         children: [
@@ -803,7 +752,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
                       if (nextMsgDate != null &&
                           !_isSameDay(currentMsgDate, nextMsgDate)) {
-                        return _buildDateSeparator(nextMsgDate);
+                        return ChatDateSeparator(timestamp: nextMsgDate);
                       }
                       return const SizedBox.shrink();
                     },
@@ -812,391 +761,56 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       if (index == 0) {
                         return Column(
                           children: [
-                            _buildDateSeparator(_messages[0]['createdAt']),
-                            _buildBubble(_messages[index]),
+                            ChatDateSeparator(
+                              timestamp: _messages[0]['createdAt'],
+                            ),
+                            _buildMessageItem(_messages[index]),
                           ],
                         );
                       }
-                      return _buildBubble(_messages[index]);
+                      return _buildMessageItem(_messages[index]);
                     },
                   ),
           ),
 
-          if (_selectedFiles.isNotEmpty)
-            Container(
-              height: 100,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: _selectedFiles.length,
-                itemBuilder: (context, index) {
-                  return Stack(
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          image: DecorationImage(
-                            image: FileImage(_selectedFiles[index]),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 0,
-                        right: 4,
-                        child: GestureDetector(
-                          onTap: () => _removeFile(index),
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                            padding: const EdgeInsets.all(4),
-                            child: const Icon(
-                              Icons.close,
-                              color: Colors.white,
-                              size: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
+          if (_isOtherUserTyping)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.add_circle_outline,
-                      color: Color(0xFF6C5CE7),
-                      size: 26,
-                    ),
-                    onPressed: _pickImage,
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      maxLines: null,
-                      style: const TextStyle(fontSize: 15),
-                      decoration: InputDecoration(
-                        hintText: AppLocalizations.of(context)!.typeAMessage,
-                        hintStyle: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 15,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                        ),
-                      ),
-                      onSubmitted: (_) => _sendMessage(),
+                  Text(
+                    '${widget.doctorName} is typing...',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
                     ),
                   ),
-                  GestureDetector(
-                    onTap: _sendMessage,
-                    child: Container(
-                      margin: const EdgeInsets.all(4),
-                      padding: const EdgeInsets.all(10),
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF6C5CE7), Color(0xFF8E7CFE)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        shape: BoxShape.circle,
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Colors.grey[400]!,
                       ),
-                      child: _isSending
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(
-                              Icons.send_rounded,
-                              color: Colors.white,
-                              size: 22,
-                            ),
                     ),
                   ),
                 ],
               ),
             ),
+
+          ChatInput(
+            controller: _controller,
+            selectedFiles: _selectedFiles,
+            isSending: _isSending,
+            onPickImage: _pickImage,
+            onRemoveFile: _removeFile,
+            onSendMessage: _sendMessage,
+            onChanged: _onTextChanged,
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBubble(Map<String, dynamic> message) {
-    // Check for Call Log
-    if (message['type'] == 'call_log') {
-      return _buildCallLogBubble(message);
-    }
-
-    final String msgId = message['_id']?.toString() ?? '';
-    final bool isSelected = _selectedMessageIds.contains(msgId);
-    final String text = message['content']?.toString() ?? '';
-    final String senderId = message['sender']?['_id']?.toString() ?? '';
-    final String? senderAvatar = message['sender']?['avatar']?['url']
-        ?.toString();
-    final bool isMe = _currentUserId != null && senderId == _currentUserId;
-    final List<dynamic> attachments = message['fileUrl'] ?? [];
-
-    return InkWell(
-      onTap: _isSelectionMode ? () => _toggleSelection(msgId) : null,
-      onLongPress: () => _toggleSelection(msgId),
-      child: Container(
-        color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: Column(
-          crossAxisAlignment: isMe
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: isMe
-                  ? MainAxisAlignment.end
-                  : MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (!isMe)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: ClipOval(
-                      child: CustomImage(
-                        imageUrl: senderAvatar,
-                        width: 36,
-                        height: 36,
-                        fit: BoxFit.cover,
-                        placeholderAsset: 'assets/images/doctor1.png',
-                      ),
-                    ),
-                  ),
-                if (!isMe) const SizedBox(width: 8),
-                Container(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.75,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: isMe
-                        ? const LinearGradient(
-                            colors: [Color(0xFF6C5CE7), Color(0xFF8E7CFE)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                        : null,
-                    color: isMe ? null : Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(22),
-                      topRight: const Radius.circular(22),
-                      bottomLeft: isMe
-                          ? const Radius.circular(22)
-                          : const Radius.circular(4),
-                      bottomRight: isMe
-                          ? const Radius.circular(4)
-                          : const Radius.circular(22),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(isMe ? 0.1 : 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (attachments.isNotEmpty)
-                        ...attachments.map((att) {
-                          final String? url = att['url']?.toString();
-                          if (url != null && url.isNotEmpty) {
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: GestureDetector(
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => FullScreenImageViewer(
-                                      imageUrls: [url!],
-                                    ),
-                                  ),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child:
-                                      (url.startsWith('https://') ||
-                                          url.startsWith('http://'))
-                                      ? CustomImage(
-                                          imageUrl: url,
-                                          width: 200,
-                                          height: 200,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : Image.file(
-                                          File(url),
-                                          width: 200,
-                                          fit: BoxFit.cover,
-                                        ),
-                                ),
-                              ),
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        }),
-                      if (text.isNotEmpty)
-                        Text(
-                          text,
-                          style: TextStyle(
-                            color: isMe
-                                ? Colors.white
-                                : const Color(0xFF1B2C49),
-                            fontSize: 15,
-                            height: 1.4,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                if (isMe) const SizedBox(width: 8),
-                if (isMe)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: ClipOval(
-                      child: CustomImage(
-                        imageUrl: _currentUserAvatar,
-                        width: 36,
-                        height: 36,
-                        fit: BoxFit.cover,
-                        placeholderAsset: 'assets/images/profile.png',
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            if (message['createdAt'] != null)
-              Padding(
-                padding: EdgeInsets.only(
-                  left: isMe ? 0 : 54,
-                  right: isMe ? 54 : 0,
-                  top: 6,
-                ),
-                child: Text(
-                  _formatTime(message['createdAt']),
-                  style: TextStyle(
-                    color: Colors.grey[500],
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCallLogBubble(Map<String, dynamic> message) {
-    final String msgId = message['_id']?.toString() ?? '';
-    final bool isSelected = _selectedMessageIds.contains(msgId);
-    final String callType = message['call_type']?.toString() ?? 'audio';
-    final String status = message['status']?.toString() ?? 'ended';
-    final String duration = message['duration']?.toString() ?? '';
-    final String content = message['content']?.toString() ?? 'Call';
-
-    final bool isVideo = callType == 'video';
-    Color iconColor;
-    IconData iconData;
-
-    switch (status) {
-      case 'missed':
-        iconColor = Colors.red;
-        iconData = isVideo ? Icons.missed_video_call : Icons.phone_missed;
-        break;
-      case 'declined':
-        iconColor = Colors.grey;
-        iconData = isVideo ? Icons.videocam_off : Icons.phone_disabled;
-        break;
-      case 'cancelled':
-        iconColor = Colors.grey;
-        iconData = isVideo ? Icons.videocam : Icons.phone;
-        break;
-      default:
-        iconColor = const Color(0xFF6C5CE7);
-        iconData = isVideo ? Icons.videocam : Icons.phone;
-    }
-
-    return InkWell(
-      onTap: _isSelectionMode ? () => _toggleSelection(msgId) : null,
-      onLongPress: () => _toggleSelection(msgId),
-      child: Container(
-        color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.transparent,
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Center(
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: isSelected ? Colors.blue[50] : Colors.grey[100],
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isSelected ? Colors.blue.shade300 : Colors.grey.shade300,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.02),
-                  blurRadius: 5,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(iconData, size: 18, color: iconColor),
-                const SizedBox(width: 10),
-                Text(
-                  status == 'ended' && duration.isNotEmpty
-                      ? '${content.replaceFirst(' ($duration)', '')} ($duration)'
-                      : content,
-                  style: TextStyle(
-                    color: Colors.grey[800],
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -1225,58 +839,45 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
-  Widget _buildDateSeparator(String? timestamp) {
-    if (timestamp == null) return const SizedBox.shrink();
-    try {
-      final date = DateTime.parse(timestamp).toLocal();
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      final yesterday = today.subtract(const Duration(days: 1));
-      final msgDate = DateTime(date.year, date.month, date.day);
-
-      String text;
-      if (msgDate == today) {
-        text = 'Today';
-      } else if (msgDate == yesterday) {
-        text = 'Yesterday';
-      } else {
-        text = DateFormat('MMMM d, y').format(date);
-      }
-
-      return Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Center(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade100),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5),
-              ],
-            ),
-            child: Text(
-              text,
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
+  Widget _buildMessageItem(Map<String, dynamic> message) {
+    if (message['type'] == 'call_log') {
+      final String msgId = message['_id']?.toString() ?? '';
+      return CallLogBubble(
+        message: message,
+        isSelected: _selectedMessageIds.contains(msgId),
+        onTap: _isSelectionMode ? () => _toggleSelection(msgId) : null,
+        onLongPress: () => _toggleSelection(msgId),
       );
-    } catch (e) {
-      return const SizedBox.shrink();
     }
+
+    final String msgId = message['_id']?.toString() ?? '';
+    final String senderId = message['sender']?['_id']?.toString() ?? '';
+    final bool isMe = _currentUserId != null && senderId == _currentUserId;
+
+    return ChatBubble(
+      message: message,
+      isMe: isMe,
+      isSelected: _selectedMessageIds.contains(msgId),
+      currentUserAvatar: _currentUserAvatar,
+      otherUserAvatar: _actualDoctorAvatar,
+      otherUserPlaceholder: 'assets/images/doctor1.png',
+      onTap: _isSelectionMode ? () => _toggleSelection(msgId) : null,
+      onLongPress: () => _toggleSelection(msgId),
+      formatTime: _formatTime,
+    );
   }
 
   @override
   void dispose() {
+    _myTypingTimer?.cancel();
+    _otherUserTypingTimer?.cancel();
     _controller.dispose();
     _scrollController.dispose();
-    AgoraChatService.instance.removeMessageListener(widget.chatId);
+    SocketService.instance.off('chat:typing');
+    SocketService.instance.off('chat:stopTyping');
+    AgoraChatService.instance.removeMessageListener(
+      'patient_chat_${widget.chatId}',
+    );
     super.dispose();
   }
 }

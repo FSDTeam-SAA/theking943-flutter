@@ -31,20 +31,49 @@ class _PatientMainNavigationState extends ConsumerState<PatientMainNavigation> {
     });
   }
 
-  final List<Widget> _screens = const [
-    PatientHomeScreen(),
-    PatientAppointmentsScreen(),
-    PatientReelsScreen(),
-    PatientMessagesListScreen(),
-    PatientProfileScreen(),
-  ];
+  // ✅ Use a lazy-loading approach for screens
+  final List<Widget?> _initializedScreens = List.filled(5, null);
+
+  Widget _getScreen(int index) {
+    if (_initializedScreens[index] == null) {
+      debugPrint('🚀 Lazy-loading screen index: $index');
+      switch (index) {
+        case 0:
+          _initializedScreens[index] = const PatientHomeScreen();
+          break;
+        case 1:
+          _initializedScreens[index] = const PatientAppointmentsScreen();
+          break;
+        case 2:
+          _initializedScreens[index] = const PatientReelsScreen();
+          break;
+        case 3:
+          _initializedScreens[index] = const PatientMessagesListScreen();
+          break;
+        case 4:
+          _initializedScreens[index] = const PatientProfileScreen();
+          break;
+      }
+    }
+    return _initializedScreens[index]!;
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: List.generate(5, (index) {
+          // If the screen isn't initialized yet, show a placeholder
+          // But always show the CURRENT screen (which will trigger initialization via _getScreen)
+          if (index == _currentIndex || _initializedScreens[index] != null) {
+            return _getScreen(index);
+          }
+          return const SizedBox.shrink();
+        }),
+      ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.only(top: 10, bottom: 10),
         decoration: BoxDecoration(

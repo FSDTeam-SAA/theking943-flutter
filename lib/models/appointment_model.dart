@@ -53,7 +53,7 @@ class AppointmentModel {
 
     if (doctorData != null) {
       if (doctorData is Map<String, dynamic>) {
-        doctorId = doctorData['_id'] ?? '';
+        doctorId = doctorData['_id'] ?? doctorData['id'] ?? '';
         doctorName = doctorData['fullName'];
         specialty = doctorData['specialty'];
 
@@ -67,6 +67,19 @@ class AppointmentModel {
       }
     }
 
+    // ✅ Fallback: Check root level doctorId if not found in nested object
+    if (doctorId.isEmpty && json['doctorId'] != null) {
+      doctorId = json['doctorId'].toString();
+    }
+
+    // 🔍 DEBUG: Log if doctorId is still empty
+    if (doctorId.isEmpty) {
+      debugPrint('🚨 AppointmentModel: doctorId is EMPTY!');
+      debugPrint('   -> json["doctor"]: ${json['doctor']}');
+      debugPrint('   -> json["doctorId"]: ${json['doctorId']}');
+      debugPrint('   -> Entire JSON: $json');
+    }
+
     // ✅ Safely parse patient object
     final patientData = json['patient'];
     String patientId = '';
@@ -75,7 +88,7 @@ class AppointmentModel {
 
     if (patientData != null) {
       if (patientData is Map<String, dynamic>) {
-        patientId = patientData['_id'] ?? '';
+        patientId = patientData['_id'] ?? patientData['id'] ?? '';
         patientName = patientData['fullName'];
 
         // Handle nested avatar object

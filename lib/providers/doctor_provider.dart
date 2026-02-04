@@ -30,7 +30,27 @@ class DoctorProvider with ChangeNotifier {
       print('   - Data count: ${(response['data'] as List?)?.length ?? 0}');
 
       if (response['success'] == true) {
-        final List<dynamic> data = response['data'] ?? [];
+        List<dynamic> data = [];
+
+        // Fix: Handle both List and Map (paginated) responses
+        if (response['data'] is List) {
+          data = response['data'];
+        } else if (response['data'] is Map<String, dynamic>) {
+          // Try common pagination keys
+          final mapData = response['data'] as Map<String, dynamic>;
+          if (mapData.containsKey('docs')) {
+            data = mapData['docs'];
+          } else if (mapData.containsKey('items')) {
+            data = mapData['items'];
+          } else if (mapData.containsKey('doctors')) {
+            data = mapData['doctors'];
+          } else {
+            // If no known key, maybe the map itself is a single object?
+            // But for 'nearby' we expect a list.
+            // It's safer to leave it empty or log a warning if structure is unknown.
+            print('⚠️ Unknown data structure: $mapData');
+          }
+        }
 
         print('✅ Fetched ${data.length} doctors raw data');
 

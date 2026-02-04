@@ -47,6 +47,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   Set<Polyline> _polylines = {};
   Set<Polyline> _directionPolylines = {};
   String? _selectedDoctorId;
+  Timer? _refreshTimer; // ✅ Auto refresh timer
 
   @override
   void initState() {
@@ -54,6 +55,17 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeScreen();
+      _startAutoRefresh(); // ✅ Start timer
+    });
+  }
+
+  // ✅ Auto Refresh Logic
+  void _startAutoRefresh() {
+    _refreshTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
+      // Refresh every 5 minutes to avoid constant background activity
+      if (mounted) {
+        _onRefresh();
+      }
     });
   }
 
@@ -94,6 +106,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
   @override
   void dispose() {
+    _refreshTimer?.cancel(); // ✅ Cancel timer
     _searchController.dispose();
     _mapController?.dispose();
     super.dispose();

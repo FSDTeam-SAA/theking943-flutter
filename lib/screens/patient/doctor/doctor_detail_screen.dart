@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:docmobi/models/doctor_model.dart';
 import 'package:docmobi/services/api_service.dart';
+import 'package:docmobi/services/doctor_service.dart';
 import 'package:docmobi/screens/patient/messages/patient_chat_screen.dart';
 import 'book_appointment_screen.dart';
 
@@ -23,7 +24,25 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
   @override
   void initState() {
     super.initState();
+    _fetchDoctorDetails(); // ✅ Fetch full details (image fix)
     _loadDoctorReviews();
+  }
+
+  Doctor? _fetchedDoctor;
+
+  Future<void> _fetchDoctorDetails() async {
+    try {
+      final service = DoctorService();
+      final response = await service.getDoctorById(widget.doctor.id);
+      if (response['success'] == true && mounted) {
+        setState(() {
+          _fetchedDoctor = Doctor.fromJson(response['data']);
+        });
+        debugPrint('✅ Full doctor details fetched: ${_fetchedDoctor?.image}');
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to fetch doctor details: $e');
+    }
   }
 
   /// ✅ Load doctor reviews from backend

@@ -23,11 +23,43 @@ class AgoraChatService {
 
     await ChatClient.getInstance.init(options);
 
+    // ✅ Listen for connection events
+    _addConnectionListener();
+
     // ✅ CRITICAL: Notify the SDK that the UI is ready to receive callbacks
     await ChatClient.getInstance.startCallback();
 
     _isInitialized = true;
-    debugPrint('✅ Agora Chat SDK Initialized & Callbacks Started');
+    debugPrint('✅ Agora Chat SDK Initialized');
+
+    // 🌐 Add a global listener for debugging
+    _setupGlobalDebugListener();
+  }
+
+  void _addConnectionListener() {
+    ChatClient.getInstance.addConnectionEventHandler(
+      "GLOBAL_CONNECTION",
+      ConnectionEventHandler(
+        onConnected: () {
+          debugPrint('🌐 [AGORA] Connected to server');
+        },
+        onDisconnected: () {
+          debugPrint('🌐 [AGORA] Disconnected from server');
+        },
+        onTokenWillExpire: () {
+          debugPrint('🌐 [AGORA] Token will expire soon');
+        },
+        onTokenDidExpire: () {
+          debugPrint('🌐 [AGORA] Token expired');
+        },
+      ),
+    );
+  }
+
+  Future<bool> checkConnection() async {
+    final status = await ChatClient.getInstance.isConnected();
+    debugPrint('🌐 [AGORA] Connection Status: $status');
+    return status;
   }
 
   bool get isConnected => _isInitialized;
@@ -179,7 +211,10 @@ class AgoraChatService {
   }
 
   void addMessageListener(String identifier, ChatEventHandler handler) {
+    debugPrint('📌 Adding Agora Message Listener: $identifier');
     ChatClient.getInstance.chatManager.addEventHandler(identifier, handler);
+    // Ensure callbacks are active
+    ChatClient.getInstance.startCallback();
   }
 
   void removeMessageListener(String identifier) {
@@ -334,5 +369,21 @@ class AgoraChatService {
       debugPrint('❌ Delete Conversation Failed: $e');
       rethrow;
     }
+  }
+
+  void _setupGlobalDebugListener() {
+    ChatClient.getInstance.chatManager.addEventHandler(
+      "GLOBAL_DEBUG",
+      ChatEventHandler(
+        onMessagesReceived: (messages) {
+          for (var msg in messages) {
+            debugPrint(
+              '🌏 [GLOBAL AGORA] Received message: ${msg.msgId} from ${msg.from} to ${msg.to}',
+            );
+            debugPrint('   - Body: ${msg.body.toString()}');
+          }
+        },
+      ),
+    );
   }
 }

@@ -11,9 +11,18 @@ import 'package:docmobi/models/dependent_model.dart';
 import 'package:docmobi/models/appointment_model.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
 import 'package:docmobi/providers/dependent_provider.dart';
+import 'package:docmobi/services/doctor_service.dart'; // ✅ Added
 import 'package:docmobi/utils/api_config.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+
 import 'dart:io';
+
+import 'widgets/appointment_type_selector.dart';
+import 'widgets/dependent_selector.dart';
+import 'widgets/time_slot_grid.dart';
+import 'widgets/medical_document_uploader.dart';
+import 'widgets/symptoms_input.dart';
+import 'widgets/date_selector.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
   final dynamic doctor;
@@ -46,8 +55,11 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   List<TimeSlot> availableSlots = [];
 
   final ImagePicker _picker = ImagePicker();
+  Doctor? _fetchedDoctor; // ✅ NEW: Store full doctor details
 
   Doctor? get doctorObject {
+    if (_fetchedDoctor != null)
+      return _fetchedDoctor; // ✅ Prefer fetched full object
     if (widget.doctor is Doctor) return widget.doctor as Doctor;
     if (widget.doctor is Map<String, dynamic>) {
       return Doctor.fromJson(widget.doctor as Map<String, dynamic>);
@@ -56,13 +68,19 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   }
 
   String get doctorId {
+    debugPrint('🔍 Getting doctorId from: ${widget.doctor}');
     if (widget.doctor is Map<String, dynamic>) {
       final map = widget.doctor as Map<String, dynamic>;
-      return (map['_id'] ?? map['id'] ?? '').toString();
+      final id = (map['_id'] ?? map['id'] ?? '').toString();
+      debugPrint('   -> Extracted ID (Map): $id');
+      return id;
     }
     if (widget.doctor is Doctor) {
-      return (widget.doctor as Doctor).id;
+      final id = (widget.doctor as Doctor).id;
+      debugPrint('   -> Extracted ID (Object): $id');
+      return id;
     }
+    debugPrint('   -> Extracted ID (Empty): Doctor type unknown');
     return '';
   }
 
@@ -83,7 +101,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
     // ✅ Pre-fill data if reschedule mode
     if (widget.isReschedule && widget.existingAppointment != null) {
-      _prefillDataForReschedule();
+      // Chain the operations: Prefill -> [Fetch Doctor] -> Fetch Slots
+      _initializeRescheduleFlow();
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -91,8 +110,22 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     });
   }
 
-  // ✅ NEW: Pre-fill existing appointment data
-  void _prefillDataForReschedule() {
+  // ✅ NEW: Orchestrate the initialization sequence
+  Future<void> _initializeRescheduleFlow() async {
+    // 1. Set initial UI state from existing appointment
+    _prefillStaticData();
+
+    // 2. Fetch full doctor details (vital for fallback schedule)
+    await _fetchFullDoctorDetails();
+
+    // 3. Now that we have doctor details, try to fetch slots
+    if (selectedDate != null && mounted) {
+      _fetchAvailableSlots(selectedDate!);
+    }
+  }
+
+  // Split prefill into static data only
+  void _prefillStaticData() {
     final appt = widget.existingAppointment!;
 
     // Set appointment type
@@ -107,16 +140,30 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       _symptomsController.text = appt.symptoms!;
     }
 
-    // Set date and fetch slots
+    // Set date
     selectedDate = appt.appointmentDate;
-    if (selectedDate != null) {
-      _fetchAvailableSlots(selectedDate!);
-    }
 
-    debugPrint('📝 Pre-filled data for reschedule:');
-    debugPrint('   Type: $selectedType');
-    debugPrint('   Date: $selectedDate');
-    debugPrint('   Symptoms: ${_symptomsController.text}');
+    debugPrint('   Date set to: $selectedDate');
+  }
+
+  // ✅ NEW: Fetch full doctor details for fallback schedule
+  Future<void> _fetchFullDoctorDetails() async {
+    try {
+      debugPrint('📥 Fetching full doctor details for: $doctorId');
+      final service = DoctorService();
+      final response = await service.getDoctorById(doctorId);
+
+      if (response['success'] == true && mounted) {
+        setState(() {
+          _fetchedDoctor = Doctor.fromJson(response['data']);
+        });
+        debugPrint(
+          '✅ Full doctor details fetched. Has Schedule: ${_fetchedDoctor?.weeklySchedule?.isNotEmpty}',
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to fetch full doctor details: $e');
+    }
   }
 
   @override
@@ -162,9 +209,16 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
             .where((slot) => slot.isBooked != true)
             .toList();
 
-        setState(() {
-          availableSlots = unbookedSlots;
-        });
+        if (unbookedSlots.isEmpty) {
+          debugPrint(
+            '⚠️ Backend returned no slots, falling back to Weekly Schedule...',
+          );
+          _loadFromWeeklySchedule(date);
+        } else {
+          setState(() {
+            availableSlots = unbookedSlots;
+          });
+        }
       } else {
         _loadFromWeeklySchedule(date);
       }
@@ -296,69 +350,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     }
   }
 
-  // ✅ NEW: Handle reschedule
-  Future<void> _handleReschedule() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-
-      // Cancel old appointment
-      final cancelResponse = await http.patch(
-        Uri.parse(
-          '${ApiConfig.baseUrl}${ApiConfig.appointments}/${widget.existingAppointment!.id}/status',
-        ),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-        body: json.encode({'status': 'cancelled'}),
-      );
-
-      if (cancelResponse.statusCode < 200 || cancelResponse.statusCode >= 300) {
-        throw Exception('Failed to cancel old appointment');
-      }
-
-      // Create new appointment
-      await _handleNewAppointment();
-    } catch (e) {
-      if (mounted) {
-        final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.rescheduleFailed(e.toString())),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  // ✅ NEW: Helper to compress images
-  Future<File> _compressImage(String path) async {
-    try {
-      final String targetPath = '${path}_compressed.jpg';
-      final XFile? result = await FlutterImageCompress.compressAndGetFile(
-        path,
-        targetPath,
-        quality: 70, // Good balance of size/quality
-        minWidth: 1280, // Reasonable max dimension
-        minHeight: 1280,
-      );
-
-      if (result != null) {
-        debugPrint(
-          '✅ Compressed: ${(await File(path).length()) / 1024}KB -> ${(await File(result.path).length()) / 1024}KB',
-        );
-        return File(result.path);
-      }
-    } catch (e) {
-      debugPrint('⚠️ Compression failed: $e');
-    }
-    return File(path); // Fallback to original
-  }
-
-  // ✅ NEW: Handle new appointment creation logic
-  Future<void> _handleNewAppointment() async {
+  // ✅ Refactored: Internal method to create appointment (Returns success status)
+  Future<bool> _createAppointmentInternal() async {
     try {
       // 1. Prepare Request
       var request = http.MultipartRequest(
@@ -384,14 +377,12 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         bookedForPayload = {
           'type': 'dependent',
           'dependentId': selectedDependent!.id,
-          'dependentName': selectedDependent!.fullName, // Added for clarity
-          'relationship': selectedDependent!.relationship, // Added for clarity
+          'dependentName': selectedDependent!.fullName,
+          'relationship': selectedDependent!.relationship,
         };
       }
 
       // 3. Add Fields
-      // Note: We send symptoms as a plain field. If backend logic relies on this being
-      // saved BEFORE file processing completes, compression helps by speeding up the request.
       final fields = {
         'doctorId': doctorId,
         'appointmentType': backendType,
@@ -407,10 +398,15 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       // 4. Compress & Add Medical Documents
       if (_medicalDocuments.isNotEmpty) {
         debugPrint(
-          '📸 Compressing ${_medicalDocuments.length} medical documents...',
+          '📸 Compressing ${_medicalDocuments.length} medical documents in parallel...',
         );
-        for (var file in _medicalDocuments) {
-          final compressedFile = await _compressImage(file.path);
+
+        final compressionFutures = _medicalDocuments.map(
+          (file) => _compressImage(file.path),
+        );
+        final compressedFiles = await Future.wait(compressionFutures);
+
+        for (var compressedFile in compressedFiles) {
           request.files.add(
             await http.MultipartFile.fromPath(
               'medicalDocuments',
@@ -437,7 +433,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       // 6. Send Request
       debugPrint('🚀 Sending Multipart Request...');
       final streamedResponse = await request.send().timeout(
-        const Duration(seconds: 60), // Increased timeout for uploads
+        const Duration(seconds: 60),
       );
 
       final response = await http.Response.fromStream(streamedResponse);
@@ -449,20 +445,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           : {};
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        if (mounted) {
-          // Optimization: Trigger appointment fetch
-          context.read<AppointmentProvider>().fetchAppointments();
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(AppLocalizations.of(context)!.bookingSuccess),
-                backgroundColor: Colors.green,
-              ),
-            );
-            Navigator.pop(context);
-          }
-        }
+        // Optimization: Trigger appointment fetch
+        if (mounted) context.read<AppointmentProvider>().fetchAppointments();
+        return true;
       } else {
         final l10n = AppLocalizations.of(context)!;
         String msg = jsonResponse['message'] ?? l10n.bookingFailed;
@@ -471,6 +456,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
             SnackBar(content: Text(msg), backgroundColor: Colors.red),
           );
         }
+        return false;
       }
     } catch (e) {
       debugPrint('❌ Booking Exception: $e');
@@ -483,7 +469,139 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           ),
         );
       }
+      return false;
     }
+  }
+
+  // Wrapper for New Appointment (original behavior)
+  Future<void> _handleNewAppointment() async {
+    final success = await _createAppointmentInternal();
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.bookingSuccess),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context);
+    }
+  }
+
+  // ✅ Fixed: Reschedule Logic (Create NEW first, THEN Cancel old)
+  Future<void> _handleReschedule() async {
+    try {
+      // 1. Create New Appointment First
+      debugPrint('🔄 Attempting to create new appointment for reschedule...');
+      final success = await _createAppointmentInternal();
+
+      if (!success) {
+        debugPrint(
+          '❌ New appointment creation failed. Aborting cancel of old one.',
+        );
+        return; // Stop here. Old appointment remains active.
+      }
+
+      debugPrint(
+        '✅ New appointment created. Now cancelling old appointment...',
+      );
+
+      // 2. Cancel Old Appointment
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+
+      final cancelResponse = await http.patch(
+        Uri.parse(
+          '${ApiConfig.baseUrl}${ApiConfig.appointments}/${widget.existingAppointment!.id}/status',
+        ),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: json.encode({'status': 'cancelled'}),
+      );
+
+      if (cancelResponse.statusCode < 200 || cancelResponse.statusCode >= 300) {
+        debugPrint(
+          '⚠️ Failed to cancel old appointment: ${cancelResponse.body}',
+        );
+
+        // Show WARNING message to user
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.white),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'New appointment booked, but failed to cancel the old one. Please cancel it manually.',
+                      maxLines: 2,
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 5),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+          // Delay pop slightly so they see the message
+          await Future.delayed(const Duration(seconds: 2));
+          if (mounted) Navigator.pop(context);
+        }
+        return;
+      }
+
+      // Success Path
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.bookingSuccess),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      debugPrint('❌ Reschedule Exception: $e');
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.rescheduleFailed(e.toString())),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // ✅ NEW: Helper to compress images
+  Future<File> _compressImage(String path) async {
+    try {
+      final String targetPath = '${path}_compressed.jpg';
+      final XFile? result = await FlutterImageCompress.compressAndGetFile(
+        path,
+        targetPath,
+        quality: 88, // ✅ Increased quality
+        minWidth: 2048, // ✅ Increased resolution
+        minHeight: 2048,
+      );
+
+      if (result != null) {
+        debugPrint(
+          '✅ Compressed: ${(await File(path).length()) / 1024}KB -> ${(await File(result.path).length()) / 1024}KB',
+        );
+        return File(result.path);
+      }
+    } catch (e) {
+      debugPrint('⚠️ Compression failed: $e');
+    }
+    return File(path); // Fallback to original
   }
 
   @override
@@ -579,267 +697,55 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                 ),
               ),
 
-            _buildWhiteCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.appointmentTypeLabel,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  Row(
-                    children: [
-                      _buildTypeOption(
-                        'assets/icons/physical_visit.png',
-                        "Physical Visit",
-                        l10n.physicalVisit,
-                        l10n.payAtClinic,
-                      ),
-                      const SizedBox(width: 15),
-                      _buildTypeOption(
-                        'assets/icons/video_call.png',
-                        "Video Call",
-                        l10n.videoCall,
-                        l10n.onlinePayment,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            AppointmentTypeSelector(
+              title: l10n.appointmentTypeLabel,
+              selectedType: selectedType,
+              onTypeSelected: (type) => setState(() => selectedType = type),
             ),
             const SizedBox(height: 16),
 
-            _buildWhiteCard(
-              child: Consumer<DependentProvider>(
-                builder: (context, provider, child) {
-                  final dependents = provider.activeDependents;
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.bookAppointmentFor,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      _buildSelectForOption(
-                        icon: Icons.person,
-                        label: l10n.myself,
-                        isSelected: selectedDependent == null,
-                        onTap: () => setState(() => selectedDependent = null),
-                      ),
-
-                      if (dependents.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          l10n.orSelectDependent,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        ...dependents.map(
-                          (dep) => _buildSelectForOption(
-                            icon: dep.gender?.toLowerCase() == 'male'
-                                ? Icons.boy
-                                : Icons.girl,
-                            label: dep.displayName,
-                            subtitle: dep.age,
-                            isSelected: selectedDependent?.id == dep.id,
-                            onTap: () =>
-                                setState(() => selectedDependent = dep),
-                          ),
-                        ),
-                      ],
-
-                      const SizedBox(height: 12),
-                      TextButton.icon(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/add-dependent').then((
-                            _,
-                          ) {
-                            context.read<DependentProvider>().fetchDependents();
-                          });
-                        },
-                        icon: const Icon(
-                          Icons.add_circle_outline,
-                          color: Color(0xFF0D53C1),
-                        ),
-                        label: Text(
-                          l10n.addNewDependent,
-                          style: const TextStyle(
-                            color: Color(0xFF0D53C1),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
+            Consumer<DependentProvider>(
+              builder: (context, provider, child) {
+                return DependentSelector(
+                  title: l10n.bookAppointmentFor,
+                  selectedDependent: selectedDependent,
+                  dependents: provider.activeDependents,
+                  onDependentSelected: (dep) =>
+                      setState(() => selectedDependent = dep),
+                  onAddNewDependent: () {
+                    Navigator.pushNamed(context, '/add-dependent').then((_) {
+                      context.read<DependentProvider>().fetchDependents();
+                    });
+                  },
+                );
+              },
             ),
             const SizedBox(height: 16),
 
-            _buildWhiteCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.selectDate,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: _selectDate,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.black, width: 1.2),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            selectedDate == null
-                                ? l10n.datePlaceholder
-                                : DateFormat(
-                                    'dd/MM/yyyy',
-                                  ).format(selectedDate!),
-                            style: TextStyle(
-                              color: selectedDate == null
-                                  ? Colors.grey
-                                  : Colors.black,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const Icon(
-                            Icons.calendar_month_outlined,
-                            color: Colors.black,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            DateSelector(selectedDate: selectedDate, onTap: _selectDate),
             const SizedBox(height: 16),
 
             if (selectedDate != null)
-              _buildWhiteCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.availableTime,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-                    _buildTimeSlots(),
-                  ],
-                ),
+              TimeSlotGrid(
+                title: l10n.availableTime,
+                availableSlots: availableSlots,
+                selectedTimeSlot: selectedTimeSlot,
+                isLoading: _isLoadingSlots,
+                onSlotSelected: (slot) =>
+                    setState(() => selectedTimeSlot = slot),
               ),
             const SizedBox(height: 16),
 
-            _buildWhiteCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.describeSymptoms,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDashedInput(_symptomsController),
-                ],
-              ),
+            SymptomsInput(controller: _symptomsController),
+            const SizedBox(height: 16),
+
+            MedicalDocumentUploader(
+              documents: _medicalDocuments,
+              onPickDocuments: _pickMedicalDocuments,
+              paymentScreenshot: _paymentScreenshot,
+              onPickPayment: _pickPaymentScreenshot,
+              showPaymentUpload: selectedType == "Video Call",
             ),
-            const SizedBox(height: 16),
-
-            _buildWhiteCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.uploadMedicalDocs,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: _pickMedicalDocuments,
-                    child: _buildUploadBox(
-                      Icons.cloud_upload_outlined,
-                      l10n.tapToUpload,
-                    ),
-                  ),
-                  if (_medicalDocuments.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 10),
-                      child: Wrap(
-                        spacing: 8,
-                        children: _medicalDocuments
-                            .map((f) => Chip(label: Text(f.name)))
-                            .toList(),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            if (selectedType == "Video Call")
-              _buildWhiteCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.uploadPaymentScreenshot,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    GestureDetector(
-                      onTap: _pickPaymentScreenshot,
-                      child: _buildUploadBox(
-                        Icons.cloud_upload_outlined,
-                        l10n.tapToUploadPayment,
-                      ),
-                    ),
-                    if (_paymentScreenshot != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 10),
-                        child: Chip(label: Text(_paymentScreenshot!.name)),
-                      ),
-                  ],
-                ),
-              ),
 
             const SizedBox(height: 30),
 
@@ -881,319 +787,4 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       ),
     );
   }
-
-  Widget _buildWhiteCard({required Widget child}) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.04),
-          blurRadius: 10,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    child: child,
-  );
-
-  Widget _buildTypeOption(
-    String image,
-    String typeKey,
-    String displayTitle,
-    String displaySubtitle,
-  ) {
-    bool isSelected = selectedType == typeKey;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => selectedType = typeKey),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected
-                  ? const Color(0xFF0D53C1)
-                  : Colors.grey.shade300,
-              width: isSelected ? 2 : 1,
-            ),
-          ),
-          child: Column(
-            children: [
-              Image.asset(
-                image,
-                color: isSelected ? const Color(0xFF0D53C1) : Colors.black54,
-                width: 30,
-                height: 30,
-              ),
-              const SizedBox(height: 5),
-              Text(
-                displayTitle,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isSelected ? const Color(0xFF0D53C1) : Colors.black87,
-                ),
-              ),
-              Text(
-                displaySubtitle,
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSelectForOption({
-    required IconData icon,
-    required String label,
-    String? subtitle,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFF0D53C1).withOpacity(0.1)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF0D53C1) : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? const Color(0xFF0D53C1) : Colors.grey,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                  ),
-                  if (subtitle != null)
-                    Text(
-                      subtitle,
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                ],
-              ),
-            ),
-            if (isSelected)
-              const Icon(Icons.check_circle, color: Color(0xFF0D53C1)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTimeSlots() {
-    final l10n = AppLocalizations.of(context)!;
-    if (_isLoadingSlots) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    if (availableSlots.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Icon(Icons.event_busy, size: 50, color: Colors.grey[400]),
-              const SizedBox(height: 12),
-              Text(
-                l10n.noTimeSlots,
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      children: availableSlots.map((slot) => _buildTimeSlotCard(slot)).toList(),
-    );
-  }
-
-  Widget _buildTimeSlotCard(TimeSlot slot) {
-    final l10n = AppLocalizations.of(context)!;
-    final isSelected =
-        selectedTimeSlot?.start == slot.start &&
-        selectedTimeSlot?.end == slot.end;
-    final isDisabled = slot.isBooked == true;
-
-    return GestureDetector(
-      onTap: isDisabled ? null : () => setState(() => selectedTimeSlot = slot),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-        decoration: BoxDecoration(
-          color: isDisabled
-              ? Colors.grey[200]
-              : (isSelected ? const Color(0xFF0D53C1) : Colors.white),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDisabled
-                ? Colors.grey[300]!
-                : (isSelected ? const Color(0xFF0D53C1) : Colors.grey[300]!),
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-              decoration: BoxDecoration(
-                color: isSelected ? Colors.white : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isSelected
-                      ? const Color(0xFF0D53C1)
-                      : Colors.grey[400]!,
-                ),
-              ),
-              child: Text(
-                _format24To12Hour(slot.start),
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: isDisabled
-                      ? Colors.grey
-                      : (isSelected ? const Color(0xFF0D53C1) : Colors.black),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Text(
-                l10n.timeTo,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: isDisabled
-                      ? Colors.grey
-                      : (isSelected ? Colors.white : Colors.black54),
-                ),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-              decoration: BoxDecoration(
-                color: isSelected ? Colors.white : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isSelected
-                      ? const Color(0xFF0D53C1)
-                      : Colors.grey[400]!,
-                ),
-              ),
-              child: Text(
-                _format24To12Hour(slot.end),
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: isDisabled
-                      ? Colors.grey
-                      : (isSelected ? const Color(0xFF0D53C1) : Colors.black),
-                ),
-              ),
-            ),
-            if (isDisabled) ...[
-              const SizedBox(width: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.red[100],
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  l10n.booked,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _format24To12Hour(String time24) {
-    try {
-      final parts = time24.split(':');
-      int hour = int.parse(parts[0]);
-      int minute = int.parse(parts[1]);
-      String period = hour >= 12 ? 'PM' : 'AM';
-      int displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
-      return '$displayHour:${minute.toString().padLeft(2, '0')} $period';
-    } catch (e) {
-      return time24;
-    }
-  }
-
-  Widget _buildDashedInput(TextEditingController controller) {
-    final l10n = AppLocalizations.of(context)!;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FBFF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.shade200),
-      ),
-      child: TextField(
-        controller: controller,
-        maxLines: null,
-        decoration: InputDecoration(
-          hintText: l10n.symptomsHint,
-          hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-          border: InputBorder.none,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUploadBox(IconData icon, String label) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.symmetric(vertical: 25),
-    decoration: BoxDecoration(
-      color: const Color(0xFFF9FBFF),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.blue.shade200),
-    ),
-    child: Column(
-      children: [
-        Icon(icon, color: Colors.black, size: 30),
-        const SizedBox(height: 10),
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-      ],
-    ),
-  );
 }

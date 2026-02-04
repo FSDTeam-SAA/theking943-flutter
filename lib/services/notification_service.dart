@@ -6,6 +6,15 @@ import '../models/notification_model.dart';
 import '../services/api_service.dart';
 import '../utils/api_config.dart';
 
+// ✅ Top-level background handler
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // If you need to access other Firebase services in the background, such as Firestore,
+  // make sure you call `initializeApp` before using other Firebase services.
+  /* await Firebase.initializeApp(); */
+  debugPrint('🌙 Handling a background message: ${message.messageId}');
+}
+
 class NotificationService {
   static final FirebaseMessaging _fcm = FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNotifications =
@@ -13,6 +22,9 @@ class NotificationService {
 
   /// Initialize Firebase and Local Notifications
   static Future<void> init() async {
+    // 0. Register Background Handler
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
     // 1. Request Permissions (iOS/Android 13+)
     NotificationSettings settings = await _fcm.requestPermission(
       alert: true,

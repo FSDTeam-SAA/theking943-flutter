@@ -115,6 +115,25 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         debugPrint('I left the channel');
       };
 
+      _agoraService.onConnectionStateChanged = (state, reason) {
+        if (!mounted) return;
+        debugPrint('📶 Connection State: $state, Reason: $reason');
+
+        setState(() {
+          if (state == ConnectionStateType.connectionStateReconnecting) {
+            _callStatus = 'Reconnecting...';
+          } else if (state == ConnectionStateType.connectionStateFailed) {
+            _callStatus = 'Connection Failed';
+            _showError('Connection failed: $reason');
+            _endCall();
+          } else if (state == ConnectionStateType.connectionStateConnected) {
+            _callStatus = _isCallConnected
+                ? (_callDuration.isEmpty ? 'Connected' : _callDuration)
+                : 'Connected';
+          }
+        });
+      };
+
       // 3. Setup Socket Listeners (for strict signaling like End Call)
       _setupSocketListeners();
 

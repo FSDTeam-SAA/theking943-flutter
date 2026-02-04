@@ -8,6 +8,8 @@ import '../utils/api_config.dart'; // ✅ Import ApiConfig
 class ApiService {
   static String? _token;
   static String get _baseUrl => ApiConfig.baseUrl; // ✅ Use ApiConfig
+  static final Map<String, Map<String, dynamic>> _profileCache =
+      {}; // ✅ Cache layer
 
   /// Initialize - Token load kora (Fast version - no network calls)
   static Future<void> init() async {
@@ -669,10 +671,25 @@ class ApiService {
 
   /// Get User Profile
   static Future<Map<String, dynamic>> getUserProfile({String? userId}) async {
+    // 1. Check cache first
+    if (userId != null && _profileCache.containsKey(userId)) {
+      debugPrint('⚡ Cache Hit: User profile for $userId');
+      return _profileCache[userId]!;
+    }
+
     final endpoint = userId != null
         ? '${ApiConfig.getUserById}/$userId'
         : ApiConfig.userProfile;
-    return await get(endpoint, requiresAuth: true);
+
+    final result = await get(endpoint, requiresAuth: true);
+
+    // 2. Save successful results to cache
+    if (result['success'] == true && userId != null) {
+      _profileCache[userId] = result;
+      debugPrint('💾 Cache Saved: User profile for $userId');
+    }
+
+    return result;
   }
 
   /// Update User Profile

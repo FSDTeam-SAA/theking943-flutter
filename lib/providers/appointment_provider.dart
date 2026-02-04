@@ -1,6 +1,34 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // for compute
 import '../models/appointment_model.dart';
 import '../services/appointment_service.dart';
+
+// ✅ Top-level function for isolate
+List<AppointmentModel> _parseAppointments(dynamic data) {
+  if (data is! List) return [];
+
+  final List<AppointmentModel> parsed = data
+      .map((json) {
+        try {
+          // 🔍 DEBUG: Log raw JSON for the first appointment to inspect structure
+          if (data.indexOf(json) == 0) {
+            debugPrint('\n\n�🔴🔴 RAW JSON START 🔴🔴🔴');
+            debugPrint(json.toString());
+            debugPrint('🔴🔴🔴 RAW JSON END 🔴🔴🔴\n\n');
+          }
+          return AppointmentModel.fromJson(json as Map<String, dynamic>);
+        } catch (e) {
+          debugPrint('Error parsing appointment: $e');
+          return null;
+        }
+      })
+      .whereType<AppointmentModel>()
+      .toList();
+
+  // Sort by date (newest first)
+  parsed.sort((a, b) => b.appointmentDate.compareTo(a.appointmentDate));
+
+  return parsed;
+}
 
 class AppointmentProvider with ChangeNotifier {
   final AppointmentService _appointmentService = AppointmentService();
@@ -51,30 +79,12 @@ class AppointmentProvider with ChangeNotifier {
       if (response['success'] == true) {
         final data = response['data'];
 
-        if (data == null) {
-          _appointments = [];
-        } else if (data is List) {
-          _appointments = data
-              .map((json) {
-                try {
-                  return AppointmentModel.fromJson(
-                    json as Map<String, dynamic>,
-                  );
-                } catch (e) {
-                  debugPrint('Error parsing appointment: $e');
-                  return null;
-                }
-              })
-              .whereType<AppointmentModel>()
-              .toList();
+        if (data != null) {
+          // ✅ Run parsing in background isolate
+          _appointments = await compute(_parseAppointments, data);
         } else {
           _appointments = [];
         }
-
-        // Sort by date (newest first)
-        _appointments.sort(
-          (a, b) => b.appointmentDate.compareTo(a.appointmentDate),
-        );
 
         _isLoading = false;
         notifyListeners();

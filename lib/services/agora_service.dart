@@ -18,6 +18,8 @@ class AgoraService {
   Function(RtcStats stats)? onLeaveChannel;
   Function(int uid, bool muted)? onUserMuteAudio;
   Function(int uid, bool muted)? onUserMuteVideo;
+  Function(ConnectionStateType state, ConnectionChangedReasonType reason)?
+  onConnectionStateChanged;
 
   Future<void> initialize() async {
     if (_isInitialized) return;
@@ -79,6 +81,17 @@ class AgoraService {
               (RtcConnection connection, int remoteUid, bool muted) {
                 debugPrint("📷 Remote user $remoteUid video muted: $muted");
                 onUserMuteVideo?.call(remoteUid, muted);
+              },
+          onConnectionStateChanged:
+              (
+                RtcConnection connection,
+                ConnectionStateType state,
+                ConnectionChangedReasonType reason,
+              ) {
+                debugPrint(
+                  "📶 Connection state changed: $state, reason: $reason",
+                );
+                onConnectionStateChanged?.call(state, reason);
               },
         ),
       );

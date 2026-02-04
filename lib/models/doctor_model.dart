@@ -102,6 +102,15 @@ class Doctor {
       lng = json['longitude'] != null
           ? double.tryParse(json['longitude'].toString())
           : null;
+    } else if (json['location'] != null && json['location'] is String) {
+      // Handle "lat,lng" string format if it ever comes like that
+      try {
+        final parts = (json['location'] as String).split(',');
+        if (parts.length == 2) {
+          lat = double.tryParse(parts[0].trim());
+          lng = double.tryParse(parts[1].trim());
+        }
+      } catch (_) {}
     }
 
     // ❌ REMOVED FALLBACK: Do not generate random locations.

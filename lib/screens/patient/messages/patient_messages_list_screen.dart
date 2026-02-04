@@ -5,6 +5,8 @@ import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart'
 import 'package:docmobi/services/api_service.dart';
 import 'package:docmobi/services/agora_chat_service.dart';
 import 'package:agora_chat_sdk/agora_chat_sdk.dart';
+import 'package:provider/provider.dart';
+import 'package:docmobi/providers/user_provider.dart';
 import 'dart:async';
 
 class PatientMessagesListScreen extends StatefulWidget {
@@ -25,9 +27,26 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCurrentUserId();
-    _loadChats();
-    _setupAgoraListener(); // ✅ Listen to Agora messages
+    // Use post-frame callback to access providers/context safely
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeScreen();
+    });
+  }
+
+  Future<void> _initializeScreen() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    _currentUserId = userProvider.user?.id;
+
+    if (_currentUserId == null) {
+      await userProvider.fetchUserProfile();
+      _currentUserId = userProvider.user?.id;
+    }
+
+    if (_currentUserId != null) {
+      await _ensureAgoraConnection();
+      _setupAgoraListener();
+      _loadChats();
+    }
   }
 
   // ✅ Setup Agora listener for real-time updates
@@ -46,20 +65,6 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
   // ✅ Silent reload (no loading indicator)
   Future<void> _loadChatsQuietly() async {
     await _loadChats(quiet: true);
-  }
-
-  Future<void> _loadCurrentUserId() async {
-    try {
-      final profileResult = await ApiService.getUserProfile();
-      if (profileResult['success'] == true) {
-        setState(() {
-          _currentUserId = profileResult['data']['_id']?.toString();
-        });
-        await _ensureAgoraConnection(); // ✅ Ensure connection
-      }
-    } catch (e) {
-      debugPrint('❌ Error loading current user ID: $e');
-    }
   }
 
   Future<void> _ensureAgoraConnection() async {
@@ -114,69 +119,70 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
       // Sort by time descending
       tempChats.sort((a, b) => (b['time'] as int).compareTo(a['time'] as int));
 
-      List<Map<String, dynamic>> formattedChats = [];
+      // 3. Resolve user details from API in PARALLEL
+      final l10n = AppLocalizations.of(context);
+      final List<Map<String, dynamic>> formattedChats = await Future.wait(
+        tempChats.map((item) async {
+          final conv = item['conv'] as ChatConversation;
+          final lastMsg = item['lastMsg'] as ChatMessage;
+          final conversationId = conv.id;
 
-      for (var item in tempChats) {
-        final conv = item['conv'] as ChatConversation;
-        final lastMsg = item['lastMsg'] as ChatMessage;
-        final conversationId = conv.id;
+          String fullName = 'Doctor';
+          String? avatarUrl;
 
-        // 3. Resolve user details from API
-        String fullName = 'Doctor';
-        String? avatarUrl;
-
-        try {
-          final userProfile = await ApiService.getUserProfile(
-            userId: conversationId,
-          );
-          if (userProfile['success'] == true) {
-            fullName = userProfile['data']['fullName'] ?? 'Doctor';
-            avatarUrl = userProfile['data']['avatar']?['url'];
+          try {
+            // This now uses the static cache in ApiService internally
+            final userProfile = await ApiService.getUserProfile(
+              userId: conversationId,
+            );
+            if (userProfile['success'] == true) {
+              fullName = userProfile['data']['fullName'] ?? 'Doctor';
+              avatarUrl = userProfile['data']['avatar']?['url'];
+            }
+          } catch (e) {
+            debugPrint('⚠️ Could not resolve user $conversationId: $e');
           }
-        } catch (e) {
-          debugPrint('⚠️ Could not resolve user $conversationId: $e');
-        }
 
-        // 4. Format for UI
-        String content = '';
-        final l10n = AppLocalizations.of(context);
-        if (lastMsg.attributes?['type'] == 'call_log') {
-          final isVideo = lastMsg.attributes?['call_type'] == 'video';
-          content = isVideo
-              ? (l10n?.videoCall ?? 'Video Call')
-              : (l10n?.voiceCall ?? 'Voice Call');
-        } else if (lastMsg.body.type == MessageType.TXT) {
-          content = (lastMsg.body as ChatTextMessageBody).content;
-        } else if (lastMsg.body.type == MessageType.IMAGE) {
-          content = l10n?.imageLabel ?? '[Image]';
-        } else if (lastMsg.body.type == MessageType.FILE) {
-          content = l10n?.fileLabel ?? '[File]';
-        } else {
-          content = l10n?.messageLabel ?? '[Message]';
-        }
+          // Format for UI
+          String content = '';
+          if (lastMsg.attributes?['type'] == 'call_log') {
+            final isVideo = lastMsg.attributes?['call_type'] == 'video';
+            content = isVideo
+                ? (l10n?.videoCall ?? 'Video Call')
+                : (l10n?.voiceCall ?? 'Voice Call');
+          } else if (lastMsg.body.type == MessageType.TXT) {
+            content = (lastMsg.body as ChatTextMessageBody).content;
+          } else if (lastMsg.body.type == MessageType.IMAGE) {
+            content = l10n?.imageLabel ?? '[Image]';
+          } else if (lastMsg.body.type == MessageType.FILE) {
+            content = l10n?.fileLabel ?? '[File]';
+          } else {
+            content = l10n?.messageLabel ?? '[Message]';
+          }
 
-        formattedChats.add({
-          '_id': conversationId,
-          'participants': [
-            {
-              'role': 'doctor',
-              '_id': conversationId,
-              'fullName': fullName,
-              'avatar': {'url': avatarUrl},
+          return {
+            '_id': conversationId,
+            'participants': [
+              {
+                'role': 'doctor',
+                '_id': conversationId,
+                'fullName': fullName,
+                'avatar': {'url': avatarUrl},
+              },
+            ],
+            'lastMessage': {
+              'content': content,
+              'createdAt': DateTime.fromMillisecondsSinceEpoch(
+                lastMsg.serverTime,
+              ).toIso8601String(),
             },
-          ],
-          'lastMessage': {
-            'content': content,
-            'createdAt': DateTime.fromMillisecondsSinceEpoch(
+            'unreadCount': await conv.unreadCount(),
+            'updatedAt': DateTime.fromMillisecondsSinceEpoch(
               lastMsg.serverTime,
             ).toIso8601String(),
-          },
-          'unreadCount': await conv.unreadCount(),
-          'updatedAt': DateTime.fromMillisecondsSinceEpoch(
-            lastMsg.serverTime,
-          ).toIso8601String(),
-        });
-      }
+          };
+        }),
+      );
 
       if (mounted) {
         setState(() {

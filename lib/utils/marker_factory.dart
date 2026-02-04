@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:http/http.dart' as http;
-import 'dart:ui' as ui;
 import 'dart:async';
+import 'dart:ui' as ui;
+import 'package:flutter/services.dart';
 import 'dart:typed_data';
 import '../models/doctor_model.dart';
 
@@ -28,7 +28,7 @@ class MarkerFactory {
     );
   }
 
-  /// Create a marker for a doctor (Async with Image)
+  /// Create a marker for a doctor (Static Asset)
   Future<Marker> createCustomDoctorMarker({
     required Doctor doctor,
     required double distanceKm,
@@ -44,34 +44,21 @@ class MarkerFactory {
     BitmapDescriptor icon;
 
     // Check cache first
-    if (_markerCache.containsKey(doctor.id)) {
-      icon = _markerCache[doctor.id]!;
+    if (_markerCache.containsKey('static_doctor_icon')) {
+      icon = _markerCache['static_doctor_icon']!;
     } else {
       try {
-        // Fallback or Load Image
-        // Use default if image is empty or invalid
-        if (doctor.image.isEmpty || doctor.image.contains('assets/')) {
-          icon = await _createCustomMarkerBitmap(
-            null, // Null means use default icon
-            isAvailable: doctor.isAvailable,
-          );
-        } else {
-          icon = await _createCustomMarkerBitmap(
-            doctor.image,
-            isAvailable: doctor.isAvailable,
-          );
-        }
-
-        // Save to cache
-        _markerCache[doctor.id] = icon;
-      } catch (e) {
-        debugPrint('❌ Error creating marker for ${doctor.fullName}: $e');
-        // Fallback to default
-        icon = BitmapDescriptor.defaultMarkerWithHue(
-          doctor.isAvailable
-              ? BitmapDescriptor.hueGreen
-              : BitmapDescriptor.hueRed,
+        // ✅ Resize icon to 100px width (Adjust this value to change size)
+        final Uint8List markerIcon = await _getBytesFromAsset(
+          'assets/icons/doclocation.png',
+          100,
         );
+        icon = BitmapDescriptor.fromBytes(markerIcon);
+        // Cache it
+        _markerCache['static_doctor_icon'] = icon;
+      } catch (e) {
+        debugPrint('❌ Error loading static doctor icon: $e');
+        icon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
       }
     }
 
@@ -88,86 +75,20 @@ class MarkerFactory {
     );
   }
 
-  /// Helper: Create Circle Bitmap from URL or Default
-  Future<BitmapDescriptor> _createCustomMarkerBitmap(
-    String? imageUrl, {
-    bool isAvailable = true,
-  }) async {
-    final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
-    final Canvas canvas = Canvas(pictureRecorder);
-    final int size = 150; // Size of the marker
-    final double radius = size / 2.0;
-
-    // Paints
-    final Paint borderPaint = Paint()
-      ..color = isAvailable ? Colors.green : Colors.red
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 10.0;
-
-    final Paint shadowPaint = Paint()
-      ..color = Colors.black.withOpacity(0.3)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10.0);
-
-    final Paint fillPaint = Paint()..color = Colors.white;
-
-    // Draw Shadow
-    canvas.drawCircle(Offset(radius, radius + 5), radius, shadowPaint);
-
-    // Draw Background
-    canvas.drawCircle(Offset(radius, radius), radius, fillPaint);
-
-    // Draw Image
-    if (imageUrl != null) {
-      try {
-        final http.Response response = await http.get(Uri.parse(imageUrl));
-        if (response.statusCode == 200) {
-          final Uint8List bytes = response.bodyBytes;
-          final ui.Codec codec = await ui.instantiateImageCodec(
-            bytes,
-            targetWidth: size,
-            targetHeight: size,
-          );
-          final ui.FrameInfo frameInfo = await codec.getNextFrame();
-          final ui.Image image = frameInfo.image;
-
-          // Create circle clip path
-          Path circlePath = Path()
-            ..addOval(
-              Rect.fromCircle(
-                center: Offset(radius, radius),
-                radius: radius - 5,
-              ),
-            );
-
-          canvas.save();
-          canvas.clipPath(circlePath);
-          canvas.drawImage(image, Offset.zero, Paint());
-          canvas.restore();
-        }
-      } catch (e) {
-        debugPrint('Failed to load marker image: $e');
-        // Fall through to draw border only
-      }
-    } else {
-      // Draw initials or default icon if no image
-      // For simplicity, just white circle with colored border
-    }
-
-    // Draw Border
-    canvas.drawCircle(Offset(radius, radius), radius - 5, borderPaint);
-
-    // Convert to Bitmap
-    final ui.Image markerAsImage = await pictureRecorder.endRecording().toImage(
-      size,
-      size + 10,
-    ); // +10 for shadow
-    final ByteData? byteData = await markerAsImage.toByteData(
-      format: ui.ImageByteFormat.png,
+  // ✅ Helper to resize asset image
+  Future<Uint8List> _getBytesFromAsset(String path, int width) async {
+    ByteData data = await rootBundle.load(path);
+    ui.Codec codec = await ui.instantiateImageCodec(
+      data.buffer.asUint8List(),
+      targetWidth: width,
     );
-    final Uint8List uint8List = byteData!.buffer.asUint8List();
-
-    return BitmapDescriptor.fromBytes(uint8List);
+    ui.FrameInfo fi = await codec.getNextFrame();
+    return (await fi.image.toByteData(
+      format: ui.ImageByteFormat.png,
+    ))!.buffer.asUint8List();
   }
+
+  // Legacy bitmap generation removed for performance
 
   /// Create a generic marker for selection
   Marker createSelectedMarker(LatLng position) {

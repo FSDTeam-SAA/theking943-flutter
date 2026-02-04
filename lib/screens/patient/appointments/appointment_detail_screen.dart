@@ -142,12 +142,14 @@ class AppointmentDetailScreen extends StatelessWidget {
                     appointment.appointmentTime,
                   ),
                   const Divider(height: 30),
-                    _buildInfoRow(
-                    appointment.appointmentType == 'video' 
-                      ? Icons.videocam 
-                      : Icons.medical_services,
+                  _buildInfoRow(
+                    appointment.appointmentType == 'video'
+                        ? Icons.videocam
+                        : Icons.medical_services,
                     'Type',
-                    appointment.appointmentType == 'video' ? 'Video' : 'Physical',
+                    appointment.appointmentType == 'video'
+                        ? 'Video'
+                        : 'Physical',
                   ),
                   if (appointment.notes != null) ...[
                     const Divider(height: 30),
