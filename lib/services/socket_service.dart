@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'dart:async';
 import '../utils/api_config.dart';
 
 class SocketService {
   static SocketService? _instance;
-  IO.Socket? _socket;
+  io.Socket? _socket;
   String? _currentUserId;
   bool _isConnecting = false;
   final StreamController<bool> _connectionController =
@@ -20,7 +20,7 @@ class SocketService {
 
   SocketService._();
 
-  IO.Socket? get socket => _socket;
+  io.Socket? get socket => _socket;
   bool get isConnected => _socket?.connected ?? false;
   Stream<bool> get connectionStream => _connectionController.stream;
   Stream<void> get reconnectStream => _reconnectController.stream;
@@ -28,13 +28,10 @@ class SocketService {
 
   Future<bool> connect(String userId) async {
     // If already connecting, wait
+    // If already connecting, don't start a new connection, just return the current state
     if (_isConnecting) {
-      debugPrint('⏳ Socket connection in progress, waiting...');
-      int attempts = 0;
-      while (_isConnecting && attempts < 10) {
-        await Future.delayed(const Duration(milliseconds: 500));
-        attempts++;
-      }
+      debugPrint('⏳ Socket connection in progress, skipping redundant request');
+      return false;
     }
 
     // If already connected with same user
@@ -70,16 +67,18 @@ class SocketService {
       _socket = null;
     }
 
-    _socket = IO.io(
+    _socket = io.io(
       serverUrl,
-      IO.OptionBuilder()
+      io.OptionBuilder()
           .setTransports(['websocket', 'polling'])
           .enableReconnection()
-          .setReconnectionAttempts(10)
-          .setReconnectionDelay(5000) // Increased to 5s to reduce polling spam
-          .setReconnectionDelayMax(10000)
-          .setTimeout(20000)
+          .setReconnectionAttempts(-1) // Infinite reconnection
+          .setReconnectionDelay(2000)
+          .setReconnectionDelayMax(5000)
+          .setTimeout(15000)
           .setExtraHeaders({'userId': userId})
+          // Force new connection if disposed
+          .setQuery({'userId': userId})
           .build(),
     );
 
@@ -87,7 +86,7 @@ class SocketService {
     _socket!.connect();
 
     return await completer.future.timeout(
-      const Duration(seconds: 20),
+      const Duration(seconds: 10), // Shorter timeout for initial connect
       onTimeout: () {
         debugPrint('⏱️ Socket connection timeout');
         _isConnecting = false;
@@ -143,6 +142,26 @@ class SocketService {
       }
     });
 
+    _socket!.onReconnectAttempt((attempt) {
+      debugPrint('🔄 Socket reconnection attempt: $attempt');
+    });
+
+    _socket!.onReconnectError((error) {
+      debugPrint('❌ Socket reconnection error: $error');
+    });
+
+    _socket!.onReconnectFailed((_) {
+      debugPrint('❌ Socket reconnection failed definitively');
+    });
+
+    _socket!.onPing((_) {
+      // debugPrint('💓 Socket ping sent');
+    });
+
+    _socket!.onPong((_) {
+      // debugPrint('💓 Socket pong received');
+    });
+
     _socket!.on('socket:connected', (data) {
       debugPrint('✅ Backend confirmed connection: $data');
     });
@@ -150,14 +169,26 @@ class SocketService {
 
   Future<bool> emit(String event, dynamic data) async {
     if (_socket == null || !_socket!.connected) {
-      debugPrint('⚠️ Socket not connected, attempting reconnect...');
+      debugPrint(
+        '⚠️ Socket not connected, attempting non-blocking reconnect...',
+      );
       if (_currentUserId != null) {
-        final ok = await connect(_currentUserId!);
-        if (!ok) {
-          debugPrint('❌ Reconnection failed');
+        // Use a much shorter timeout if we are trying to emit
+        ensureConnected(); // Background attempt
+
+        // Wait a small amount but don't hang for 20s
+        int retry = 0;
+        while (retry < 5 && (_socket == null || !_socket!.connected)) {
+          await Future.delayed(const Duration(milliseconds: 200));
+          retry++;
+        }
+
+        if (_socket == null || !_socket!.connected) {
+          debugPrint(
+            '❌ Socket still not connected after quick retry, skipping emit',
+          );
           return false;
         }
-        await Future.delayed(const Duration(milliseconds: 800));
       } else {
         debugPrint('❌ No user ID for reconnection');
         return false;

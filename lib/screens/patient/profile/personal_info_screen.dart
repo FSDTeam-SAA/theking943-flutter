@@ -155,9 +155,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       }
     } catch (e) {
       debugPrint('❌ Error picking image: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.errorMsg(e))),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.errorMsg(e))),
+        );
+      }
     }
   }
 
@@ -192,14 +194,16 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       );
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '✅ ${AppLocalizations.of(context)!.profileUpdatedSuccess}',
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '✅ ${AppLocalizations.of(context)!.profileUpdatedSuccess}',
+              ),
+              backgroundColor: Colors.green,
             ),
-            backgroundColor: Colors.green,
-          ),
-        );
+          );
+        }
 
         setState(() {
           _selectedImage = null;
@@ -208,20 +212,25 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         // ✅ Refresh the data
         _loadUserData();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              userProvider.error ?? AppLocalizations.of(context)!.updateFailed,
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                userProvider.error ??
+                    AppLocalizations.of(context)!.updateFailed,
+              ),
+              backgroundColor: Colors.red,
             ),
-            backgroundColor: Colors.red,
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
       debugPrint('❌ Update error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.errorMsg(e))),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.errorMsg(e))),
+        );
+      }
     } finally {
       setState(() {
         _isUpdating = false;

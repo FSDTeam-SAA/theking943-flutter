@@ -240,15 +240,6 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
       debugPrint('   - Longitude: $_longitude');
       debugPrint('   - Address: ${_addressController.text}');
 
-      // ✅ Create location map if both lat and lng are available
-      Map<String, dynamic>? locationData;
-      if (_latitude != null && _longitude != null) {
-        locationData = {
-          'lat': _latitude.toString(),
-          'lng': _longitude.toString(),
-        };
-      }
-
       final success = await userProvider.updateUserProfile(
         fullName: _nameController.text.trim(),
         phone: _phoneController.text.trim(),

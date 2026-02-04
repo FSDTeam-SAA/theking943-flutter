@@ -45,8 +45,8 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   bool _locationPermissionGranted = false;
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
-  Set<Polyline> _directionPolylines = {};
-  String? _selectedDoctorId;
+  final Set<Polyline> _directionPolylines = {};
+  // String? _selectedDoctorId; // Unused
   Timer? _refreshTimer; // ✅ Auto refresh timer
 
   @override
@@ -381,11 +381,11 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   ) async {
     final l10n = AppLocalizations.of(context)!;
     // Set selected doctor
-    if (mounted) {
-      setState(() {
-        _selectedDoctorId = doctorId;
-      });
-    }
+    // if (mounted) {
+    //   setState(() {
+    //     // _selectedDoctorId = doctorId;
+    //   });
+    // }
 
     debugPrint('🗺️ Fetching street-level directions...');
 
@@ -713,7 +713,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                                     borderRadius: BorderRadius.circular(12),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.05),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.05,
+                                        ),
                                         blurRadius: 10,
                                       ),
                                     ],
@@ -868,8 +870,8 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black.withOpacity(
-                                                0.1,
+                                              color: Colors.black.withValues(
+                                                alpha: 0.1,
                                               ),
                                               blurRadius: 4,
                                             ),
@@ -1229,22 +1231,22 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
   bool _isDoctorAvailable(Doctor doctor) {
     if (doctor.weeklySchedule == null || doctor.weeklySchedule!.isEmpty) {
-      print('❌ ${doctor.fullName}: No weeklySchedule');
+      debugPrint('❌ ${doctor.fullName}: No weeklySchedule');
       return false;
     }
 
     for (var schedule in doctor.weeklySchedule!) {
-      print(
+      debugPrint(
         '📅 ${doctor.fullName} - ${schedule.day}: active=${schedule.isActive}, slots=${schedule.slots.length}',
       );
 
       if (schedule.isActive && schedule.slots.isNotEmpty) {
-        print('✅ ${doctor.fullName}: Available on ${schedule.day}');
+        debugPrint('✅ ${doctor.fullName}: Available on ${schedule.day}');
         return true;
       }
     }
 
-    print('❌ ${doctor.fullName}: No active days with slots');
+    debugPrint('❌ ${doctor.fullName}: No active days with slots');
     return false;
   }
 
@@ -1259,10 +1261,10 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.blue.withOpacity(0.1)),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

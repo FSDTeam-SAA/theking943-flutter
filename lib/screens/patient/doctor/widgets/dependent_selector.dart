@@ -87,7 +87,7 @@ class DependentSelector extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.04),
+          color: Colors.black.withValues(alpha: 0.04),
           blurRadius: 10,
           offset: const Offset(0, 4),
         ),
@@ -110,7 +110,7 @@ class DependentSelector extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF0D53C1).withOpacity(0.1)
+              ? const Color(0xFF0D53C1).withValues(alpha: 0.1)
               : Colors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(

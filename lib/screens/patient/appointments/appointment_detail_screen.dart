@@ -77,7 +77,7 @@ class AppointmentDetailScreen extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: _getStatusColor(
                                   appointment.status,
-                                ).withOpacity(0.2),
+                                ).withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(5),
                               ),
                               child: Text(
@@ -97,7 +97,7 @@ class AppointmentDetailScreen extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: const Color(
                                     0xFF6C5CE7,
-                                  ).withOpacity(0.1),
+                                  ).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(5),
                                   border: Border.all(
                                     color: const Color(0xFF6C5CE7),
@@ -301,9 +301,9 @@ class AppointmentDetailScreen extends StatelessWidget {
       final success = await provider.cancelAppointment(appointment.id);
 
       // Close loading
-      Navigator.pop(context);
+      if (context.mounted) Navigator.pop(context);
 
-      if (success) {
+      if (success && context.mounted) {
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -330,7 +330,7 @@ class AppointmentDetailScreen extends StatelessWidget {
 
         // Go back to appointments list
         Navigator.pop(context);
-      } else {
+      } else if (context.mounted) {
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -356,13 +356,12 @@ class AppointmentDetailScreen extends StatelessWidget {
         );
       }
     } catch (e) {
-      // Close loading
-      Navigator.pop(context);
-
-      // Show error
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -385,8 +384,10 @@ class AppointmentDetailScreen extends StatelessWidget {
         ),
       ),
     ).then((_) {
-      // Go back after reschedule
-      Navigator.pop(context);
+      if (context.mounted) {
+        // Go back after reschedule
+        Navigator.pop(context);
+      }
     });
   }
 
@@ -428,33 +429,37 @@ class AppointmentDetailScreen extends StatelessWidget {
 
       final result = await ApiService.createOrGetChat(userId: doctorId);
 
-      Navigator.pop(context);
+      if (context.mounted) Navigator.pop(context);
 
       if (result['success'] == true) {
         final chatId = result['data']['_id']?.toString();
 
         if (chatId == null || chatId.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to get chat ID'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to get chat ID'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
           return;
         }
 
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ChatDetailScreen(
-              chatId: chatId,
-              doctorName: appointment.doctorName ?? 'Doctor',
-              doctorAvatar: appointment.doctorImage,
-              doctorId: appointment.doctorId,
+        if (context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatDetailScreen(
+                chatId: chatId,
+                doctorName: appointment.doctorName ?? 'Doctor',
+                doctorAvatar: appointment.doctorImage,
+                doctorId: appointment.doctorId,
+              ),
             ),
-          ),
-        );
-      } else {
+          );
+        }
+      } else if (context.mounted) {
         final errorMessage = result['message'] ?? 'Failed to open chat';
 
         showDialog(
@@ -478,27 +483,29 @@ class AppointmentDetailScreen extends StatelessWidget {
         );
       }
     } catch (e) {
-      Navigator.pop(context);
+      if (context.mounted) {
+        Navigator.pop(context);
 
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.error, color: Colors.red),
-              SizedBox(width: 8),
-              Text('Error'),
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.error, color: Colors.red),
+                SizedBox(width: 8),
+                Text('Error'),
+              ],
+            ),
+            content: Text('$e'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
             ],
           ),
-          content: Text('$e'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
+        );
+      }
     }
   }
 }

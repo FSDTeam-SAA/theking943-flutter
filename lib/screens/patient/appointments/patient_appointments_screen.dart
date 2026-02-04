@@ -282,7 +282,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -553,8 +553,8 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
         }
       }
     } catch (e) {
-      if (mounted) Navigator.pop(context);
       if (mounted) {
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
@@ -580,7 +580,9 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
         ),
       ),
     ).then((_) {
-      context.read<AppointmentProvider>().fetchAppointments();
+      if (mounted) {
+        context.read<AppointmentProvider>().fetchAppointments();
+      }
     });
   }
 
@@ -613,11 +615,11 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
 
         if (thisReview != null) {
           selectedRating = thisReview['rating'] ?? 0;
-          print('✅ Found existing review with rating: $selectedRating');
+          debugPrint('✅ Found existing review with rating: $selectedRating');
         }
       }
     } catch (e) {
-      print('⚠️ No existing review found: $e');
+      debugPrint('⚠️ No existing review found: $e');
     } finally {
       isLoadingExisting = false;
     }
@@ -764,10 +766,10 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
     Overlay.of(context).insert(overlay);
 
     try {
-      print('📤 Submitting review:');
-      print('   - Doctor ID: ${appointment.doctorId}');
-      print('   - Appointment ID: ${appointment.id}');
-      print('   - Rating: $rating');
+      debugPrint('📤 Submitting review:');
+      debugPrint('   - Doctor ID: ${appointment.doctorId}');
+      debugPrint('   - Appointment ID: ${appointment.id}');
+      debugPrint('   - Rating: $rating');
 
       final response =
           await ApiService.post('/api/v1/doctor-review', {
@@ -779,7 +781,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
             onTimeout: () => throw Exception('Request timeout'),
           );
 
-      print('📥 Review Response: $response');
+      debugPrint('📥 Review Response: $response');
 
       // ✅ Remove overlay
       overlay.remove();
@@ -810,7 +812,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
         }
       }
     } catch (e) {
-      print('❌ Review submission error: $e');
+      debugPrint('❌ Review submission error: $e');
 
       // ✅ Remove overlay on error
       overlay.remove();

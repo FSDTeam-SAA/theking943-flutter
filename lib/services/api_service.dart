@@ -136,10 +136,11 @@ class ApiService {
         }
 
         final url = '$_baseUrl$endpoint';
-        if (attempts == 1)
+        if (attempts == 1) {
           debugPrint('📤 GET: $url');
-        else
+        } else {
           debugPrint('🔁 Retry GET ($attempts/$retries): $url');
+        }
 
         final headers = _getHeaders(requiresAuth: requiresAuth);
 

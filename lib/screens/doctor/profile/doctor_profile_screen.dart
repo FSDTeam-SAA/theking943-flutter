@@ -110,12 +110,14 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
         // Refresh to ensure sync
         await _refreshProfile();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } finally {
       // 4. Cleanup
@@ -330,8 +332,8 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: isVideoCallAvailable
-                                ? const Color(0xFF1664CD).withOpacity(0.1)
-                                : Colors.red.withOpacity(0.1),
+                                ? const Color(0xFF1664CD).withValues(alpha: 0.1)
+                                : Colors.red.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: isVideoCallAvailable
@@ -371,12 +373,14 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
                         Switch(
                           value: isVideoCallAvailable,
                           onChanged: _isSaving ? null : _toggleVideoCall,
-                          activeColor: const Color(0xFF1664CD),
+                          activeThumbColor: const Color(0xFF1664CD),
                           activeTrackColor: const Color(
                             0xFF1664CD,
-                          ).withOpacity(0.3),
+                          ).withValues(alpha: 0.3),
                           inactiveThumbColor: Colors.grey.shade400,
-                          inactiveTrackColor: Colors.grey.withOpacity(0.2),
+                          inactiveTrackColor: Colors.grey.withValues(
+                            alpha: 0.2,
+                          ),
                         ),
                       ],
                     ),

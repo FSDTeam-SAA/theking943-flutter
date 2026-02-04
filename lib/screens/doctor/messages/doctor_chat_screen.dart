@@ -54,7 +54,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
   String? _actualUserAvatar;
   String? _actualUserName;
   bool _isAutoScrollEnabled = true;
-  Set<String> _selectedMessageIds = {}; // ✅ For multi-select delete
+  final Set<String> _selectedMessageIds = {}; // ✅ For multi-select delete
   bool _isSelectionMode = false; // ✅ Selection mode toggle
   bool _isOtherUserTyping = false;
   Timer? _myTypingTimer;
@@ -67,15 +67,13 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     _actualUserAvatar = widget.userAvatar;
     _actualUserName = widget.userName;
     _loadCurrentUserProfile().then((_) {
+      _setupAgoraListeners(); // ✅ Setup listeners IMMEDIATELY
       _loadMessages();
-      _setupAgoraListeners();
       _ensureAgoraConnection();
       _setupSocketListeners(); // ✅ Setup socket for real-time typing
       final targetId = _resolvedOtherUserId ?? widget.otherUserId;
       if (targetId != null) {
-        AgoraChatService.instance.markAllMessagesAsRead(
-          targetId,
-        ); // ✅ Mark as read on entry using peer ID
+        AgoraChatService.instance.markAllMessagesAsRead(targetId);
       }
     });
 
@@ -155,12 +153,12 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
           .loadMessagesFromLocal(conversationId: otherId);
 
       if (mounted) {
-        final List<dynamic> formattedMessages = localMessages
-            .map((m) => _convertAgoraMessage(m))
-            .toList();
-
         setState(() {
-          _messages = formattedMessages;
+          // Sort newest messages to the top for reverse: true
+          localMessages.sort((a, b) => b.serverTime.compareTo(a.serverTime));
+          _messages = localMessages
+              .map((m) => _convertAgoraMessage(m))
+              .toList();
           _isLoading = false;
         });
 
@@ -182,11 +180,23 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
           .fetchHistoryMessages(conversationId: otherId)
           .then((remoteMessages) {
             if (mounted && remoteMessages.isNotEmpty) {
-              final List<dynamic> updatedMessages = remoteMessages
-                  .map((m) => _convertAgoraMessage(m))
-                  .toList();
               setState(() {
-                _messages = updatedMessages;
+                // ✅ MERGE instead of replace to preserve real-time messages
+                final existingIds = _messages.map((m) => m['_id']).toSet();
+                final newMessages = remoteMessages
+                    .where((m) => !existingIds.contains(m.msgId))
+                    .map((m) => _convertAgoraMessage(m))
+                    .toList();
+
+                // Insert new messages at the beginning (newest first)
+                _messages.insertAll(0, newMessages);
+
+                // Sort to ensure correct order
+                _messages.sort(
+                  (a, b) => DateTime.parse(
+                    b['createdAt'],
+                  ).compareTo(DateTime.parse(a['createdAt'])),
+                );
               });
             }
           });
@@ -330,10 +340,11 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
   }
 
   void _scrollToBottom() {
+    // With reverse: true, "bottom" is offset 0
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients && _isAutoScrollEnabled) {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+          0.0,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -417,19 +428,11 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
         setState(() {
           _selectedFiles = [];
           _isAutoScrollEnabled = true;
-          // Optimistic update
-          _messages.add(_convertAgoraMessage(sentMessage));
+          // Optimistic update: Add message to TOP for reverse: true
+          _messages.insert(0, _convertAgoraMessage(sentMessage));
         });
 
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scrollController.hasClients) {
-            _scrollController.animateTo(
-              _scrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOut,
-            );
-          }
-        });
+        _scrollToBottom();
       }
     } catch (e) {
       debugPrint('❌ [Doctor] Error sending message: $e');
@@ -632,30 +635,33 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
                   )
                 : ListView.separated(
                     controller: _scrollController,
+                    reverse: true, // ✅ IMPORTANT: Newest at bottom
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 10,
                     ),
                     itemCount: _messages.length,
                     separatorBuilder: (context, index) {
-                      final currentDate =
+                      final currentMsgDate =
                           _messages[index]['createdAt'] as String;
-                      final nextDate = (index + 1 < _messages.length)
+                      final previousMsgDate = (index + 1 < _messages.length)
                           ? _messages[index + 1]['createdAt'] as String
                           : null;
 
-                      if (nextDate != null &&
-                          !_isSameDay(currentDate, nextDate)) {
-                        return ChatDateSeparator(timestamp: nextDate);
+                      // For reverse: true, we check if the message "above" (next index) is a different day
+                      if (previousMsgDate != null &&
+                          !_isSameDay(currentMsgDate, previousMsgDate)) {
+                        return ChatDateSeparator(timestamp: currentMsgDate);
                       }
                       return const SizedBox.shrink();
                     },
                     itemBuilder: (context, index) {
-                      if (index == 0) {
+                      // For the very last message in the list (oldest), show date separator
+                      if (index == _messages.length - 1) {
                         return Column(
                           children: [
                             ChatDateSeparator(
-                              timestamp: _messages[0]['createdAt'],
+                              timestamp: _messages[index]['createdAt'],
                             ),
                             _buildMessageItem(_messages[index]),
                           ],
@@ -740,13 +746,26 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
 
           if (incomingFormatted.isNotEmpty && mounted) {
             setState(() {
-              _messages.addAll(incomingFormatted);
-              // Sort by date
-              _messages.sort(
-                (a, b) => (DateTime.parse(
-                  a['createdAt'],
-                )).compareTo(DateTime.parse(b['createdAt'])),
-              );
+              // ✅ Check for duplicates BEFORE insertion (more efficient)
+              final existingIds = _messages.map((m) => m['_id']).toSet();
+
+              for (var msg in incomingFormatted) {
+                if (!existingIds.contains(msg['_id'])) {
+                  _messages.insert(0, msg);
+                  existingIds.add(msg['_id']);
+                }
+              }
+
+              // ✅ Only sort if messages might be out of order
+              // Agora usually delivers in order, so this is often unnecessary
+              // but kept for safety with multiple simultaneous messages
+              if (incomingFormatted.length > 1) {
+                _messages.sort(
+                  (a, b) => DateTime.parse(
+                    b['createdAt'],
+                  ).compareTo(DateTime.parse(a['createdAt'])),
+                );
+              }
             });
 
             _scrollToBottom();

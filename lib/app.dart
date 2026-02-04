@@ -166,7 +166,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         debugPrint('🔗 Navigating to: ${settings.name}');
 
         if (settings.name == '/edit-dependent') {
-          final args = settings.arguments as Map<String, dynamic>?;
           return MaterialPageRoute(
             builder: (context) => const EditDependentScreen(),
             settings: settings,

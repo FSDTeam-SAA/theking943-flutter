@@ -47,7 +47,9 @@ class CallLogBubble extends StatelessWidget {
       onTap: onTap,
       onLongPress: onLongPress,
       child: Container(
-        color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.transparent,
+        color: isSelected
+            ? Colors.blue.withValues(alpha: 0.1)
+            : Colors.transparent,
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         child: Center(
           child: Container(
@@ -61,7 +63,7 @@ class CallLogBubble extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.02),
+                  color: Colors.black.withValues(alpha: 0.02),
                   blurRadius: 5,
                   offset: const Offset(0, 2),
                 ),

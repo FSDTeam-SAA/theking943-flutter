@@ -177,10 +177,10 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
       debugPrint('📤 Call reject event sent');
 
-      Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
     } catch (e) {
       debugPrint('❌ Error rejecting call: $e');
-      Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
     }
   }
 
@@ -199,7 +199,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                 height: 300,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.white.withValues(alpha: 0.05),
                 ),
               ),
             ),
@@ -211,7 +211,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                 height: 400,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.white.withValues(alpha: 0.05),
                 ),
               ),
             ),
@@ -224,7 +224,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(25),
                   ),
                   child: Row(
@@ -258,7 +258,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                       border: Border.all(color: Colors.white30, width: 4),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           blurRadius: 40,
                           spreadRadius: 10,
                         ),
@@ -292,7 +292,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                 Text(
                   'Incoming ${widget.isVideoCall ? 'Video' : 'Audio'} Call...',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 18,
                   ),
                 ),

@@ -58,8 +58,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   Doctor? _fetchedDoctor; // ✅ NEW: Store full doctor details
 
   Doctor? get doctorObject {
-    if (_fetchedDoctor != null)
+    if (_fetchedDoctor != null) {
       return _fetchedDoctor; // ✅ Prefer fetched full object
+    }
     if (widget.doctor is Doctor) return widget.doctor as Doctor;
     if (widget.doctor is Map<String, dynamic>) {
       return Doctor.fromJson(widget.doctor as Map<String, dynamic>);
@@ -305,7 +306,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
   Future<void> _pickMedicalDocuments() async {
     final List<XFile> picked = await _picker.pickMultiImage();
-    if (picked != null && picked.isNotEmpty && mounted) {
+    if (picked.isNotEmpty && mounted) {
       setState(() => _medicalDocuments.addAll(picked));
     }
   }
@@ -446,12 +447,17 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         // Optimization: Trigger appointment fetch
-        if (mounted) context.read<AppointmentProvider>().fetchAppointments();
+        if (mounted) {
+          context.read<AppointmentProvider>().fetchAppointments();
+        }
         return true;
       } else {
-        final l10n = AppLocalizations.of(context)!;
-        String msg = jsonResponse['message'] ?? l10n.bookingFailed;
         if (mounted) {
+          final l10n = AppLocalizations.of(context);
+          String msg =
+              jsonResponse['message'] ??
+              l10n?.bookingFailed ??
+              'Booking failed';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(msg), backgroundColor: Colors.red),
           );
@@ -714,7 +720,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                       setState(() => selectedDependent = dep),
                   onAddNewDependent: () {
                     Navigator.pushNamed(context, '/add-dependent').then((_) {
-                      context.read<DependentProvider>().fetchDependents();
+                      if (mounted) {
+                        context.read<DependentProvider>().fetchDependents();
+                      }
                     });
                   },
                 );

@@ -343,12 +343,13 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (didPop) return;
         if (!_isProcessing) {
           _rejectCall();
         }
-        return false;
       },
       child: Dialog(
         backgroundColor: Colors.transparent,
@@ -363,7 +364,7 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -375,7 +376,7 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -389,7 +390,7 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
 
               CircleAvatar(
                 radius: 40,
-                backgroundColor: Colors.white.withOpacity(0.2),
+                backgroundColor: Colors.white.withValues(alpha: 0.2),
                 backgroundImage:
                     widget.callerAvatar != null &&
                         widget.callerAvatar!.isNotEmpty &&
@@ -429,13 +430,11 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
                 overflow: TextOverflow.ellipsis,
               ),
 
-              const SizedBox(height: 8),
-
               Text(
                 'Incoming ${widget.isVideo ? "Video" : "Audio"} Call',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                 ),
               ),
 
@@ -478,7 +477,7 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Material(
-          color: isDisabled ? color.withOpacity(0.5) : color,
+          color: isDisabled ? color.withValues(alpha: 0.5) : color,
           shape: const CircleBorder(),
           elevation: isDisabled ? 0 : 4,
           child: InkWell(
@@ -503,7 +502,9 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
         Text(
           label,
           style: TextStyle(
-            color: isDisabled ? Colors.white.withOpacity(0.5) : Colors.white,
+            color: isDisabled
+                ? Colors.white.withValues(alpha: 0.5)
+                : Colors.white,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),

@@ -140,7 +140,7 @@ class AgoraService {
       }
 
       await _engine!.joinChannel(
-        token: token ?? AgoraConfig.token ?? '', // Prioritize dynamic token
+        token: token ?? AgoraConfig.token, // Prioritize dynamic token
         channelId: channelName,
         uid: uid,
         options: const ChannelMediaOptions(

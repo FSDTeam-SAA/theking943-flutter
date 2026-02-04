@@ -24,7 +24,7 @@ class _DoctorMessagesListScreenState extends State<DoctorMessagesListScreen>
   List<Map<String, dynamic>> allChats = [];
   bool isLoading = true;
   String? currentUserId;
-  Set<String> _selectedConversationIds = {}; // ✅ For multi-select delete
+  final Set<String> _selectedConversationIds = {}; // ✅ For multi-select delete
   bool _isSelectionMode = false; // ✅ Selection mode toggle
 
   @override
@@ -115,20 +115,22 @@ class _DoctorMessagesListScreenState extends State<DoctorMessagesListScreen>
 
         // 4. Format for UI
         String content = '';
-        final l10n = AppLocalizations.of(context);
-        if (lastMsg.attributes?['type'] == 'call_log') {
-          final isVideo = lastMsg.attributes?['call_type'] == 'video';
-          content = isVideo
-              ? (l10n?.videoCall ?? 'Video Call')
-              : (l10n?.voiceCall ?? 'Voice Call');
-        } else if (lastMsg.body.type == MessageType.TXT) {
-          content = (lastMsg.body as ChatTextMessageBody).content;
-        } else if (lastMsg.body.type == MessageType.IMAGE) {
-          content = l10n?.imageLabel ?? '[Image]';
-        } else if (lastMsg.body.type == MessageType.FILE) {
-          content = l10n?.fileLabel ?? '[File]';
-        } else {
-          content = l10n?.messageLabel ?? '[Message]';
+        if (mounted) {
+          final l10n = AppLocalizations.of(context);
+          if (lastMsg.attributes?['type'] == 'call_log') {
+            final isVideo = lastMsg.attributes?['call_type'] == 'video';
+            content = isVideo
+                ? (l10n?.videoCall ?? 'Video Call')
+                : (l10n?.voiceCall ?? 'Voice Call');
+          } else if (lastMsg.body.type == MessageType.TXT) {
+            content = (lastMsg.body as ChatTextMessageBody).content;
+          } else if (lastMsg.body.type == MessageType.IMAGE) {
+            content = l10n?.imageLabel ?? '[Image]';
+          } else if (lastMsg.body.type == MessageType.FILE) {
+            content = l10n?.fileLabel ?? '[File]';
+          } else {
+            content = l10n?.messageLabel ?? '[Message]';
+          }
         }
 
         formattedChats.add({
@@ -293,13 +295,13 @@ class _DoctorMessagesListScreenState extends State<DoctorMessagesListScreen>
       );
 
       final result = await ApiService.createOrGetChat(userId: doctorId);
-      Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
 
       if (result['success'] == true) {
         final chatData = result['data'];
         final chatId = chatData['_id']?.toString();
 
-        if (chatId != null) {
+        if (chatId != null && mounted) {
           final participants = chatData['participants'] as List;
           final otherUser = participants.firstWhere(
             (p) => p['_id'] != currentUserId,
@@ -319,20 +321,24 @@ class _DoctorMessagesListScreenState extends State<DoctorMessagesListScreen>
                 otherUserId: otherUser['_id'],
               ),
             ),
-          ).then((_) => _loadChats());
+          ).then((_) {
+            if (mounted) _loadChats();
+          });
 
           _tabController.animateTo(0);
         }
       }
     } catch (e) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${AppLocalizations.of(context)!.failedToDelete(e.toString())}',
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.failedToDelete(e.toString()),
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
   }
 
@@ -520,7 +526,7 @@ class _DoctorMessagesListScreenState extends State<DoctorMessagesListScreen>
               : Border.all(color: Colors.transparent),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),

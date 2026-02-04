@@ -3,7 +3,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
-import 'dart:typed_data';
 import '../models/doctor_model.dart';
 
 class MarkerFactory {
@@ -53,7 +52,7 @@ class MarkerFactory {
           'assets/icons/doclocation.png',
           100,
         );
-        icon = BitmapDescriptor.fromBytes(markerIcon);
+        icon = BitmapDescriptor.bytes(markerIcon);
         // Cache it
         _markerCache['static_doctor_icon'] = icon;
       } catch (e) {

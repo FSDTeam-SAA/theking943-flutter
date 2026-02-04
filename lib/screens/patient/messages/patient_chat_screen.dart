@@ -4,8 +4,6 @@ import 'package:docmobi/services/agora_chat_service.dart';
 import 'package:docmobi/services/socket_service.dart';
 import 'package:docmobi/services/api_service.dart';
 import 'package:agora_chat_sdk/agora_chat_sdk.dart';
-import 'package:docmobi/screens/common/calls/video_call_screen.dart';
-import 'package:docmobi/screens/common/calls/audio_call_screen.dart';
 import 'dart:io';
 import 'dart:async';
 import 'package:image_picker/image_picker.dart';
@@ -64,13 +62,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _actualDoctorAvatar = widget.doctorAvatar;
     _actualDoctorName = widget.doctorName;
     _loadCurrentUserProfile().then((_) {
+      _setupAgoraListeners(); // ✅ Setup listeners IMMEDIATELY
       _loadMessages();
-      _setupAgoraListeners();
       _ensureAgoraConnection();
       _setupSocketListeners(); // ✅ Setup socket for real-time typing
-      AgoraChatService.instance.markAllMessagesAsRead(
-        widget.doctorId!,
-      ); // ✅ Mark as read on entry using peer ID (doctorId)
+      if (widget.doctorId != null) {
+        AgoraChatService.instance.markAllMessagesAsRead(widget.doctorId!);
+      }
     });
 
     _scrollController.addListener(() {
@@ -192,12 +190,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       );
 
       if (mounted) {
-        final List<dynamic> formattedMessages = messages
-            .map((m) => _convertAgoraMessage(m))
-            .toList();
-
         setState(() {
-          _messages = formattedMessages;
+          // Sort newest messages to the top for reverse: true
+          messages.sort((a, b) => b.serverTime.compareTo(a.serverTime));
+          _messages = messages.map((m) => _convertAgoraMessage(m)).toList();
           _isLoading = false;
         });
 
@@ -223,11 +219,23 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           .fetchHistoryMessages(conversationId: widget.doctorId!)
           .then((remoteMessages) {
             if (mounted && remoteMessages.isNotEmpty) {
-              final List<dynamic> updatedMessages = remoteMessages
-                  .map((m) => _convertAgoraMessage(m))
-                  .toList();
               setState(() {
-                _messages = updatedMessages;
+                // ✅ MERGE instead of replace to preserve real-time messages
+                final existingIds = _messages.map((m) => m['_id']).toSet();
+                final newMessages = remoteMessages
+                    .where((m) => !existingIds.contains(m.msgId))
+                    .map((m) => _convertAgoraMessage(m))
+                    .toList();
+
+                // Insert new messages at the beginning (newest first)
+                _messages.insertAll(0, newMessages);
+
+                // Sort to ensure correct order
+                _messages.sort(
+                  (a, b) => DateTime.parse(
+                    b['createdAt'],
+                  ).compareTo(DateTime.parse(a['createdAt'])),
+                );
               });
             }
           });
@@ -322,10 +330,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   void _scrollToBottom() {
+    // With reverse: true, "bottom" is offset 0
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients && _isAutoScrollEnabled) {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+          0.0,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -361,13 +370,26 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
           if (incomingFormatted.isNotEmpty && mounted) {
             setState(() {
-              _messages.addAll(incomingFormatted);
-              // Sort by date just in case they arrived out of order
-              _messages.sort(
-                (a, b) => (DateTime.parse(
-                  a['createdAt'],
-                )).compareTo(DateTime.parse(b['createdAt'])),
-              );
+              // ✅ Check for duplicates BEFORE insertion (more efficient)
+              final existingIds = _messages.map((m) => m['_id']).toSet();
+
+              for (var msg in incomingFormatted) {
+                if (!existingIds.contains(msg['_id'])) {
+                  _messages.insert(0, msg);
+                  existingIds.add(msg['_id']);
+                }
+              }
+
+              // ✅ Only sort if messages might be out of order
+              // Agora usually delivers in order, so this is often unnecessary
+              // but kept for safety with multiple simultaneous messages
+              if (incomingFormatted.length > 1) {
+                _messages.sort(
+                  (a, b) => DateTime.parse(
+                    b['createdAt'],
+                  ).compareTo(DateTime.parse(a['createdAt'])),
+                );
+              }
             });
 
             _scrollToBottom();
@@ -468,20 +490,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         setState(() {
           _selectedFiles = [];
           _isAutoScrollEnabled = true;
-          // Optimistic update: Add message to list immediately
-          _messages.add(_convertAgoraMessage(sentMessage));
+          // Optimistic update: Add message to TOP for reverse: true
+          _messages.insert(0, _convertAgoraMessage(sentMessage));
         });
 
-        // Scroll to bottom
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scrollController.hasClients) {
-            _scrollController.animateTo(
-              _scrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOut,
-            );
-          }
-        });
+        _scrollToBottom();
       }
     } catch (e) {
       debugPrint('❌ Error sending message: $e');
@@ -512,179 +525,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     setState(() {
       _selectedFiles.removeAt(index);
     });
-  }
-
-  // ✅ Unified method to initiate Call (Audio or Video)
-  void _initiateCall({required bool isVideo}) async {
-    if (_otherUserId == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.cannotStartCallNoId),
-          ),
-        );
-      }
-      return;
-    }
-
-    final socket = SocketService.instance.socket;
-    if (socket == null || !socket.connected) {
-      if (_currentUserId != null) {
-        try {
-          await SocketService.instance.connect(_currentUserId!);
-          await Future.delayed(const Duration(seconds: 1));
-        } catch (e) {
-          debugPrint('❌ Socket reconnection failed: $e');
-        }
-      }
-
-      if (SocketService.instance.socket == null ||
-          !SocketService.instance.socket!.connected) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(
-                  context,
-                )!.failedToStartCall('Connection failed'),
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-    }
-
-    // ✅ Use API Service to initiate call (matches Doctor implementation)
-    // This ensures backend sets up the call properly and sends caller info
-    Map<String, dynamic> result;
-    try {
-      result = await ApiService.initiateCall(
-        chatId: widget.chatId,
-        receiverId: _otherUserId!,
-        isVideo: isVideo,
-      );
-
-      if (result['success'] != true) {
-        final message = result['message'] as String? ?? '';
-        final errorCode = result['code'] as String?;
-
-        if (mounted) {
-          // Enhanced error handling for doctor unavailable
-          if (errorCode == 'DOCTOR_UNAVAILABLE' ||
-              message.toLowerCase().contains('not available')) {
-            _showDoctorUnavailableDialog(isVideo);
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  AppLocalizations.of(context)!.failedToStartCall(message),
-                ),
-              ),
-            );
-          }
-        }
-        return;
-      }
-    } catch (e) {
-      debugPrint('❌ Call initiation error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.failedToStartCall(e.toString()),
-            ),
-          ),
-        );
-      }
-      return;
-    }
-
-    // Call triggered successfully via API, navigation handles locally
-    debugPrint('📞 Call initiated via API successfully');
-
-    final String stableChatId =
-        result['data']?['chatId']?.toString() ?? widget.chatId;
-
-    if (mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => isVideo
-              ? VideoCallScreen(
-                  chatId: stableChatId,
-                  userName: widget.doctorName,
-                  userAvatar: _actualDoctorAvatar ?? widget.doctorAvatar,
-                  otherUserId: _otherUserId!,
-                  isInitiator: true,
-                )
-              : AudioCallScreen(
-                  chatId: stableChatId,
-                  userName: widget.doctorName,
-                  userAvatar: _actualDoctorAvatar ?? widget.doctorAvatar,
-                  otherUserId: _otherUserId!,
-                  isInitiator: true,
-                ),
-        ),
-      );
-    }
-  }
-
-  /// Show doctor unavailable dialog
-  void _showDoctorUnavailableDialog(bool isVideo) {
-    final l10n = AppLocalizations.of(context)!;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: Row(
-          children: [
-            Icon(Icons.phone_missed, color: Colors.red, size: 24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Doctor Unavailable',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1B2C49),
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.doctorUnavailableForCallsDescription(
-                isVideo ? 'video' : 'audio',
-              ),
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 12),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('OK', style: const TextStyle(color: Color(0xFF1664CD))),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Text(
-              'Send Message',
-              style: const TextStyle(color: Color(0xFF1664CD)),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -739,6 +579,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   )
                 : ListView.separated(
                     controller: _scrollController,
+                    reverse: true, // ✅ IMPORTANT: Newest at bottom
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 8,
@@ -746,23 +587,24 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     itemCount: _messages.length,
                     separatorBuilder: (context, index) {
                       final currentMsgDate = _messages[index]['createdAt'];
-                      final nextMsgDate = (index + 1 < _messages.length)
+                      final previousMsgDate = (index + 1 < _messages.length)
                           ? _messages[index + 1]['createdAt']
                           : null;
 
-                      if (nextMsgDate != null &&
-                          !_isSameDay(currentMsgDate, nextMsgDate)) {
-                        return ChatDateSeparator(timestamp: nextMsgDate);
+                      // For reverse: true, we check if the message "above" (next index) is a different day
+                      if (previousMsgDate != null &&
+                          !_isSameDay(currentMsgDate, previousMsgDate)) {
+                        return ChatDateSeparator(timestamp: currentMsgDate);
                       }
                       return const SizedBox.shrink();
                     },
                     itemBuilder: (context, index) {
-                      // Show initial date separator for the first message
-                      if (index == 0) {
+                      // For the very last message in the list (oldest), show date separator
+                      if (index == _messages.length - 1) {
                         return Column(
                           children: [
                             ChatDateSeparator(
-                              timestamp: _messages[0]['createdAt'],
+                              timestamp: _messages[index]['createdAt'],
                             ),
                             _buildMessageItem(_messages[index]),
                           ],

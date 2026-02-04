@@ -33,7 +33,7 @@ class UserProvider with ChangeNotifier {
         debugPrint('✅ Profile image: ${_user?.profileImage}');
         debugPrint('✅ Specialty: ${_user?.specialty}');
         debugPrint('✅ Bio: ${_user?.bio}');
-        print('✅ Video Call Available: ${_user?.isVideoCallAvailable}');
+        debugPrint('✅ Video Call Available: ${_user?.isVideoCallAvailable}');
         debugPrint(
           '✅ Location: lat=${_user?.latitude}, lng=${_user?.longitude}',
         );
@@ -42,7 +42,7 @@ class UserProvider with ChangeNotifier {
         return true;
       } else {
         _error = response['message'] ?? 'Failed to fetch profile';
-        print('❌ Profile fetch failed: $_error');
+        debugPrint('❌ Profile fetch failed: $_error');
         _isLoading = false;
         notifyListeners();
         return false;
@@ -157,7 +157,8 @@ class UserProvider with ChangeNotifier {
       debugPrint('   - specialty: $specialty');
       debugPrint('   - latitude: $latitude');
       debugPrint('   - longitude: $longitude');
-      debugPrint('   - isVideoCallAvailable: $isVideoCallAvailable'); // ✅ NEW
+      debugPrint('✅ Adding isVideoCallAvailable: $isVideoCallAvailable');
+      // ✅ NEW
       debugPrint('   - profileImage: ${profileImage != null ? "Yes" : "No"}');
 
       // ✅ ENSURE PERSISTENCE for doctors: include current doctor-specific fields if not provided
@@ -233,7 +234,7 @@ class UserProvider with ChangeNotifier {
         debugPrint(
           '   - Location: lat=${_user?.latitude}, lng=${_user?.longitude}',
         );
-        print('   - Video Call: ${_user?.isVideoCallAvailable}'); // ✅ NEW
+        debugPrint('   - Video Call: ${_user?.isVideoCallAvailable}'); // ✅ NEW
         debugPrint('   - New avatar: ${_user?.profileImage}');
         _isLoading = false;
         notifyListeners();

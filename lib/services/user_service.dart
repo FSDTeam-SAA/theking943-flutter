@@ -41,16 +41,36 @@ class UserService {
       final Map<String, dynamic> body = {};
 
       // Basic fields
-      if (fullName != null) body['fullName'] = fullName;
-      if (username != null) body['username'] = username;
-      if (phone != null) body['phone'] = phone;
-      if (bio != null) body['bio'] = bio;
-      if (gender != null) body['gender'] = gender;
-      if (dob != null) body['dob'] = dob;
-      if (address != null) body['address'] = address;
-      if (country != null) body['country'] = country;
-      if (language != null) body['language'] = language;
-      if (experienceYears != null) body['experienceYears'] = experienceYears;
+      if (fullName != null) {
+        body['fullName'] = fullName;
+      }
+      if (username != null) {
+        body['username'] = username;
+      }
+      if (phone != null) {
+        body['phone'] = phone;
+      }
+      if (bio != null) {
+        body['bio'] = bio;
+      }
+      if (gender != null) {
+        body['gender'] = gender;
+      }
+      if (dob != null) {
+        body['dob'] = dob;
+      }
+      if (address != null) {
+        body['address'] = address;
+      }
+      if (country != null) {
+        body['country'] = country;
+      }
+      if (language != null) {
+        body['language'] = language;
+      }
+      if (experienceYears != null) {
+        body['experienceYears'] = experienceYears;
+      }
 
       // Doctor fields
       if (specialty != null) body['specialty'] = specialty;
@@ -58,14 +78,16 @@ class UserService {
       if (degrees != null) body['degrees'] = degrees;
       if (fees != null) body['fees'] = fees;
       if (weeklySchedule != null) body['weeklySchedule'] = weeklySchedule;
-      if (visitingHoursText != null)
+      if (visitingHoursText != null) {
         body['visitingHoursText'] = visitingHoursText;
-      if (medicalLicenseNumber != null)
+      }
+      if (medicalLicenseNumber != null) {
         body['medicalLicenseNumber'] = medicalLicenseNumber;
+      }
 
       if (isVideoCallAvailable != null) {
         body['isVideoCallAvailable'] = isVideoCallAvailable;
-        print('✅ Adding isVideoCallAvailable: $isVideoCallAvailable');
+        debugPrint('✅ Adding isVideoCallAvailable: $isVideoCallAvailable');
       }
 
       // ✅ ADDED: Location fields formatted for Backend

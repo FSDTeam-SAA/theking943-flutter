@@ -90,7 +90,7 @@ class AgoraChatService {
       } else {
         // Fallback or error - using userId as password (original insecure way)
         debugPrint('⚠️ No token found, falling back to insecure login');
-        await ChatClient.getInstance.login(userId, userId);
+        await ChatClient.getInstance.loginWithPassword(userId, userId);
       }
       debugPrint('✅ Agora Chat Login Success: $userId');
     } on ChatError catch (e) {
@@ -223,14 +223,16 @@ class AgoraChatService {
 
   Future<List<ChatMessage>> fetchHistoryMessages({
     required String conversationId,
+    ChatConversationType type = ChatConversationType.Chat,
     String? startMsgId,
     int pageSize = 20,
   }) async {
     try {
       final result = await ChatClient.getInstance.chatManager
-          .fetchHistoryMessages(
-            conversationId: conversationId,
-            startMsgId: startMsgId ?? '',
+          .fetchHistoryMessagesByOption(
+            conversationId,
+            type,
+            cursor: startMsgId ?? '',
             pageSize: pageSize,
           );
       return result.data;

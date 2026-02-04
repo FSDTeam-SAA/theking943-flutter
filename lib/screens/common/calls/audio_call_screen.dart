@@ -248,86 +248,95 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _endCall();
+      },
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(height: 60),
-              CircleAvatar(
-                radius: 80,
-                backgroundImage: widget.userAvatar != null
-                    ? NetworkImage(widget.userAvatar!)
-                    : const AssetImage('assets/images/doctor.png')
-                          as ImageProvider,
-              ),
-              const SizedBox(height: 30),
-              Text(
-                widget.userName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+          child: SafeArea(
+            child: Column(
+              children: [
+                const SizedBox(height: 60),
+                CircleAvatar(
+                  radius: 80,
+                  backgroundImage: widget.userAvatar != null
+                      ? NetworkImage(widget.userAvatar!)
+                      : const AssetImage('assets/images/doctor.png')
+                            as ImageProvider,
                 ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                _callConnected ? _formatDuration(_callDuration) : _callStatus,
-                style: TextStyle(
-                  color: _callConnected ? Colors.greenAccent : Colors.white70,
-                  fontSize: 18,
-                ),
-              ),
-              const Spacer(),
-
-              // Controls
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildControlButton(
-                      icon: _isMuted ? Icons.mic_off : Icons.mic,
-                      label: _isMuted ? 'Unmute' : 'Mute',
-                      onPressed: _toggleMute,
-                      backgroundColor: _isMuted
-                          ? Colors.red
-                          : Colors.white.withOpacity(0.3),
-                    ),
-                    _buildControlButton(
-                      icon: _isSpeakerOn ? Icons.volume_up : Icons.volume_down,
-                      label: 'Speaker',
-                      onPressed: _toggleSpeaker,
-                      backgroundColor: _isSpeakerOn
-                          ? Colors.blue
-                          : Colors.white.withOpacity(0.3),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 40),
-              IconButton(
-                iconSize: 60,
-                icon: Container(
-                  padding: const EdgeInsets.all(15),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.red,
+                const SizedBox(height: 30),
+                Text(
+                  widget.userName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
                   ),
-                  child: const Icon(Icons.call_end, color: Colors.white),
                 ),
-                onPressed: _endCall,
-              ),
-              const SizedBox(height: 60),
-            ],
+                const SizedBox(height: 10),
+                Text(
+                  _callConnected ? _formatDuration(_callDuration) : _callStatus,
+                  style: TextStyle(
+                    color: _callConnected ? Colors.greenAccent : Colors.white70,
+                    fontSize: 18,
+                  ),
+                ),
+                const Spacer(),
+
+                // Controls
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildControlButton(
+                        icon: _isMuted ? Icons.mic_off : Icons.mic,
+                        label: _isMuted ? 'Unmute' : 'Mute',
+                        onPressed: _toggleMute,
+                        backgroundColor: _isMuted
+                            ? Colors.red
+                            : Colors.white.withValues(alpha: 0.3),
+                      ),
+                      _buildControlButton(
+                        icon: _isSpeakerOn
+                            ? Icons.volume_up
+                            : Icons.volume_down,
+                        label: 'Speaker',
+                        onPressed: _toggleSpeaker,
+                        backgroundColor: _isSpeakerOn
+                            ? Colors.blue
+                            : Colors.white.withValues(alpha: 0.3),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+                IconButton(
+                  iconSize: 60,
+                  icon: Container(
+                    padding: const EdgeInsets.all(15),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.red,
+                    ),
+                    child: const Icon(Icons.call_end, color: Colors.white),
+                  ),
+                  onPressed: _endCall,
+                ),
+                const SizedBox(height: 60),
+              ],
+            ),
           ),
         ),
       ),

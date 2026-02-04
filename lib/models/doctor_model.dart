@@ -1,5 +1,4 @@
-// models/doctor_model.dart
-// ✅ COMPLETE & FIXED - Location + Video Call + All Fields
+import 'package:flutter/foundation.dart';
 
 class Doctor {
   final String id;
@@ -116,7 +115,7 @@ class Doctor {
     // ❌ REMOVED FALLBACK: Do not generate random locations.
     // Only show doctors with valid real locations.
     if (lat == null || lng == null) {
-      print(
+      debugPrint(
         '⚠️ ${json['fullName']}: No valid location found. Skipping map coordinates.',
       );
     }

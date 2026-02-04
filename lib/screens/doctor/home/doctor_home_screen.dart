@@ -23,7 +23,7 @@ class DoctorHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
-  bool _isSearching = false;
+  final bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -40,7 +40,8 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
   String _currentSearchQuery = '';
 
   // For suggestion selection tracking
-  int _selectedSuggestionIndex = -1;
+  // For suggestion selection tracking
+  // int _selectedSuggestionIndex = -1; // Unused
 
   @override
   void initState() {
@@ -83,7 +84,9 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
         _searchSuggestions.clear();
         _searchResults.clear();
         _currentSearchQuery = '';
-        _selectedSuggestionIndex = -1;
+        _searchResults.clear();
+        _currentSearchQuery = '';
+        // _selectedSuggestionIndex = -1;
       });
       return;
     }
@@ -103,7 +106,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
     setState(() {
       _isSearchLoading = true;
       _currentSearchQuery = query;
-      _selectedSuggestionIndex = -1;
+      // _selectedSuggestionIndex = -1;
     });
 
     try {
@@ -117,7 +120,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
       if (result['success'] == true) {
         final posts = result['data']?['posts'] ?? [];
         final suggestions = result['data']?['suggestions'] ?? [];
-        final meta = result['data']?['meta'] ?? {};
+        // final meta = result['data']?['meta'] ?? {}; // Unused
 
         setState(() {
           _searchResults = posts
@@ -175,30 +178,28 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
       _errorMessage = l10n.sessionExpiredMessageDoc;
     });
 
-    Future.delayed(Duration.zero, () {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          title: Text(l10n.sessionExpiredTitle),
-          content: Text(l10n.sessionExpiredMessageDoc),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        const SignInScreen(userType: 'doctor'),
-                  ),
-                  (route) => false,
-                );
-              },
-              child: Text(l10n.ok),
-            ),
-          ],
-        ),
-      );
-    });
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.sessionExpiredTitle),
+        content: Text(l10n.sessionExpiredMessageDoc),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(
+                  builder: (context) => const SignInScreen(userType: 'doctor'),
+                ),
+                (route) => false,
+              );
+            },
+            child: Text(l10n.ok),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadUserData() async {
@@ -315,6 +316,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
       context,
       MaterialPageRoute(builder: (context) => const DoctorProfileScreen()),
     ).then((_) {
+      if (!mounted) return;
       legacy_provider.Provider.of<UserProvider>(
         context,
         listen: false,
@@ -394,7 +396,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          const Color(0xFF1664CD).withOpacity(0.1),
+                          const Color(0xFF1664CD).withValues(alpha: 0.1),
                           Colors.white,
                         ],
                         begin: Alignment.topCenter,
@@ -499,7 +501,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                             decoration: BoxDecoration(
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.08),
+                                  color: Colors.black.withValues(alpha: 0.08),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -554,7 +556,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(25),
                                   borderSide: BorderSide(
-                                    color: Colors.grey.withOpacity(0.2),
+                                    color: Colors.grey.withValues(alpha: 0.2),
                                     width: 1,
                                   ),
                                 ),
@@ -592,7 +594,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
+                        color: Colors.black.withValues(alpha: 0.08),
                         blurRadius: 15,
                         offset: const Offset(0, 4),
                       ),
@@ -649,26 +651,26 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                               iconColor = const Color(0xFF1664CD);
                               bgColor = const Color(
                                 0xFF1664CD,
-                              ).withOpacity(0.1);
+                              ).withValues(alpha: 0.1);
                               break;
                             case 'category':
                               icon = Icons.medical_services;
                               iconColor = const Color(0xFFFF9800);
                               bgColor = const Color(
                                 0xFFFF9800,
-                              ).withOpacity(0.1);
+                              ).withValues(alpha: 0.1);
                               break;
                             case 'post':
                               icon = Icons.article;
                               iconColor = const Color(0xFF4CAF50);
                               bgColor = const Color(
                                 0xFF4CAF50,
-                              ).withOpacity(0.1);
+                              ).withValues(alpha: 0.1);
                               break;
                             default:
                               icon = Icons.search;
                               iconColor = Colors.grey;
-                              bgColor = Colors.grey.withOpacity(0.1);
+                              bgColor = Colors.grey.withValues(alpha: 0.1);
                           }
 
                           return InkWell(
@@ -775,7 +777,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1664CD).withOpacity(0.1),
+                  color: const Color(0xFF1664CD).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -812,7 +814,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -1175,7 +1177,7 @@ class DoctorInfoBottomSheet extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1664CD).withOpacity(0.1),
+                  color: const Color(0xFF1664CD).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -1219,7 +1221,7 @@ class DoctorInfoBottomSheet extends StatelessWidget {
                       color: const Color(0xFFE8F1FF),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: const Color(0xFF1664CD).withOpacity(0.2),
+                        color: const Color(0xFF1664CD).withValues(alpha: 0.2),
                       ),
                     ),
                     child: Text(

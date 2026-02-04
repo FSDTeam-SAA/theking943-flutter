@@ -116,6 +116,7 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
         );
       },
     );
+    if (!mounted) return;
 
     final startTime = await _selectTime(context);
     if (startTime == null) return;
@@ -146,6 +147,7 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
         );
       },
     );
+    if (!mounted) return;
 
     final endTime = await _selectTime(context, initialTime: startTime);
     if (endTime == null) return;
@@ -327,7 +329,7 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
 
       return "${hour.toString().padLeft(2, '0')}:$minute";
     } catch (e) {
-      print('Error converting to 24h: $time12 - $e');
+      debugPrint('Error converting to 24h: $time12 - $e');
       return "00:00";
     }
   }

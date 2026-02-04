@@ -114,20 +114,26 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
               }).toList();
 
               if (filteredAppointments.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('No appointments found in this date range'),
-                  ),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('No appointments found in this date range'),
+                    ),
+                  );
+                }
                 return;
               }
 
               // ✅ 3. Export
               String doctorName = 'Doctor';
               try {
-                doctorName =
-                    context.read<UserProvider>().user?.fullName ?? 'Doctor';
-              } catch (e) {}
+                if (mounted) {
+                  doctorName =
+                      context.read<UserProvider>().user?.fullName ?? 'Doctor';
+                }
+              } catch (e) {
+                debugPrint('⚠️ Error getting doctor name for export: $e');
+              }
 
               await PdfService.generateAppointmentListPdf(
                 filteredAppointments,
@@ -303,7 +309,10 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+          ),
         ],
       ),
       child: Column(
@@ -426,7 +435,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                 color: const Color(0xFFF0F7FF),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: const Color(0xFF1664CD).withOpacity(0.3),
+                  color: const Color(0xFF1664CD).withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -490,7 +499,10 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+          ),
         ],
       ),
       child: Column(
@@ -597,7 +609,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                 color: const Color(0xFFF0F7FF),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: const Color(0xFF1664CD).withOpacity(0.3),
+                  color: const Color(0xFF1664CD).withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -660,7 +672,10 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+          ),
         ],
       ),
       child: Row(
@@ -934,7 +949,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                                       border: Border.all(
                                         color: const Color(
                                           0xFF1664CD,
-                                        ).withOpacity(0.2),
+                                        ).withValues(alpha: 0.2),
                                       ),
                                     ),
                                     child: Row(
@@ -1000,7 +1015,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                                   border: Border.all(
                                     color: const Color(
                                       0xFF1664CD,
-                                    ).withOpacity(0.2),
+                                    ).withValues(alpha: 0.2),
                                   ),
                                 ),
                                 child: Row(
@@ -1158,28 +1173,32 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
 
         // For now, show URL in a dialog
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Document URL'),
-            content: SelectableText(cleanUrl),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
-            ],
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Document URL'),
+              content: SelectableText(cleanUrl),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading if still open
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.errorOpeningDoc(e.toString())),
+            backgroundColor: Colors.red,
           ),
         );
       }
-    } catch (e) {
-      Navigator.pop(context); // Close loading if still open
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.errorOpeningDoc(e.toString())),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
 
@@ -1331,7 +1350,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
         builder: (context) => SessionHolderScreen(appointment: appointment),
       ),
     ).then((result) {
-      if (result == true) {
+      if (result == true && mounted) {
         context.read<AppointmentProvider>().fetchAppointments();
       }
     });

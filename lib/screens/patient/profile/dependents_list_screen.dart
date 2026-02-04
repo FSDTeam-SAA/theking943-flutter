@@ -166,7 +166,7 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -183,7 +183,7 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0D53C1).withOpacity(0.1),
+                    color: const Color(0xFF0D53C1).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -385,7 +385,9 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
 
   void _navigateToAdd() {
     Navigator.pushNamed(context, '/add-dependent').then((_) {
-      context.read<DependentProvider>().fetchDependents();
+      if (mounted) {
+        context.read<DependentProvider>().fetchDependents();
+      }
     });
   }
 
@@ -393,7 +395,9 @@ class _DependentsListScreenState extends State<DependentsListScreen> {
     Navigator.pushNamed(context, '/edit-dependent', arguments: dependent).then((
       _,
     ) {
-      context.read<DependentProvider>().fetchDependents();
+      if (mounted) {
+        context.read<DependentProvider>().fetchDependents();
+      }
     });
   }
 
