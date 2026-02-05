@@ -11,7 +11,6 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onDeleteSelected;
   final VoidCallback onBack;
   final List<Widget>? actions;
-  final bool isOnline;
 
   const ChatAppBar({
     super.key,
@@ -24,7 +23,6 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onDeleteSelected,
     required this.onBack,
     this.actions,
-    this.isOnline = false,
   });
 
   @override
@@ -48,36 +46,21 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
             )
           : Row(
               children: [
-                Stack(
-                  children: [
-                    ClipOval(
-                      child: CustomImage(
-                        imageUrl: userAvatar,
-                        width: 40,
-                        height: 40,
-                        fit: BoxFit.cover,
-                        placeholderAsset: placeholderAsset,
-                      ),
-                    ),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                      ),
-                    ),
-                  ],
+                ClipOval(
+                  child: CustomImage(
+                    imageUrl: userAvatar,
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.cover,
+                    placeholderAsset: placeholderAsset,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment:
+                        MainAxisAlignment.center, // ✅ Center title
                     children: [
                       Text(
                         userName ?? 'User',
@@ -88,27 +71,6 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                      ),
-                      Row(
-                        children: [
-                          Container(
-                            width: 7,
-                            height: 7,
-                            decoration: BoxDecoration(
-                              color: isOnline ? Colors.green : Colors.grey,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            isOnline ? 'Online' : 'Offline',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: isOnline ? Colors.green : Colors.grey,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),
