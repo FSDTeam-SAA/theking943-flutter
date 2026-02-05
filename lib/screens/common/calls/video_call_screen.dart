@@ -275,6 +275,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           callType: 'video',
           status: status,
           duration: _isCallConnected ? _callDuration : '',
+          backendChatId: widget.chatId, // ✅ Trigger notification
         );
       }
     } catch (e) {

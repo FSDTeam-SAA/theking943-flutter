@@ -58,6 +58,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
               conversationId: widget.callerId,
               callType: widget.isVideoCall ? 'video' : 'audio',
               status: 'missed',
+              backendChatId: widget.chatId, // ✅ Trigger notification
             );
           } catch (e) {
             debugPrint('⚠️ Failed to log missed call: $e');
@@ -165,6 +166,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
           conversationId: widget.callerId,
           callType: widget.isVideoCall ? 'video' : 'audio',
           status: 'declined',
+          backendChatId: widget.chatId, // ✅ Trigger notification
         );
       } catch (e) {
         debugPrint('⚠️ Failed to log declined call: $e');

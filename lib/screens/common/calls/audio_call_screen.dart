@@ -200,6 +200,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
           callType: 'audio',
           status: status,
           duration: _callConnected ? _formatDuration(_callDuration) : '',
+          backendChatId: widget.chatId, // ✅ Trigger notification
         );
       }
     } catch (e) {

@@ -31,14 +31,43 @@ class _DoctorMessagesListScreenState extends State<DoctorMessagesListScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadCurrentUserId();
-    _loadChats();
-    _setupAgoraListener(); // ✅ Listen to Agora messages
 
-    if (widget.initialDoctorId != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+    // ✅ Use post-frame callback to ensure safe async initialization
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeScreen();
+    });
+  }
+
+  Future<void> _initializeScreen() async {
+    await _loadCurrentUserId();
+    if (currentUserId != null) {
+      await _ensureAgoraConnection(); // ✅ Await connection before loading
+      _setupAgoraListener();
+      _loadChats();
+
+      if (widget.initialDoctorId != null) {
         _createChatWithDoctor(widget.initialDoctorId!);
-      });
+      }
+    } else {
+      setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> _ensureAgoraConnection() async {
+    // 1. Initialize if needed
+    if (!AgoraChatService.instance.isConnected) {
+      await AgoraChatService.instance.init();
+    }
+
+    // 2. Login Check
+    try {
+      final isLoggedIn = await ChatClient.getInstance.isLoginBefore();
+      if (!isLoggedIn && currentUserId != null) {
+        debugPrint('🔄 DoctorListScreen: Logging in $currentUserId...');
+        await AgoraChatService.instance.login(currentUserId!);
+      }
+    } catch (e) {
+      debugPrint('❌ DoctorListScreen: Agora Auth Check Failed: $e');
     }
   }
 
@@ -264,25 +293,6 @@ class _DoctorMessagesListScreenState extends State<DoctorMessagesListScreen>
       }
     } catch (e) {
       debugPrint('Error loading user ID: $e');
-    }
-  }
-
-  Future<void> _ensureAgoraConnection() async {
-    // 1. Initialize
-    if (!AgoraChatService.instance.isConnected) {
-      await AgoraChatService.instance.init();
-    }
-    // 2. Login Check
-    try {
-      final isLoggedIn = await ChatClient.getInstance.isLoginBefore();
-      if (!isLoggedIn && currentUserId != null) {
-        debugPrint(
-          '🔄 DoctorList: Not logged in. logging in $currentUserId...',
-        );
-        await AgoraChatService.instance.login(currentUserId!);
-      }
-    } catch (e) {
-      debugPrint('❌ DoctorList: Agora Auth Check Failed: $e');
     }
   }
 

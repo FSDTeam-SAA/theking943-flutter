@@ -136,6 +136,7 @@ class AgoraChatService {
   Future<ChatMessage?> sendMessage({
     required String conversationId,
     required String content,
+    String? backendChatId, // ✅ Added for backend sync (notifications)
     ChatType type = ChatType.Chat,
     List<File>? files,
     Map<String, dynamic>? attributes, // ✅ Added attributes support
@@ -143,6 +144,7 @@ class AgoraChatService {
     try {
       ChatMessage? lastMessage;
 
+      // 1. Send via Agora SDK (Real-time & Data)
       if (files != null && files.isNotEmpty) {
         for (var file in files) {
           final message = ChatMessage.createImageSendMessage(
@@ -158,9 +160,10 @@ class AgoraChatService {
           ChatClient.getInstance.chatManager.addMessageEvent(
             "SEND_HANDLER_${DateTime.now().millisecondsSinceEpoch}",
             ChatMessageEvent(
-              onSuccess: (msgId, msg) => debugPrint("✅ File sent: $msgId"),
+              onSuccess: (msgId, msg) =>
+                  debugPrint("✅ File sent via Agora: $msgId"),
               onError: (msgId, msg, err) =>
-                  debugPrint("❌ File send failed: ${err.description}"),
+                  debugPrint("❌ File send failed (Agora): ${err.description}"),
             ),
           );
 
@@ -193,14 +196,60 @@ class AgoraChatService {
         ChatClient.getInstance.chatManager.addMessageEvent(
           "SEND_HANDLER_${DateTime.now().millisecondsSinceEpoch}",
           ChatMessageEvent(
-            onSuccess: (msgId, msg) => debugPrint("✅ Message sent: $msgId"),
+            onSuccess: (msgId, msg) =>
+                debugPrint("✅ Message sent via Agora: $msgId"),
             onError: (msgId, msg, err) =>
-                debugPrint("❌ Message send failed: ${err.description}"),
+                debugPrint("❌ Message send failed (Agora): ${err.description}"),
           ),
         );
 
         await ChatClient.getInstance.chatManager.sendMessage(message);
         lastMessage = message;
+      }
+
+      // 2. Sync with Backend to trigger Notification (Fire & Forget)
+      if (backendChatId != null) {
+        debugPrint('🔔 Syncing message to backend for notification...');
+
+        String notifContent = content;
+        String notifType = 'text';
+
+        if (files != null && files.isNotEmpty) {
+          // Determine type from first file extension or specific logic
+          // Ideally should match the actual file type sent
+          final path = files.first.path.toLowerCase();
+          if (path.endsWith('.jpg') ||
+              path.endsWith('.png') ||
+              path.endsWith('.jpeg')) {
+            notifType = 'image';
+            notifContent = content.isNotEmpty ? content : '[Image]';
+          } else if (path.endsWith('.mp4') || path.endsWith('.mov')) {
+            notifType = 'video';
+            notifContent = content.isNotEmpty ? content : '[Video]';
+          } else {
+            notifType = 'file';
+            notifContent = content.isNotEmpty ? content : '[File]';
+          }
+        }
+
+        // We do NOT await this to avoid blocking UI (Fire and Forget)
+        // But we catch errors to ensure app stability
+        ApiService.sendMessage(
+              chatId: backendChatId,
+              content: notifContent,
+              contentType: notifType,
+              // We do NOT pass 'files' here to avoid double-upload. Backend creates a "ghost" message for notification.
+            )
+            .then((res) {
+              if (res['success'] == true) {
+                debugPrint('✅ Backend notified successfully');
+              } else {
+                debugPrint('⚠️ Backend notification failed: ${res['message']}');
+              }
+            })
+            .catchError((e) {
+              debugPrint('❌ Backend notification error: $e');
+            });
       }
 
       return lastMessage;
@@ -277,6 +326,7 @@ class AgoraChatService {
     required String callType, // 'audio' or 'video'
     required String status, // 'missed', 'declined', 'ended', 'cancelled'
     String duration = '',
+    String? backendChatId, // ✅ Added for notification sync
   }) async {
     final attributes = {
       'type': 'call_log',
@@ -308,6 +358,7 @@ class AgoraChatService {
       conversationId: conversationId,
       content: content,
       attributes: attributes,
+      backendChatId: backendChatId, // ✅ Trigger notification
     );
   }
 

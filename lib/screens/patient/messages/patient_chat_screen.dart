@@ -51,6 +51,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   String? _actualDoctorName;
   bool _isOtherUserOnline = false; // ✅ Track online status
   bool _isOtherUserTyping = false;
+  StreamSubscription? _socketSubscription; // ✅ Listen to socket connection
   Timer? _myTypingTimer;
   Timer? _otherUserTypingTimer; // To auto-hide if they don't stop properly
 
@@ -76,30 +77,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
       // ✅ Join chat room for online status check
       if (_currentUserId != null) {
-        SocketService.instance.emit('chat:join', {
-          'chatId': widget.chatId,
-          'userId': _currentUserId,
-        });
-
-        // Listen for other user status
-        SocketService.instance.on('user:online', (data) {
-          if (!mounted) return;
-          final userId = data['userId'];
-          // Or if 'count' is sent for initial status
-          if (data['count'] != null && data['count'] > 1) {
-            setState(() => _isOtherUserOnline = true);
-          } else if (userId != null && userId != _currentUserId) {
-            setState(() => _isOtherUserOnline = true);
-          }
-        });
-
-        SocketService.instance.on('user:offline', (data) {
-          if (!mounted) return;
-          final userId = data['userId'];
-          if (userId != null && userId != _currentUserId) {
-            setState(() => _isOtherUserOnline = false);
-          }
-        });
+        _setupSocketPresence();
       }
     });
 
@@ -112,6 +90,48 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         final currentScroll = _scrollController.position.pixels;
         _isAutoScrollEnabled = (maxScroll - currentScroll) < 100;
       }
+    });
+  }
+
+  // ✅ Robust Socket Presence Setup
+  void _setupSocketPresence() {
+    _joinChatRoom();
+
+    // Re-join on reconnect
+    _socketSubscription = SocketService.instance.connectionStream.listen((
+      connected,
+    ) {
+      if (connected && mounted && _currentUserId != null) {
+        debugPrint('🔄 Socket reconnected, re-joining chat...');
+        _joinChatRoom();
+      }
+    });
+
+    SocketService.instance.on('user:online', (data) {
+      if (!mounted) return;
+      final userId = data['userId'];
+      // Handle count update or single user update
+      if (data['count'] != null && data['count'] > 1) {
+        setState(() => _isOtherUserOnline = true);
+      } else if (userId != null && userId != _currentUserId) {
+        setState(() => _isOtherUserOnline = true);
+      }
+    });
+
+    SocketService.instance.on('user:offline', (data) {
+      if (!mounted) return;
+      final userId = data['userId'];
+      if (userId != null && userId != _currentUserId) {
+        setState(() => _isOtherUserOnline = false);
+      }
+    });
+  }
+
+  void _joinChatRoom() {
+    if (_currentUserId == null) return;
+    SocketService.instance.emit('chat:join', {
+      'chatId': widget.chatId,
+      'userId': _currentUserId,
     });
   }
 
@@ -517,6 +537,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         conversationId: widget.doctorId!,
         content: content,
         files: _selectedFiles.isNotEmpty ? _selectedFiles : null,
+        backendChatId: widget.chatId, // ✅ Trigger backend notification
       );
 
       debugPrint(
@@ -768,6 +789,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
     SocketService.instance.off('user:online');
     SocketService.instance.off('user:offline');
+    _socketSubscription?.cancel(); // ✅ Cancel subscription
 
     // ✅ Clear active chat
     if (NotificationService.currentChatId == widget.chatId) {
