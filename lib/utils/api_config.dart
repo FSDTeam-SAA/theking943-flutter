@@ -7,7 +7,7 @@ class ApiConfig {
   // ═══════════════════════════════════════════════════════════════
 
   /// Production URL (Render) - ALWAYS works
-  //static const String prodUrl = 'https://thekingbackend.onrender.com';
+  // static const String prodUrl = 'https://thekingbackend.onrender.com';
   static const String prodUrl = 'https://api.docmobidz.com';
 
   /// Development URLs
