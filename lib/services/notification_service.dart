@@ -27,7 +27,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       AndroidInitializationSettings('@mipmap/ic_launcher');
 
   const DarwinInitializationSettings initializationSettingsIOS =
-      DarwinInitializationSettings();
+      DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
 
   const InitializationSettings initializationSettings = InitializationSettings(
     android: initializationSettingsAndroid,
@@ -35,51 +39,58 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   );
 
   await localNotifications.initialize(initializationSettings);
+  debugPrint('✅ [BACKGROUND] Local notifications initialized');
 
   // 2. Extract Data
   final data = message.data;
   final String? title = message.notification?.title;
   final String? body = message.notification?.body;
   
-  // If notification payload exists, system handles it automatically.
-  // BUT if it's a data-only message OR we want to force display:
-  if (message.notification == null || (data['type'] == 'chat' || data['chatId'] != null)) {
-      debugPrint('🌙 [BACKGROUND] Creating local notification for chat message... (Force Display)');
-      debugPrint('   - Full Data: $data');
-      
-      // Prevent duplicate if user is actually in the chat (unlikely in background, strictly for terminated)
-      // but we can't easily check UI state here.
+  // CRITICAL: Always show notification in background/terminated state
+  // This ensures messages appear even when app is fully closed
+  debugPrint('🌙 [BACKGROUND] Creating local notification...');
+  debugPrint('   - Type: ${data['type']}');
+  debugPrint('   - ChatId: ${data['chatId']}');
+  
+  final String notificationTitle = title ?? data['userName'] ?? 'New Message';
+  final String notificationBody = body ?? 
+      (data['type'] == 'image' ? '[Image]' : 
+       data['content'] ?? data['body'] ?? 'You have a new message');
+  
+  const AndroidNotificationDetails androidDetails =
+    AndroidNotificationDetails(
+      'docmobi_chat_notifications_v3', 
+      'Chat Notifications',
+      channelDescription: 'Real-time message notifications',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: true,
+      playSound: true,
+      enableVibration: true,
+    );
 
-      final String notificationTitle = title ?? data['userName'] ?? 'New Message';
-      final String notificationBody = body ?? (data['type'] == 'image' ? '[Image]' : data['content'] ?? data['body'] ?? 'You have a new message');
-      
-      const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-          'docmobi_chat_notifications_v3', 
-          'Chat Notifications',
-          channelDescription: 'Real-time message notifications',
-          importance: Importance.max,
-          priority: Priority.high,
-        );
+  const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+    presentAlert: true,
+    presentBadge: true,
+    presentSound: true,
+  );
 
-      const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-      );
+  const NotificationDetails details = NotificationDetails(
+    android: androidDetails,
+    iOS: iosDetails,
+  );
 
-      const NotificationDetails details = NotificationDetails(
-        android: androidDetails,
-        iOS: iosDetails,
-      );
-
-      await localNotifications.show(
-        DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        notificationTitle,
-        notificationBody,
-        details,
-        payload: jsonEncode(data),
-      );
+  try {
+    await localNotifications.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      notificationTitle,
+      notificationBody,
+      details,
+      payload: jsonEncode(data),
+    );
+    debugPrint('✅ [BACKGROUND] Local notification displayed successfully');
+  } catch (e) {
+    debugPrint('❌ [BACKGROUND] Failed to show notification: $e');
   }
 }
 
@@ -92,18 +103,30 @@ class NotificationService {
 
   /// Initialize Firebase and Local Notifications
   static Future<void> init() async {
-    // 0. Register Background Handler
+    debugPrint('🔔 [NOTIFICATION SERVICE] Starting initialization...');
+    
+    // 0. Register Background Handler FIRST (before any Firebase operations)
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    debugPrint('✅ Background message handler registered');
 
     // 1. Request Permissions (iOS/Android 13+)
-    NotificationSettings settings = await _fcm.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    try {
+      NotificationSettings settings = await _fcm.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      );
 
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      debugPrint('✅ User granted notification permission');
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        debugPrint('✅ User granted notification permission');
+      } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
+        debugPrint('⚠️ User granted provisional notification permission');
+      } else {
+        debugPrint('❌ User denied notification permission');
+      }
+    } catch (e) {
+      debugPrint('❌ Error requesting notification permissions: $e');
     }
 
     // 2. Local Notifications Setup
@@ -133,32 +156,44 @@ class NotificationService {
         }
       },
     );
+    debugPrint('✅ Local notifications initialized');
 
-    // Create Android notification channel explicitly
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'docmobi_chat_notifications_v3',
-      'Chat Notifications',
-      description: 'Real-time message notifications',
-      importance: Importance.max,
-    );
+    // 3. Create Android notification channel explicitly
+    try {
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        'docmobi_chat_notifications_v3',
+        'Chat Notifications',
+        description: 'Real-time message notifications',
+        importance: Importance.max,
+        playSound: true,
+        enableVibration: true,
+        showBadge: true,
+      );
 
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(channel);
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >()
+          ?.createNotificationChannel(channel);
 
-    debugPrint('✅ Android notification channel created');
+      debugPrint('✅ Android notification channel created: ${channel.id}');
+    } catch (e) {
+      debugPrint('❌ Error creating Android notification channel: $e');
+    }
 
-    // ✅ iOS Foreground Notification Presentation
-    await _fcm.setForegroundNotificationPresentationOptions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-    debugPrint('✅ iOS foreground notification options set');
+    // 4. iOS Foreground Notification Presentation
+    try {
+      await _fcm.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      debugPrint('✅ iOS foreground notification options set');
+    } catch (e) {
+      debugPrint('❌ Error setting iOS foreground options: $e');
+    }
 
-    // 3. Foreground Listeners
+    // 5. Foreground Listeners
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('📩 [FOREGROUND] FCM Message received');
       debugPrint('   - Title: ${message.notification?.title}');
@@ -167,7 +202,7 @@ class NotificationService {
       _showLocalNotification(message);
     });
 
-    // 4. Background/Terminated Click Listeners
+    // 6. Background/Terminated Click Listeners
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint('🔔 [BACKGROUND CLICK] App opened from notification');
       debugPrint('   - Title: ${message.notification?.title}');
@@ -175,26 +210,46 @@ class NotificationService {
       handleNotificationClick(message.data); // ✅ Pass the Map directly
     });
 
-    // 5. Get Initial Token
+    // 7. Get Initial Token
     await _saveToken();
 
-    // 6. Token Refresh Listener
+    // 8. Token Refresh Listener
     _fcm.onTokenRefresh.listen((token) => _saveToken(token));
+    
+    debugPrint('✅ [NOTIFICATION SERVICE] Initialization complete');
   }
 
   static Future<void> checkInitialMessage() async {
     try {
+      debugPrint('🔍 Checking initial message (Terminated State Check)...');
+
+      // 1. Check for Local Notification Launch (Primary for background/terminated)
+      final NotificationAppLaunchDetails? notificationAppLaunchDetails =
+          await _localNotifications.getNotificationAppLaunchDetails();
+      
+      if (notificationAppLaunchDetails?.didNotificationLaunchApp ?? false) {
+        final payload = notificationAppLaunchDetails!.notificationResponse?.payload;
+        if (payload != null) {
+          debugPrint('🏁 [TERMINATED CLICK] App launched from LOCAL Notification');
+          debugPrint('   - Payload: $payload');
+          
+          // Execute immediately - pending mechanism handles navigator readiness
+          handleNotificationClick(payload);
+          return; // Stop here if local notification handled it
+        }
+      }
+
+      // 2. Fallback: Check for FCM Initial Message
       RemoteMessage? initialMessage = await _fcm.getInitialMessage();
       if (initialMessage != null) {
-        debugPrint('🏁 [TERMINATED CLICK] App launched from notification');
+        debugPrint('🏁 [TERMINATED CLICK] App launched from FCM Notification');
         debugPrint('   - Title: ${initialMessage.notification?.title}');
         debugPrint('   - Data: ${initialMessage.data}');
-        // Delay slightly to ensure navigation is ready
-        Future.delayed(const Duration(milliseconds: 500), () {
-          handleNotificationClick(initialMessage.data); // ✅ Pass the Map directly
-        });
+        
+        // Execute immediately
+        handleNotificationClick(initialMessage.data);
       } else {
-        debugPrint('ℹ️ No initial message (normal app launch)');
+        debugPrint('ℹ️ No initial message found (Normal Launch)');
       }
     } catch (e) {
       debugPrint('⚠️ Error checking initial message: $e');
@@ -316,8 +371,21 @@ class NotificationService {
   }
 
   /// Handle navigation when notification is clicked
+  static String? pendingPayload; // ✅ Store payload if navigator not ready
+
+  /// Handle navigation when notification is clicked
   static void handleNotificationClick(dynamic payload) async {
     debugPrint('🚀 Handling notification click. Payload type: ${payload.runtimeType}');
+
+    if (navigatorKey?.currentState == null) {
+      debugPrint('⚠️ Navigator not ready. Storing payload as pending.');
+      if (payload is String) {
+        pendingPayload = payload;
+      } else if (payload is Map) {
+        pendingPayload = jsonEncode(payload);
+      }
+      return;
+    }
 
     try {
       Map<String, dynamic> data = {};
@@ -326,13 +394,13 @@ class NotificationService {
         data = payload;
       } else if (payload is String) {
         try {
-          // 1. Try JSON parsing (preferred)
           data = jsonDecode(payload);
         } catch (e) {
-          // 2. Fallback to naive parser for toString() format
           data = _parsePayload(payload);
         }
       }
+
+      debugPrint('📍 Parsing navigation data: $data');
 
       if (data['type'] == 'chat' || data['chatId'] != null) {
         final String? chatId = data['chatId']?.toString();
@@ -340,7 +408,7 @@ class NotificationService {
         final String? otherUserId = data['otherUserId']?.toString();
         final String? userAvatar = data['userAvatar']?.toString();
 
-        if (chatId != null && navigatorKey?.currentContext != null) {
+        if (chatId != null) {
           final prefs = await SharedPreferences.getInstance();
           final userRole = prefs.getString('user_role')?.toLowerCase();
 
@@ -374,6 +442,15 @@ class NotificationService {
       }
     } catch (e) {
       debugPrint('❌ Error handling notification click: $e');
+    }
+  }
+
+  /// ✅ Consume any pending payload once navigator is ready
+  static void consumePendingPayload() {
+    if (pendingPayload != null) {
+      debugPrint('🚀 Consuming pending notification payload...');
+      handleNotificationClick(pendingPayload);
+      pendingPayload = null;
     }
   }
 

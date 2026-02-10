@@ -100,11 +100,17 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         );
 
         // Initialize CallManager after navigation is ready
-        WidgetsBinding.instance.addPostFrameCallback((_) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
           if (_navigatorKey.currentContext != null) {
             NotificationService.navigatorKey = _navigatorKey; // ✅ Added
             CallManager.instance.initialize(_navigatorKey.currentContext!);
-            NotificationService.checkInitialMessage(); // ✅ Check for terminated launch
+            
+            // ✅ Check for launch message and await results
+            await NotificationService.checkInitialMessage(); 
+            
+            // ✅ Consume immediately after check returns
+            NotificationService.consumePendingPayload();
+            
             debugPrint('✅ CallManager & Notification Navigator initialized');
           }
         });

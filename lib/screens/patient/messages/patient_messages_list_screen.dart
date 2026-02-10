@@ -165,6 +165,29 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
                 content = l10n?.messageLabel ?? '[Message]';
               }
 
+              // ✅ FIXED: Get unread count from backend instead of Agora
+              int unreadCount = 0;
+              if (backendChatId != null) {
+                try {
+                  final messagesResult = await ApiService.getChatMessages(
+                    chatId: backendChatId,
+                    page: 1,
+                    limit: 100, // Get recent messages to count unread
+                  );
+                  if (messagesResult['success'] == true) {
+                    final messages = messagesResult['data']['items'] as List;
+                    // Count messages where isRead is false
+                    unreadCount = messages.where((msg) => msg['isRead'] == false).length;
+                  }
+                } catch (e) {
+                  debugPrint('⚠️ Could not fetch unread count for $backendChatId: $e');
+                  // Fallback to Agora count
+                  unreadCount = await conv.unreadCount();
+                }
+              } else {
+                unreadCount = await conv.unreadCount();
+              }
+
               return {
                 '_id': backendChatId ?? conversationId,
                 'actualUserId': conversationId, // For Agora
@@ -175,7 +198,7 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
                     lastMsg.serverTime,
                   ).toIso8601String(),
                 },
-                'unreadCount': await conv.unreadCount(),
+                'unreadCount': unreadCount, // ✅ Now from backend
                 'updatedAt': DateTime.fromMillisecondsSinceEpoch(
                   lastMsg.serverTime,
                 ).toIso8601String(),
@@ -460,46 +483,73 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
           final String actualUserId =
               chat['actualUserId']?.toString() ?? backendId;
 
-                // ✅ Mark as read immediately (optimistic UI update)
-                if (unreadCount > 0) {
-                  setState(() {
-                    chat['unreadCount'] = 0;
-                  });
+          debugPrint('🔵 [PATIENT] Opening chat: $backendId (User: $actualUserId)');
+          debugPrint('   • Current unread count: $unreadCount');
 
-                  // Mark all messages as read in both Agora and backend
-                  try {
-                    // Agora SDK - MUST use UserID
-                    await AgoraChatService.instance.markAllMessagesAsRead(actualUserId);
-                    debugPrint('✅ Marked conversation $actualUserId as read in Agora');
+          // ✅ Mark as read immediately (optimistic UI update)
+          if (unreadCount > 0) {
+            setState(() {
+              chat['unreadCount'] = 0;
+            });
+            debugPrint('   • Optimistically set unread count to 0');
 
-                    // Backend API - MUST use ChatID
-                    await ApiService.markChatAsRead(chatId: backendId);
-                    debugPrint('✅ Marked conversation $backendId as read in backend');
-                  } catch (e) {
-                    debugPrint('⚠️ Failed to mark as read: $e');
-                  }
-                }
+            // Mark all messages as read in both Agora and backend
+            bool agoraSuccess = false;
+            bool backendSuccess = false;
+            
+            try {
+              // Agora SDK - MUST use UserID
+              await AgoraChatService.instance.markAllMessagesAsRead(actualUserId);
+              agoraSuccess = true;
+              debugPrint('✅ Marked conversation $actualUserId as read in Agora');
+            } catch (e) {
+              debugPrint('❌ Failed to mark as read in Agora: $e');
+            }
 
-                // Navigate to chat screen
-                if (!mounted) return;
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ChatDetailScreen(
-                      chatId: backendId,
-                      doctorName: doctorName,
-                      doctorAvatar: doctorAvatar,
-                      doctorId: actualUserId,
-                    ),
-                  ),
-                ).then((_) {
-                  // ✅ Reload chats when returning to update unread counts
-                  if (mounted) _loadChatsQuietly();
-                });
+            try {
+              // Backend API - MUST use ChatID
+              final result = await ApiService.markChatAsRead(chatId: backendId);
+              backendSuccess = result['success'] == true;
+              if (backendSuccess) {
+                debugPrint('✅ Marked conversation $backendId as read in backend');
+              } else {
+                debugPrint('⚠️ Backend mark as read failed: ${result['message']}');
+              }
+            } catch (e) {
+              debugPrint('❌ Failed to mark as read in backend: $e');
+            }
 
-                // ✅ Don't reload chats here - we've already optimistically updated the UI
-                // The real-time listener will handle any new messages that arrive
-              },
+            // Show error feedback if both failed
+            if (!agoraSuccess && !backendSuccess && mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Failed to mark as read'),
+                  duration: Duration(seconds: 2),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+          }
+
+          // Navigate to chat screen
+          if (!mounted) return;
+          debugPrint('   • Navigating to chat screen...');
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ChatDetailScreen(
+                chatId: backendId,
+                doctorName: doctorName,
+                doctorAvatar: doctorAvatar,
+                doctorId: actualUserId,
+              ),
+            ),
+          ).then((_) {
+            debugPrint('   • Returned from chat screen, refreshing list...');
+            // ✅ Reload chats when returning to update unread counts
+            if (mounted) _loadChatsQuietly();
+          });
+        },
         onLongPress: () => _toggleSelection(convId),
         borderRadius: BorderRadius.circular(16),
         child: Container(

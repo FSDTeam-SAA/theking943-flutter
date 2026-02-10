@@ -62,9 +62,21 @@
             </intent-filter>
         </activity>
         
+        
+        <!-- ==================== FCM SERVICE FOR BACKGROUND NOTIFICATIONS ==================== -->
+        <!-- This service handles FCM messages when app is in background or terminated -->
+        <service
+            android:name="com.google.firebase.messaging.FirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        
         <meta-data
             android:name="flutterEmbedding"
             android:value="2"/>
+            
             
     </application>
     
