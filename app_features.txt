@@ -1,0 +1,66 @@
+Docmobi - Final Comprehensive Feature List
+
+1. User Authentication & Account Management
+   - **Secure Login & Registration**: Email/password authentication with role selection (Patient/Doctor).
+   - **Forgot Password Flow**: OTP-based password reset functionality.
+   - **Referral System**: New users can register with a referral code.
+   - **Profile Management**: Update personal details, profile picture, and change password.
+   - **Medical Verification (Doctors)**: Doctors must submit medical license numbers and experience details during registration.
+
+2. Patient Features
+   - **Doctor Discovery**: 
+     - Search doctors by name, specialty, or location.
+     - Apply filters for availability, fees, and experience.
+     - View detailed doctor profiles including biography, degrees, and reviews.
+   - **Appointment Booking**: 
+     - Real-time slot availability checking.
+     - Book, reschedule, or cancel appointments.
+     - View past and upcoming appointment history.
+   - **Dependent Management**:
+     - Add profiles for family members (e.g., children, parents).
+     - Book appointments specifically for dependents.
+   - **Telemedicine & Communication**:
+     - **High-Quality Video Calls**: Integrated Agora RTC for virtual consultations.
+     - **Audio Calls**: Voice-only options for low-bandwidth scenarios.
+     - **Real-time Chat**: Text messaging with doctors, supporting image and file attachments.
+   - **Health Feed (Social)**:
+     - View "Reels" (short health videos) created by doctors.
+     - Like and comment on health posts.
+
+3. Doctor Features
+   - **Professional Dashboard**:
+     - Quick overview of daily appointments and earnings.
+     - Pending appointment request management (Accept/Reject).
+   - **Schedule Management**:
+     - Define visiting hours and availability slots.
+     - Toggle online/offline status.
+   - **Content Creator Tools**:
+     - Create and upload short video "Reels" to build a following.
+     - Post health articles and updates.
+   - **Patient Records**:
+     - View patient history before consultations.
+   - **Earnings Tracker**:
+     - Monitor income from completed consultations.
+
+4. Core & Technical Features
+   - **Geolocation Services**:
+     - Google Maps integration to find clinics and calculate distances.
+     - Address geocoding.
+   - **Notifications System**:
+     - **Push Notifications (FCM)**: Real-time alerts for messages, appointment updates, and reminders.
+     - **Local Notifications**: Robust background handling (even when app is killed) to ensure no missed messages.
+     - **In-App Notification Center**: History of all past alerts.
+   - **Multi-Language Support**:
+     - Fully localized for English, Arabic, and French.
+   - **Media & Files**:
+     - PDF Generation for prescriptions/reports.
+     - Image compression and gallery integration for uploads.
+   - **Help & Support**:
+     - Dedicated screen for user support and FAQs.
+
+5. Technology Stack
+   - **Frontend**: Flutter (Dart) with Material 3 Design
+   - **Backend**: Node.js/Express (implied by API structure)
+   - **Real-time Engine**: Socket.io & Agora SDK
+   - **Database**: MongoDB (implied by `_id` usage)
+   - **Maps**: Google Maps Platform
