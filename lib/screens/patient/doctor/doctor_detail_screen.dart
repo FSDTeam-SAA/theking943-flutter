@@ -102,309 +102,202 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Doctor Header Profile
-                    _buildDoctorProfileHeader(doctor, l10n, hasVideoCall),
-                    
-                    const SizedBox(height: 20),
-                    
-                    // Stats Row
-                    _buildStatsRow(l10n, doctor),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: widget.doctor.image.startsWith('http')
+                          ? Image.network(
+                              widget.doctor.image,
+                              height: 80,
+                              width: 80,
+                              fit: BoxFit.cover,
+                            )
+                          : Image.asset(
+                              widget.doctor.image,
+                              height: 80,
+                              width: 80,
+                              fit: BoxFit.cover,
+                            ),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.doctor.fullName,
+                            style: const TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            widget.doctor.specialty,
+                            style: const TextStyle(fontSize: 18),
+                          ),
+                          const SizedBox(height: 8),
 
-                    const SizedBox(height: 24),
+                          // ✅ Video Call Badge (Cleaner Design)
+                          if (hasVideoCall)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE3F2FD),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: const Color(0xFF2196F3),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.videocam,
+                                    color: Color(0xFF1976D2),
+                                    size: 14,
+                                  ),
+                                  SizedBox(width: 2),
+                                  Text(
+                                    l10n.videoAvailable,
+                                    style: const TextStyle(
+                                      color: Color(0xFF1565C0),
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF3E0),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: const Color(0xFFFFA726),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.location_on,
+                                    color: Color(0xFFF57C00),
+                                    size: 18,
+                                  ),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    l10n.inPersonOnly,
+                                    style: const TextStyle(
+                                      color: Color(0xFFE65100),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
 
-                    // Bio Section
-                    _buildSectionTitle(l10n.bio),
-                    const SizedBox(height: 8),
-                    Text(
-                      doctor.bio ?? "${doctor.fullName} is a senior ${doctor.specialty} with ${doctor.experience} years of experience.",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                        height: 1.5,
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.location_on, size: 16),
+                              Text(" ${widget.doctor.distance}"),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.star,
+                                size: 20,
+                                color: Colors.orange,
+                              ),
+                              Text(
+                                " ${_avgRating.toStringAsFixed(1)} ${l10n.reviewsCount(_totalReviews)}",
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-
-                    const SizedBox(height: 24),
-
-                    // Info Cards (Specialty, Degree, Fees)
-                    _buildInfoCards(l10n, doctor),
-
-                    const SizedBox(height: 24),
-                    
-                    // Visiting Hours
-                    _buildSectionTitle(l10n.visitingHours),
-                    const SizedBox(height: 12),
-                    _buildVisitingHoursCard(l10n, doctor),
-
-                    const SizedBox(height: 30), // Bottom padding for scroll
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 35),
+                      onPressed: () => Navigator.pop(context),
+                    ),
                   ],
                 ),
-              ),
-            ),
-            
-            // Bottom Action Bar
-            _buildBottomActionBar(context, l10n, doctor),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _buildAppBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black87),
-            onPressed: () => Navigator.pop(context),
-          ),
-          const Text(
-            "Doctor Details",
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(width: 48), // Balance for back button
-        ],
-      ),
-    );
-  }
+                const SizedBox(height: 25),
 
-  Widget _buildDoctorProfileHeader(Doctor doctor, AppLocalizations l10n, bool hasVideoCall) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Doctor Image with Shadow
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: doctor.image.startsWith('http')
-                ? Image.network(
-                    doctor.image,
-                    height: 110,
-                    width: 110,
-                    fit: BoxFit.cover,
-                  )
-                : Image.asset(
-                    doctor.image,
-                    height: 110,
-                    width: 110,
-                    fit: BoxFit.cover,
-                  ),
-          ),
-        ),
-        const SizedBox(width: 20),
-        // Doctor Info
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: hasVideoCall 
-                      ? const Color(0xFFE3F2FD) // Light Blue
-                      : const Color(0xFFFFF3E0), // Light Orange
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  hasVideoCall ? l10n.videoAvailable : l10n.inPersonOnly,
-                  style: TextStyle(
-                    color: hasVideoCall ? const Color(0xFF1565C0) : const Color(0xFFE65100),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 11,
+                // Bio
+                Text(
+                  l10n.bio,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                doctor.fullName,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                  height: 1.2,
+                const SizedBox(height: 8),
+                Text(
+                  widget.doctor.bio ??
+                      "${widget.doctor.fullName} is a senior ${widget.doctor.specialty} with ${widget.doctor.experience} years of experience.",
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                doctor.specialty,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[600],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.location_on, size: 14, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      doctor.distance,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+
+                const SizedBox(height: 30),
+
+                // Specialty & Degree
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.specialty,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildBulletItem(widget.doctor.specialty),
+                      ],
                     ),
+                    // Column(
+                    //   crossAxisAlignment: CrossAxisAlignment.start,
+                    //   children: [
+                    //     Text(
+                    //       l10n.degree,
+                    //       style: const TextStyle(
+                    //         fontSize: 22,
+                    //         fontWeight: FontWeight.bold,
+                    //       ),
+                    //     ),
+                    //     const SizedBox(height: 10),
+                    //     _buildBulletItem(widget.doctor.degrees.join(", ")),
+                    //   ],
+                    // ),
+                  ],
+                ),
+
+                const SizedBox(height: 35),
+
+                // Fees
+                Text(
+                  "${l10n.fees}: ${widget.doctor.fees?['amount'] ?? 500} ${l10n.dzd}",
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatsRow(AppLocalizations l10n, Doctor doctor) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildStatItem(
-          icon: Icons.people,
-          color: Colors.blueAccent,
-          value: "500+", // Placeholder or real data if available
-          label: "Patients",
-        ),
-        Container(width: 1, height: 40, color: Colors.grey[300]),
-        _buildStatItem(
-          icon: Icons.star,
-          color: Colors.amber,
-          value: _avgRating.toStringAsFixed(1),
-          label: "Rating",
-        ),
-        Container(width: 1, height: 40, color: Colors.grey[300]),
-        _buildStatItem(
-          icon: Icons.reviews,
-          color: Colors.purpleAccent,
-          value: _totalReviews.toString(),
-          label: "Reviews",
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatItem({
-    required IconData icon,
-    required Color color,
-    required String value,
-    required String label,
-  }) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: color, size: 20),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Colors.black87,
-      ),
-    );
-  }
-
-  Widget _buildInfoCards(AppLocalizations l10n, Doctor doctor) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildInfoCard(
-            label: l10n.degree,
-            value: "MBBS, MD", // Simplified for clean UI, typically valid
-            icon: Icons.school,
-            color: const Color(0xFF4CAF50),
-          ),
-        ),
-        const SizedBox(width: 15),
-        Expanded(
-          child: _buildInfoCard(
-            label: l10n.fees,
-            value: "${doctor.fees?['amount'] ?? 500} ${l10n.dzd}",
-            icon: Icons.monetization_on,
-            color: const Color(0xFFEF5350),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInfoCard({
-    required String label,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 18, color: color),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
                 ),
 
                 const SizedBox(height: 15),
