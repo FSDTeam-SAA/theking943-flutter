@@ -11,6 +11,8 @@ class DoctorMyScheduleScreen extends StatefulWidget {
 
 class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
   bool onlineAppointment = true;
+  bool _initialOnlineAppointmentValue = true; // ✅ Track initial value
+  bool _hasUnsavedChanges = false; // ✅ Track unsaved changes
   final TextEditingController _feesController = TextEditingController();
   final DoctorScheduleService _scheduleService = DoctorScheduleService();
 
@@ -192,6 +194,7 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
         if (isVideoAvailable != null) {
           setState(() {
             onlineAppointment = isVideoAvailable;
+            _initialOnlineAppointmentValue = isVideoAvailable; // ✅ Store initial value
           });
           debugPrint('✅ Loaded video call availability: $onlineAppointment');
         }
@@ -282,10 +285,21 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
         if (response['success'] == true) {
           debugPrint('✅ Schedule saved successfully!');
           debugPrint('   - isVideoCallAvailable saved as: $onlineAppointment');
+          debugPrint('   - Response data: ${response['data']}'); // ✅ Enhanced logging
+          
+          // ✅ Enhanced success message with online appointment status
+          final statusText = onlineAppointment ? 'Enabled ✓' : 'Disabled ✗';
           _showSnackBar(
-            AppLocalizations.of(context)!.scheduleSavedSuccess,
+            '${AppLocalizations.of(context)!.scheduleSavedSuccess}\nOnline Appointment: $statusText',
             Colors.green,
+            duration: const Duration(seconds: 4),
           );
+          
+          // ✅ Reset unsaved changes flag
+          setState(() {
+            _hasUnsavedChanges = false;
+            _initialOnlineAppointmentValue = onlineAppointment;
+          });
         } else {
           debugPrint('❌ Save failed: ${response['message']}');
           _showSnackBar(response['message'] ?? 'Failed to save', Colors.red);
@@ -303,10 +317,18 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
     }
   }
 
-  void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
+  void _showSnackBar(
+    String message,
+    Color color, {
+    Duration duration = const Duration(seconds: 3),
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        duration: duration,
+      ),
+    );
   }
 
   /// Convert 12-hour format to 24-hour format
@@ -420,7 +442,15 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
                   Switch(
                     value: onlineAppointment,
                     activeThumbColor: const Color(0xFF6C63FF),
-                    onChanged: (val) => setState(() => onlineAppointment = val),
+                    onChanged: (val) {
+                      setState(() {
+                        onlineAppointment = val;
+                        // ✅ Mark as unsaved if value changed from initial
+                        _hasUnsavedChanges = (val != _initialOnlineAppointmentValue) ||
+                            _feesController.text.isNotEmpty;
+                      });
+                      debugPrint('📝 Online appointment changed to: $val (unsaved)');
+                    },
                   ),
                 ],
               ),
@@ -489,6 +519,33 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
             const SizedBox(height: 20),
 
             // Save Changes Button
+            // ✅ Unsaved changes indicator
+            if (_hasUnsavedChanges)
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.orange.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'You have unsaved changes. Don\'t forget to save!',
+                        style: TextStyle(
+                          color: Colors.orange.shade900,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             SizedBox(
               width: double.infinity,
               height: 55,

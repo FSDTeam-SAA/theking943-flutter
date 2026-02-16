@@ -24,6 +24,7 @@ class Doctor {
   final String? bio;
   final bool isVideoCallAvailable;
   final String? visitingHoursText;
+  final List<String> degrees; // ✅ Added degrees field
 
   Doctor({
     required this.id,
@@ -45,6 +46,7 @@ class Doctor {
     this.bio,
     this.isVideoCallAvailable = false,
     this.visitingHoursText,
+    this.degrees = const [], // ✅ Initialize
   });
 
   factory Doctor.fromJson(Map<String, dynamic> json) {
@@ -155,6 +157,10 @@ class Doctor {
       bio: json['bio'],
       isVideoCallAvailable: json['isVideoCallAvailable'] ?? false,
       visitingHoursText: json['visitingHoursText'],
+      degrees: (json['degrees'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
     );
   }
 
@@ -188,6 +194,7 @@ class Doctor {
       if (bio != null) 'bio': bio,
       'isVideoCallAvailable': isVideoCallAvailable,
       if (visitingHoursText != null) 'visitingHoursText': visitingHoursText,
+      'degrees': degrees,
       if (weeklySchedule != null)
         'weeklySchedule': weeklySchedule!.map((e) => e.toJson()).toList(),
     };

@@ -15,52 +15,65 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:docmobi/providers/locale_provider.dart';
 
+// ✅ CRITICAL: This MUST be top-level function
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  debugPrint('📩 Background Message: ${message.notification?.title}');
+  
+  debugPrint('');
+  debugPrint('═══════════════════════════════════════════════════════');
+  debugPrint('🌙 [MAIN.DART BACKGROUND] FCM Message Received');
+  debugPrint('═══════════════════════════════════════════════════════');
+  debugPrint('📩 Message ID: ${message.messageId}');
+  debugPrint('📩 Title: ${message.notification?.title}');
+  debugPrint('📩 Body: ${message.notification?.body}');
+  debugPrint('📩 Data: ${message.data}');
+  debugPrint('═══════════════════════════════════════════════════════');
+  debugPrint('');
+  
+  // ✅ Let notification_service.dart handle the actual notification display
+  // This is already registered in NotificationService.init()
 }
 
-// ✅ Guard flags for service initialization (module level)
 bool _chatSocketInitializing = false;
 bool _chatSocketInitialized = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ========================================
-  // CRITICAL: Initialize only essential services synchronously
-  // ========================================
+  debugPrint('');
+  debugPrint('╔═══════════════════════════════════════════════════════╗');
+  debugPrint('║          🚀 DOCMOBI APP STARTING                      ║');
+  debugPrint('╚═══════════════════════════════════════════════════════╝');
+  debugPrint('');
 
-  // 1. Initialize Firebase (required for background message handler)
+  // 1. Initialize Firebase FIRST
   try {
     await Firebase.initializeApp();
+    debugPrint('✅ Firebase initialized');
+    
+    // 2. Register background handler IMMEDIATELY after Firebase init
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    debugPrint('✅ Firebase core initialized');
+    debugPrint('✅ Background message handler registered');
   } catch (e) {
     debugPrint('❌ Firebase Init Error: $e');
   }
 
-  debugPrint('Starting app initialization...');
-
-  // 2. Load saved locale for immediate application startup
+  // 3. Load saved locale
   final savedLocaleCode = await getSavedLocaleCode();
   final initialLocale = Locale(savedLocaleCode ?? 'en');
 
-  // 3. Load token (fast - no network calls)
+  // 4. Load token
   await ApiService.init();
   final isLoggedIn = ApiService.isLoggedIn;
   debugPrint('🔍 Token status: ${isLoggedIn ? "Logged In" : "Not Logged In"}');
 
   debugPrint('✅ Critical initialization complete - Starting app');
+  debugPrint('');
 
-  // ========================================
-  // START THE APP IMMEDIATELY
-  // ========================================
   runApp(
     ProviderScope(
       overrides: [
-        // We initialize the localeProvider with the saved locale to avoid flicker
         localeProvider.overrideWith(
           () => LocaleNotifier()..setInitialLocale(initialLocale),
         ),
@@ -68,36 +81,22 @@ void main() async {
       child: legacy_provider.MultiProvider(
         providers: [
           legacy_provider.ChangeNotifierProvider(create: (_) => UserProvider()),
-          legacy_provider.ChangeNotifierProvider(
-            create: (_) => AppointmentProvider(),
-          ),
-          legacy_provider.ChangeNotifierProvider(
-            create: (_) => DoctorProvider(),
-          ),
-          legacy_provider.ChangeNotifierProvider(
-            create: (_) => DependentProvider(),
-          ),
+          legacy_provider.ChangeNotifierProvider(create: (_) => AppointmentProvider()),
+          legacy_provider.ChangeNotifierProvider(create: (_) => DoctorProvider()),
+          legacy_provider.ChangeNotifierProvider(create: (_) => DependentProvider()),
         ],
         child: const MyApp(),
       ),
     ),
   );
 
-  // ========================================
-  // DEFERRED: Initialize non-critical services in background
-  // ========================================
+  // Deferred initialization
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     debugPrint('🔄 Starting deferred service initialization...');
 
-    // Initialize services in parallel for faster loading
     await Future.wait([
-      // Notification Service
       _initNotificationService(),
-
-      // User session sync (network call - deferred)
       _syncUserSession(),
-
-      // Chat and Socket services (only if logged in)
       if (isLoggedIn) _initChatAndSocketServices(),
     ]);
 
@@ -105,7 +104,6 @@ void main() async {
   });
 }
 
-/// Initialize Notification Service in background
 Future<void> _initNotificationService() async {
   try {
     await NotificationService.init();
@@ -115,7 +113,6 @@ Future<void> _initNotificationService() async {
   }
 }
 
-/// Sync user session in background (network call)
 Future<void> _syncUserSession() async {
   try {
     await ApiService.syncUserSession();
@@ -124,9 +121,7 @@ Future<void> _syncUserSession() async {
   }
 }
 
-/// Initialize Chat and Socket services for logged-in users
 Future<void> _initChatAndSocketServices() async {
-  // ✅ Guard against redundant initialization during hot restart
   if (_chatSocketInitialized) {
     debugPrint('⏭️ Chat/Socket services already initialized, skipping');
     return;
@@ -144,7 +139,6 @@ Future<void> _initChatAndSocketServices() async {
     final userId = prefs.getString('user_id');
 
     if (userId != null && userId.isNotEmpty) {
-      // Initialize Agora Chat
       try {
         await AgoraChatService.instance.init();
         await AgoraChatService.instance.login(userId);
@@ -153,7 +147,6 @@ Future<void> _initChatAndSocketServices() async {
         debugPrint('⚠️ Agora Chat initialization failed: $e');
       }
 
-      // Initialize Socket Service
       try {
         await SocketService.instance.connect(userId);
         debugPrint('✅ Socket initialized for user: $userId');

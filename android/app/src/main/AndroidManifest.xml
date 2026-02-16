@@ -1,35 +1,30 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     
-    <!-- ==================== NETWORK & INTERNET ==================== -->
+    <!-- ==================== EXISTING PERMISSIONS ==================== -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    
-    <!-- ==================== LOCATION PERMISSIONS ==================== -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
-    
-    <!-- ==================== AUDIO/VIDEO CALL PERMISSIONS ==================== -->
     <uses-permission android:name="android.permission.CAMERA"/>
-    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
-    
-    <!-- ==================== STORAGE PERMISSIONS ==================== -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"/>
-    
-    <!-- Android 13+ -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/>
-    
-    <!-- Notification Permissions -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    
+    <!-- ✅ NEW: Call Notification Permissions -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
     
     <application
         android:label="Docmobi"
@@ -37,7 +32,6 @@
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
         
-        <!-- Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDwpV4RKu-t9aThomHv7SPcbY0uAj80dek"/>
@@ -50,7 +44,9 @@
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustResize"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true">
             
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
@@ -60,11 +56,25 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+
+            <!-- ✅ NEW: Handle notification clicks -->
+            <intent-filter>
+                <action android:name="FLUTTER_NOTIFICATION_CLICK" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
+
+        <!-- ✅ NEW: Call Activity -->
+        <activity
+            android:name=".CallActivity"
+            android:exported="false"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:launchMode="singleInstance" />
         
-        
-        <!-- ==================== FCM SERVICE FOR BACKGROUND NOTIFICATIONS ==================== -->
-        <!-- This service handles FCM messages when app is in background or terminated -->
         <service
             android:name="com.google.firebase.messaging.FirebaseMessagingService"
             android:exported="false">
@@ -76,7 +86,19 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2"/>
-            
+
+        <!-- ✅ NEW: Flutter CallKit Incoming Activity -->
+        <activity
+            android:name="com.hiennv.flutter_callkit_incoming.CallkitIncomingActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:taskAffinity="com.hiennv.flutter_callkit_incoming.CallkitIncomingActivity"
+            android:exported="true"
+            tools:replace="android:launchMode,android:taskAffinity,android:theme">
+        </activity>
             
     </application>
     

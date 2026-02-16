@@ -3,8 +3,10 @@ import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:docmobi/services/agora_chat_service.dart';
 import 'package:docmobi/services/socket_service.dart';
 import 'package:docmobi/services/api_service.dart';
-import 'package:agora_chat_sdk/agora_chat_sdk.dart';
 import 'package:docmobi/services/notification_service.dart';
+import 'package:docmobi/screens/common/calls/video_call_screen.dart'; // ✅ Added for call
+import 'package:docmobi/screens/common/calls/audio_call_screen.dart'; // ✅ Added for call
+import 'package:agora_chat_sdk/agora_chat_sdk.dart';
 import 'dart:io';
 import 'dart:async';
 import 'package:image_picker/image_picker.dart';
@@ -532,6 +534,88 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
+  /// ✅ Initiate call
+  Future<void> _initiateCall({required bool isVideo}) async {
+    if (widget.doctorId == null) {
+      debugPrint('❌ Cannot initiate call: doctorId is null');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: Cannot initiate call')),
+      );
+      return;
+    }
+
+    try {
+      debugPrint('📞 Initiating ${isVideo ? 'video' : 'audio'} call...');
+      debugPrint('👤 Current user: $_currentUserId');
+      debugPrint('👤 Doctor: ${widget.doctorId}');
+      debugPrint('💬 Chat ID: ${widget.chatId}');
+
+      // ✅ Check socket connection
+      final socketService = SocketService.instance;
+      if (!socketService.isConnected) {
+        debugPrint('⚠️ Socket not connected, attempting to connect...');
+        if (_currentUserId != null) {
+          await socketService.connect(_currentUserId!);
+          await Future.delayed(const Duration(seconds: 1));
+        }
+
+        if (!socketService.isConnected) {
+          throw Exception('Socket connection failed');
+        }
+      }
+
+      debugPrint('✅ Socket connected, initiating call via API...');
+
+      // ✅ Use API to initiate call
+      final result = await ApiService.initiateCall(
+        chatId: widget.chatId,
+        receiverId: widget.doctorId!,
+        isVideo: isVideo,
+      );
+
+      if (result['success'] == true && mounted) {
+        debugPrint('📤 Call initiated successfully');
+
+        final String stableChatId =
+            result['data']?['chatId']?.toString() ?? widget.chatId;
+
+        // ✅ Navigate to appropriate call screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => isVideo
+                ? VideoCallScreen(
+                    chatId: stableChatId,
+                    userName: _actualDoctorName ?? widget.doctorName,
+                    userAvatar: _actualDoctorAvatar ?? widget.doctorAvatar,
+                    otherUserId: widget.doctorId!,
+                    isInitiator: true,
+                  )
+                : AudioCallScreen(
+                    chatId: stableChatId,
+                    userName: _actualDoctorName ?? widget.doctorName,
+                    userAvatar: _actualDoctorAvatar ?? widget.doctorAvatar,
+                    otherUserId: widget.doctorId!,
+                    isInitiator: true,
+                  ),
+          ),
+        );
+      } else {
+        throw Exception(result['message'] ?? 'Failed to initiate call');
+      }
+    } catch (e) {
+      debugPrint('❌ Error initiating call: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to initiate call: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _removeFile(int index) {
     setState(() {
       _selectedFiles.removeAt(index);
@@ -551,6 +635,22 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         onCancelSelection: _cancelSelection,
         onDeleteSelected: _deleteSelectedMessages,
         onBack: () => Navigator.pop(context),
+        // ✅ Add call icons
+        actions: [
+          // Audio call button
+          IconButton(
+            icon: const Icon(Icons.call, color: Color(0xFF4A78FF)),
+            onPressed: () => _initiateCall(isVideo: false),
+            tooltip: 'Audio Call',
+          ),
+          // Video call button
+          IconButton(
+            icon: const Icon(Icons.videocam, color: Color(0xFF4A78FF)),
+            onPressed: () => _initiateCall(isVideo: true),
+            tooltip: 'Video Call',
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [

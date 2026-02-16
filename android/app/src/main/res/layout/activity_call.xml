@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1B2C49"
+    android:padding="24dp">
+
+    <!-- Caller Avatar -->
+    <ImageView
+        android:id="@+id/callerAvatar"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="120dp"
+        android:background="@drawable/circle_background"
+        android:src="@drawable/ic_person"
+        android:scaleType="centerCrop" />
+
+    <!-- Caller Name -->
+    <TextView
+        android:id="@+id/callerName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/callerAvatar"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="24dp"
+        android:text="Unknown"
+        android:textColor="#FFFFFF"
+        android:textSize="28sp"
+        android:textStyle="bold" />
+
+    <!-- Call Type -->
+    <TextView
+        android:id="@+id/callType"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/callerName"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="8dp"
+        android:text="Incoming Call..."
+        android:textColor="#B0FFFFFF"
+        android:textSize="16sp" />
+
+    <!-- Button Container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="80dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <!-- Decline Button -->
+        <LinearLayout
+            android:id="@+id/declineButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="48dp"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:background="@drawable/circle_red"
+                android:padding="20dp"
+                android:src="@drawable/ic_call_end"
+                android:tint="#FFFFFF" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Decline"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- Accept Button -->
+        <LinearLayout
+            android:id="@+id/acceptButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:background="@drawable/circle_green"
+                android:padding="20dp"
+                android:src="@drawable/ic_call"
+                android:tint="#FFFFFF" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Accept"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+</RelativeLayout>

@@ -85,7 +85,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
               const SizedBox(width: 10),
             ]
-          : actions,
+          : actions ?? [],
     );
   }
 

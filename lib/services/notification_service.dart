@@ -1,25 +1,69 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter/foundation.dart';
 import '../models/notification_model.dart';
 import '../services/api_service.dart';
 import '../utils/api_config.dart';
 import 'package:flutter/material.dart';
 import '../screens/doctor/messages/doctor_chat_screen.dart';
 import '../screens/patient/messages/patient_chat_screen.dart';
+import '../screens/common/calls/incoming_call_screen.dart';
+import 'socket_service.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+import 'package:flutter_callkit_incoming/entities/entities.dart';
+import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+// ✅ Top-level background notification action handler
+@pragma('vm:entry-point')
+void notificationTapBackground(NotificationResponse notificationResponse) {
+  debugPrint('🌙 [BACKGROUND ACTION] Action: ${notificationResponse.actionId}');
+  
+  if (notificationResponse.actionId == 'DECLINE_CALL') {
+    debugPrint('❌ Call declined in background');
+  }
+}
 
 // ✅ Top-level background handler
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  debugPrint('🌙 [BACKGROUND HANDLER] Message received: ${message.messageId}');
-  debugPrint('   - Title: ${message.notification?.title}');
-  debugPrint('   - Body: ${message.notification?.body}');
-  debugPrint('   - Data: ${message.data}');
+  try {
+    final data = message.data;
+    debugPrint('🌙 [BACKGROUND HANDLER] Raw Data: $data');
 
-  // 1. Initialize Local Notifications (Required for background display)
+    // 🚀 CRITICAL: Handle incoming calls IMMEDIATELY
+    if (data['type'] == 'incoming_call') {
+      debugPrint('📞 [BACKGROUND] Incoming call detected!');
+      try {
+        // ✅ Initialize Firebase ONLY for CallKit (lightweight)
+        await Firebase.initializeApp();
+        await NotificationService._showCallKitIncoming(data);
+        debugPrint('✅ [BACKGROUND] CallKit displayed successfully');
+      } catch (e) {
+        debugPrint('❌ [BACKGROUND] CRITICAL Error showing CallKit: $e');
+      }
+      return; // Exit early
+    } else if (data['type'] == 'cancel_call') {
+      debugPrint('📴 [BACKGROUND] Call cancelled by caller.');
+      try {
+        await Firebase.initializeApp();
+        await FlutterCallkitIncoming.endAllCalls();
+      } catch (e) {
+        debugPrint('❌ [BACKGROUND] Error ending calls: $e');
+      }
+      return;
+    }
+  } catch (e) {
+    debugPrint('❌ [BACKGROUND] Early parsing error: $e');
+  }
+
+  // 🐢 Normal Priority: Initialize Firebase for standard notifications
+  await Firebase.initializeApp();
+  debugPrint('🌙 [BACKGROUND HANDLER] Processing standard message: ${message.messageId}');
+
+  // Initialize Local Notifications
   final FlutterLocalNotificationsPlugin localNotifications =
       FlutterLocalNotificationsPlugin();
 
@@ -41,16 +85,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await localNotifications.initialize(initializationSettings);
   debugPrint('✅ [BACKGROUND] Local notifications initialized');
 
-  // 2. Extract Data
+  // Extract Data
   final data = message.data;
   final String? title = message.notification?.title;
   final String? body = message.notification?.body;
-  
-  // CRITICAL: Always show notification in background/terminated state
-  // This ensures messages appear even when app is fully closed
-  debugPrint('🌙 [BACKGROUND] Creating local notification...');
-  debugPrint('   - Type: ${data['type']}');
-  debugPrint('   - ChatId: ${data['chatId']}');
   
   final String notificationTitle = title ?? data['userName'] ?? 'New Message';
   final String notificationBody = body ?? 
@@ -99,17 +137,19 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
-  static GlobalKey<NavigatorState>? navigatorKey; // ✅ Added for navigation
+  static GlobalKey<NavigatorState>? navigatorKey;
+  static String? currentChatId;
+  static String? pendingPayload;
 
   /// Initialize Firebase and Local Notifications
   static Future<void> init() async {
     debugPrint('🔔 [NOTIFICATION SERVICE] Starting initialization...');
     
-    // 0. Register Background Handler FIRST (before any Firebase operations)
+    // 0. Register Background Handler FIRST
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     debugPrint('✅ Background message handler registered');
 
-    // 1. Request Permissions (iOS/Android 13+)
+    // 1. Request Permissions
     try {
       NotificationSettings settings = await _fcm.requestPermission(
         alert: true,
@@ -128,6 +168,48 @@ class NotificationService {
     } catch (e) {
       debugPrint('❌ Error requesting notification permissions: $e');
     }
+
+    // ✅ Request additional Android permissions for CallKit
+    if (Platform.isAndroid) {
+      try {
+        await FlutterCallkitIncoming.requestNotificationPermission({
+          "rationaleMessagePermission": "Notification permission is required to show incoming calls",
+          "postNotificationMessageRequired": "Please allow notifications for incoming calls to work properly"
+        });
+        debugPrint('✅ Android CallKit permissions requested');
+      } catch (e) {
+        debugPrint('⚠️ Error requesting CallKit permissions: $e');
+      }
+    }
+
+    // ✅ Listen for CallKit events
+    FlutterCallkitIncoming.onEvent.listen((CallEvent? event) {
+      if (event == null) return;
+      
+      debugPrint('📞 [CallKit Event] ${event.event}');
+      
+      switch (event.event) {
+        case Event.actionCallAccept:
+          debugPrint('✅ [CallKit] Call Accepted');
+          _handleCallKitAction(event.body, accept: true);
+          break;
+        case Event.actionCallDecline:
+          debugPrint('❌ [CallKit] Call Declined');
+          _handleCallKitAction(event.body, accept: false);
+          break;
+        case Event.actionCallEnded:
+          debugPrint('📴 [CallKit] Call Ended');
+          _handleCallKitAction(event.body, accept: false);
+          break;
+        case Event.actionCallTimeout:
+          debugPrint('⏱️ [CallKit] Call Timeout');
+          _handleCallKitAction(event.body, accept: false);
+          break; 
+        default:
+          debugPrint('📞 [CallKit] Other Event: ${event.event}');
+          break;
+      }
+    });
 
     // 2. Local Notifications Setup
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -149,18 +231,19 @@ class NotificationService {
     await _localNotifications.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (details) {
-        // Handle notification click
         debugPrint('🔔 Notification clicked: ${details.payload}');
+        
         if (details.payload != null) {
           handleNotificationClick(details.payload!);
         }
       },
+      onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
     debugPrint('✅ Local notifications initialized');
 
-    // 3. Create Android notification channel explicitly
+    // 3. Create Android notification channels
     try {
-      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      const AndroidNotificationChannel chatChannel = AndroidNotificationChannel(
         'docmobi_chat_notifications_v3',
         'Chat Notifications',
         description: 'Real-time message notifications',
@@ -172,13 +255,12 @@ class NotificationService {
 
       await _localNotifications
           .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >()
-          ?.createNotificationChannel(channel);
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(chatChannel);
 
-      debugPrint('✅ Android notification channel created: ${channel.id}');
+      debugPrint('✅ Android notification channels created');
     } catch (e) {
-      debugPrint('❌ Error creating Android notification channel: $e');
+      debugPrint('❌ Error creating Android notification channels: $e');
     }
 
     // 4. iOS Foreground Notification Presentation
@@ -194,20 +276,25 @@ class NotificationService {
     }
 
     // 5. Foreground Listeners
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       debugPrint('📩 [FOREGROUND] FCM Message received');
-      debugPrint('   - Title: ${message.notification?.title}');
-      debugPrint('   - Body: ${message.notification?.body}');
-      debugPrint('   - Data: ${message.data}');
-      _showLocalNotification(message);
+      debugPrint('   - Type: ${message.data['type']}');
+      
+      if (message.data['type'] == 'incoming_call') {
+        debugPrint('📞 [FOREGROUND] Showing CallKit for incoming call');
+        await _showCallKitIncoming(message.data);
+      } else if (message.data['type'] == 'cancel_call') {
+        debugPrint('📴 [FOREGROUND] Call cancelled by caller.');
+        await FlutterCallkitIncoming.endAllCalls();
+      } else {
+        await _showLocalNotification(message);
+      }
     });
 
     // 6. Background/Terminated Click Listeners
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint('🔔 [BACKGROUND CLICK] App opened from notification');
-      debugPrint('   - Title: ${message.notification?.title}');
-      debugPrint('   - Data: ${message.data}');
-      handleNotificationClick(message.data); // ✅ Pass the Map directly
+      handleNotificationClick(message.data);
     });
 
     // 7. Get Initial Token
@@ -223,30 +310,26 @@ class NotificationService {
     try {
       debugPrint('🔍 Checking initial message (Terminated State Check)...');
 
-      // 1. Check for Local Notification Launch (Primary for background/terminated)
+      // 1. Check for Local Notification Launch
       final NotificationAppLaunchDetails? notificationAppLaunchDetails =
           await _localNotifications.getNotificationAppLaunchDetails();
       
       if (notificationAppLaunchDetails?.didNotificationLaunchApp ?? false) {
         final payload = notificationAppLaunchDetails!.notificationResponse?.payload;
+        
+        debugPrint('🏁 [TERMINATED CLICK] App launched from LOCAL Notification');
+        debugPrint('   - Payload: $payload');
+
         if (payload != null) {
-          debugPrint('🏁 [TERMINATED CLICK] App launched from LOCAL Notification');
-          debugPrint('   - Payload: $payload');
-          
-          // Execute immediately - pending mechanism handles navigator readiness
           handleNotificationClick(payload);
-          return; // Stop here if local notification handled it
         }
+        return;
       }
 
       // 2. Fallback: Check for FCM Initial Message
       RemoteMessage? initialMessage = await _fcm.getInitialMessage();
       if (initialMessage != null) {
         debugPrint('🏁 [TERMINATED CLICK] App launched from FCM Notification');
-        debugPrint('   - Title: ${initialMessage.notification?.title}');
-        debugPrint('   - Data: ${initialMessage.data}');
-        
-        // Execute immediately
         handleNotificationClick(initialMessage.data);
       } else {
         debugPrint('ℹ️ No initial message found (Normal Launch)');
@@ -277,46 +360,22 @@ class NotificationService {
     }
   }
 
-  static String? currentChatId; // ✅ Track active chat to suppress notifications
-
-  /// Show Local Notification when in foreground or from Agora
+  /// Show Local Notification
   static Future<void> _showLocalNotification(RemoteMessage message) async {
-    _showLocalNotificationInternal(
-      title: message.notification?.title,
-      body: message.notification?.body,
-      data: message.data,
-    );
-  }
-
-  /// Internal helper to show local notification
-  static Future<void> _showLocalNotificationInternal({
-    String? title,
-    String? body,
-    required Map<String, dynamic> data,
-  }) async {
-    // ✅ Check if user is currently in this chat
-    final msgChatId = data['chatId']?.toString();
-    debugPrint('🔔 [INTERNAL] Processing notification data: $data');
-    debugPrint('📱 _showLocalNotificationInternal: chatId=$msgChatId, currentChatId=$currentChatId');
-
-    /* ⚠️ DEBUGGING: Commented out suppression to verify reception
+    final msgChatId = message.data['chatId']?.toString();
+    
     if (msgChatId != null && msgChatId == currentChatId) {
       debugPrint('🔕 Suppressing notification for active chat: $msgChatId');
       return;
     }
-    */
-    debugPrint('🔔 [INTERNAL] Forcing notification display for debugging...');
-
-    debugPrint('📱 Building and showing local notification: $title');
 
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-          'docmobi_chat_notifications_v3', // New channel to force fresh settings
+          'docmobi_chat_notifications_v3',
           'Chat Notifications',
           channelDescription: 'Real-time message notifications',
           importance: Importance.max,
           priority: Priority.high,
-          ticker: 'New Message',
           showWhen: true,
           playSound: true,
           enableVibration: true,
@@ -335,13 +394,12 @@ class NotificationService {
     );
 
     try {
-      debugPrint('📱 Calling _localNotifications.show... [Channel: docmobi_chat_messages_v2]');
       await _localNotifications.show(
         msgChatId?.hashCode ?? DateTime.now().millisecondsSinceEpoch.hashCode,
-        title,
-        body,
+        message.notification?.title,
+        message.notification?.body,
         details,
-        payload: jsonEncode(data), // ✅ Use JSON for reliable parsing
+        payload: jsonEncode(message.data),
       );
       debugPrint('✅ Local notification shown successfully');
     } catch (e) {
@@ -357,21 +415,22 @@ class NotificationService {
     required String otherUserId,
     String? avatar,
   }) async {
-    await _showLocalNotificationInternal(
-      title: 'New message from $senderName',
-      body: content,
-      data: {
-        'type': 'chat',
-        'chatId': chatId,
-        'otherUserId': otherUserId,
-        'userName': senderName,
-        'userAvatar': avatar,
-      },
+    await _showLocalNotification(
+      RemoteMessage(
+        notification: RemoteNotification(
+          title: 'New message from $senderName',
+          body: content,
+        ),
+        data: {
+          'type': 'chat',
+          'chatId': chatId,
+          'otherUserId': otherUserId,
+          'userName': senderName,
+          'userAvatar': avatar ?? '',
+        },
+      ),
     );
   }
-
-  /// Handle navigation when notification is clicked
-  static String? pendingPayload; // ✅ Store payload if navigator not ready
 
   /// Handle navigation when notification is clicked
   static void handleNotificationClick(dynamic payload) async {
@@ -393,19 +452,34 @@ class NotificationService {
       if (payload is Map<String, dynamic>) {
         data = payload;
       } else if (payload is String) {
-        try {
-          data = jsonDecode(payload);
-        } catch (e) {
-          data = _parsePayload(payload);
-        }
+        data = jsonDecode(payload);
       }
 
       debugPrint('📍 Parsing navigation data: $data');
 
+      // Handle incoming call notifications
+      if (data['type'] == 'incoming_call') {
+        debugPrint('📞 Navigating to incoming call screen');
+        
+        navigatorKey!.currentState?.push(
+          MaterialPageRoute(
+            builder: (context) => IncomingCallScreen(
+              chatId: data['chatId'] ?? '',
+              callerName: data['callerName'] ?? 'Unknown',
+              callerAvatar: data['callerAvatar'],
+              callerId: data['callerId'] ?? '',
+              isVideoCall: data['isVideo'] == 'true',
+            ),
+          ),
+        );
+        return;
+      }
+
+      // Handle chat notifications
       if (data['type'] == 'chat' || data['chatId'] != null) {
         final String? chatId = data['chatId']?.toString();
         final String? userName = data['userName']?.toString() ?? 'User';
-        final String? otherUserId = data['otherUserId']?.toString();
+        final String otherUserId = data['otherUserId']?.toString() ?? '';
         final String? userAvatar = data['userAvatar']?.toString();
 
         if (chatId != null) {
@@ -445,7 +519,7 @@ class NotificationService {
     }
   }
 
-  /// ✅ Consume any pending payload once navigator is ready
+  /// Consume any pending payload once navigator is ready
   static void consumePendingPayload() {
     if (pendingPayload != null) {
       debugPrint('🚀 Consuming pending notification payload...');
@@ -454,31 +528,153 @@ class NotificationService {
     }
   }
 
-  /// Simple parser for toString() data format
-  static Map<String, dynamic> _parsePayload(String payload) {
-    // This is a naive parser for {key: value, key2: value2} format
-    // In production, always use jsonEncode/jsonDecode for payloads
-    final Map<String, dynamic> data = {};
+  // ========================================
+  // ✅ FIXED CALLKIT IMPLEMENTATION
+  // ========================================
+
+  /// ✅ Show CallKit Incoming UI with FULL-SCREEN support
+  static Future<void> _showCallKitIncoming(Map<String, dynamic> data) async {
     try {
-      final clean = payload.replaceAll('{', '').replaceAll('}', '');
-      final pairs = clean.split(', ');
-      for (var pair in pairs) {
-        final kv = pair.split(': ');
-        if (kv.length == 2) {
-          data[kv[0].trim()] = kv[1].trim();
+      final uuid = const Uuid().v4();
+      final String callerName = data['callerName'] ?? 'Unknown';
+      final String callerId = data['callerId'] ?? 'unknown_id';
+      final String callerAvatar = data['callerAvatar'] ?? '';
+      final bool isVideo = data['isVideo'] == 'true' || data['isVideo'] == true;
+      
+      debugPrint('📞 [CallKit] Preparing to show call screen');
+      debugPrint('   - Caller: $callerName');
+      debugPrint('   - Video: $isVideo');
+      debugPrint('   - Chat ID: ${data['chatId']}');
+      
+      final CallKitParams params = CallKitParams(
+        id: uuid,
+        nameCaller: callerName,
+        appName: 'Docmobi',
+        avatar: callerAvatar,
+        handle: callerId,
+        type: isVideo ? 1 : 0, // 0 = audio, 1 = video
+        textAccept: 'Accept',
+        textDecline: 'Decline',
+        missedCallNotification: const NotificationParams(
+          showNotification: true,
+          isShowCallback: true,
+          subtitle: 'Missed Call',
+          callbackText: 'Call back',
+        ),
+        duration: 30000, // 30 seconds timeout
+        extra: data,
+        headers: <String, dynamic>{'platform': 'flutter'},
+        
+        // ✅ ANDROID CONFIGURATION - FULL-SCREEN UI
+        android: AndroidParams(
+          isCustomNotification: true, // ✅ Changed to true for full control
+          isShowLogo: false,
+          ringtonePath: 'system_ringtone_default',
+          backgroundColor: '#0955fa',
+          backgroundUrl: callerAvatar.isNotEmpty ? callerAvatar : '',
+          actionColor: '#4CAF50',
+          incomingCallNotificationChannelName: "Incoming Calls",
+          
+          // ✅ CRITICAL: Full-screen configuration
+          isCustomSmallExNotification: true,
+          isShowCallID: false,
+        ),
+        
+        // ✅ iOS CONFIGURATION
+        ios: IOSParams(
+          iconName: 'CallKitLogo',
+          handleType: 'generic',
+          supportsVideo: isVideo,
+          maximumCallGroups: 2,
+          maximumCallsPerCallGroup: 1,
+          audioSessionMode: 'default',
+          audioSessionActive: true,
+          audioSessionPreferredSampleRate: 44100.0,
+          audioSessionPreferredIOBufferDuration: 0.005,
+          supportsDTMF: true,
+          supportsHolding: true,
+          supportsGrouping: false,
+          supportsUngrouping: false,
+          ringtonePath: 'system_ringtone_default',
+        ),
+      );
+
+      await FlutterCallkitIncoming.showCallkitIncoming(params);
+      debugPrint('✅ [CallKit] Full-screen call UI displayed successfully');
+    } catch (e) {
+      debugPrint('❌ [CallKit] Error showing incoming call: $e');
+      debugPrint('Stack trace: ${StackTrace.current}');
+    }
+  }
+
+  /// ✅ Handle CallKit actions (Accept/Decline)
+  static void _handleCallKitAction(Map<String, dynamic> body, {required bool accept}) async {
+    try {
+      // Extract call data from extra field
+      final extra = body['extra'];
+      Map<String, dynamic> data = {};
+      
+      if (extra != null) {
+        if (extra is Map) {
+          data = Map<String, dynamic>.from(extra);
+        } else {
+          data = jsonDecode(jsonEncode(extra));
         }
       }
+
+      final chatId = data['chatId'];
+      final callerId = data['callerId'];
+      final callerName = data['callerName'] ?? 'Unknown';
+      final isVideo = data['isVideo'] == 'true' || data['isVideo'] == true;
+
+      debugPrint('📞 [CallKit Action] ${accept ? 'ACCEPT' : 'DECLINE'}');
+      debugPrint('   - Chat ID: $chatId');
+      debugPrint('   - Caller ID: $callerId');
+      
+      if (accept) {
+        // ✅ Accept call - Navigate to call screen
+        debugPrint('✅ Call accepted, navigating to call screen...');
+        
+        if (navigatorKey?.currentState != null) {
+          // Navigator is ready - navigate immediately
+          navigatorKey!.currentState?.push(
+            MaterialPageRoute(
+              builder: (context) => IncomingCallScreen(
+                chatId: chatId ?? '',
+                callerName: callerName,
+                callerAvatar: data['callerAvatar'],
+                callerId: callerId ?? '',
+                isVideoCall: isVideo,
+              ),
+            ),
+          );
+        } else {
+          // Navigator not ready - store for later
+          debugPrint('⚠️ Navigator not ready, storing pending payload');
+          pendingPayload = jsonEncode(data);
+        }
+      } else {
+        // ✅ Decline call - Send socket rejection
+        debugPrint('❌ Call declined, sending rejection to caller...');
+        
+        SocketService.instance.emit('call:reject', {
+          'chatId': chatId,
+          'toUserId': callerId,
+        });
+        
+        // End CallKit call
+        await FlutterCallkitIncoming.endCall(body['id'] as String);
+        debugPrint('✅ Call rejection sent successfully');
+      }
     } catch (e) {
-      debugPrint('⚠️ Payload parse error: $e');
+      debugPrint('❌ Error handling CallKit action: $e');
     }
-    return data;
   }
 
   // ========================================
-  // Existing REST API methods
+  // REST API Methods
   // ========================================
 
-  /// Fetch all notifications from the backend
   static Future<List<NotificationModel>> getNotifications() async {
     final response = await ApiService.get(ApiConfig.notifications);
 
@@ -495,7 +691,6 @@ class NotificationService {
     return [];
   }
 
-  /// Get unread notification count
   static Future<int> getUnreadCount() async {
     final response = await ApiService.get(ApiConfig.unreadCount);
     if (response['success'] == true && response['data'] != null) {
@@ -504,19 +699,16 @@ class NotificationService {
     return 0;
   }
 
-  /// Mark a single notification as read
   static Future<bool> markAsRead(String id) async {
     final response = await ApiService.patch(ApiConfig.getMarkAsReadUrl(id), {});
     return response['success'] == true;
   }
 
-  /// Mark all notifications as read
   static Future<bool> markAllAsRead() async {
     final response = await ApiService.patch(ApiConfig.markAllAsRead, {});
     return response['success'] == true;
   }
 
-  /// Delete a notification
   static Future<bool> deleteNotification(String id) async {
     final response = await ApiService.delete(
       '${ApiConfig.deleteNotification}/$id',
@@ -524,18 +716,15 @@ class NotificationService {
     return response['success'] == true;
   }
 
-  /// Clear app badge count (iOS)
   static Future<void> clearBadge() async {
     try {
-      // Cancel all pending notifications to clear badge
       await _localNotifications.cancelAll();
-      debugPrint('🔔 Badge cleared and all local notifications cancelled');
+      debugPrint('🔔 Badge cleared');
     } catch (e) {
       debugPrint('⚠️ Error clearing badge: $e');
     }
   }
 
-  /// Cancel all local notifications
   static Future<void> cancelAllNotifications() async {
     await _localNotifications.cancelAll();
   }

@@ -160,6 +160,9 @@ class CallManager {
 
     debugPrint('📱 Doctor available - Showing incoming call dialog');
 
+    /* 
+    // AGENT UPDATE: Disabled custom dialog to prevent duplicate UI with CallKit
+    // CallKit (via FCM) handles the incoming call UI consistently.
     try {
       showDialog(
         context: _context!,
@@ -176,6 +179,8 @@ class CallManager {
     } catch (e) {
       debugPrint('❌ Error showing dialog: $e');
     }
+    */
+    debugPrint('ℹ️ Incoming call UI handled by CallKit (suppressing custom dialog)');
   }
 
   /// Check if current user (doctor) is available for calls
