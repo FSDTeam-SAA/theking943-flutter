@@ -189,197 +189,123 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1B2C49),
+      backgroundColor: Colors.black,
       body: SafeArea(
-        child: Stack(
+        child: Column(
           children: [
-            Positioned(
-              top: -100,
-              left: -100,
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.05),
-                ),
+            const SizedBox(height: 60),
+            // Caller name
+            Text(
+              widget.callerName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
               ),
+              textAlign: TextAlign.center,
             ),
-            Positioned(
-              bottom: -150,
-              right: -150,
-              child: Container(
-                width: 400,
-                height: 400,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.05),
-                ),
-              ),
-            ),
-            Column(
+            const SizedBox(height: 8),
+            // Incoming call subtitle with icon
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(height: 60),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        widget.isVideoCall ? Icons.videocam : Icons.phone,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        widget.isVideoCall ? 'Video Call' : 'Audio Call',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
+                Icon(
+                  widget.isVideoCall ? Icons.videocam : Icons.phone,
+                  color: Colors.white70,
+                  size: 18,
                 ),
-                const Spacer(),
-                ScaleTransition(
-                  scale: _pulseAnimation,
-                  child: Container(
-                    width: 160,
-                    height: 160,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white30, width: 4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          blurRadius: 40,
-                          spreadRadius: 10,
-                        ),
-                      ],
-                    ),
-                    child: CircleAvatar(
-                      radius: 80,
-                      backgroundImage:
-                          widget.callerAvatar != null &&
-                              widget.callerAvatar!.isNotEmpty &&
-                              widget.callerAvatar != 'file:///' &&
-                              (widget.callerAvatar!.startsWith('http://') ||
-                                  widget.callerAvatar!.startsWith('https://'))
-                          ? NetworkImage(widget.callerAvatar!)
-                          : const AssetImage('assets/images/doctor1.png')
-                                as ImageProvider,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 40),
+                const SizedBox(width: 6),
                 Text(
-                  widget.callerName,
+                  'Incoming ${widget.isVideoCall ? 'Video' : 'Voice'} call',
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Incoming ${widget.isVideoCall ? 'Video' : 'Audio'} Call...',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 18,
-                  ),
-                ),
-                const Spacer(),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
-                    vertical: 50,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 70,
-                            height: 70,
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.call_end,
-                                color: Colors.white,
-                                size: 32,
-                              ),
-                              onPressed: _rejectCall,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Decline',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 70,
-                            height: 70,
-                            decoration: const BoxDecoration(
-                              color: Colors.green,
-                              shape: BoxShape.circle,
-                            ),
-                            child: _isAccepting
-                                ? const Center(
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : IconButton(
-                                    icon: Icon(
-                                      widget.isVideoCall
-                                          ? Icons.videocam
-                                          : Icons.phone,
-                                      color: Colors.white,
-                                      size: 32,
-                                    ),
-                                    onPressed: _acceptCall,
-                                  ),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Accept',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                    color: Colors.white70,
+                    fontSize: 15,
                   ),
                 ),
               ],
+            ),
+            const Spacer(),
+            // Pulsing avatar
+            ScaleTransition(
+              scale: _pulseAnimation,
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white24,
+                    width: 3,
+                  ),
+                ),
+                child: CircleAvatar(
+                  radius: 70,
+                  backgroundColor: Colors.grey[800],
+                  backgroundImage:
+                      widget.callerAvatar != null &&
+                          widget.callerAvatar!.isNotEmpty &&
+                          widget.callerAvatar != 'file:///' &&
+                          (widget.callerAvatar!.startsWith('http://') ||
+                              widget.callerAvatar!.startsWith('https://'))
+                      ? NetworkImage(widget.callerAvatar!)
+                      : const AssetImage('assets/images/doctor1.png')
+                            as ImageProvider,
+                ),
+              ),
+            ),
+            const Spacer(),
+            // Action buttons
+            Padding(
+              padding: const EdgeInsets.only(bottom: 80),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Decline button
+                  GestureDetector(
+                    onTap: _rejectCall,
+                    child: Container(
+                      width: 70,
+                      height: 70,
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.call_end,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ),
+                  ),
+                  // Accept button
+                  GestureDetector(
+                    onTap: _isAccepting ? null : _acceptCall,
+                    child: Container(
+                      width: 70,
+                      height: 70,
+                      decoration: const BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
+                      child: _isAccepting
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Icon(
+                              widget.isVideoCall
+                                  ? Icons.videocam
+                                  : Icons.phone,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
