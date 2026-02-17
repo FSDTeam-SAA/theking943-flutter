@@ -508,8 +508,10 @@ class ApiService {
   static Future<Map<String, dynamic>> createOrGetChat({
     required String userId,
   }) async {
-    debugPrint('🔍 Creating/Getting chat with userId: $userId');
-    return await post('/api/v1/chat', {'userId': userId}, requiresAuth: true);
+    // ✅ Sanitize userId to remove any socket/device suffix (e.g. userId/deviceId)
+    final cleanUserId = userId.split('/').first;
+    debugPrint('🔍 Creating/Getting chat with userId: $cleanUserId (Original: $userId)');
+    return await post('/api/v1/chat', {'userId': cleanUserId}, requiresAuth: true);
   }
 
   /// Mark Chat as Read

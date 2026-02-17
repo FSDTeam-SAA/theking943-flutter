@@ -14,6 +14,7 @@ import '../../../providers/user_provider.dart';
 import 'dart:async';
 import '../../../providers/notification_provider.dart';
 import '../../../widgets/custom_image.dart';
+import '../../patient/home/search_doctor_screen.dart';
 
 class DoctorHomeScreen extends ConsumerStatefulWidget {
   const DoctorHomeScreen({super.key});
@@ -445,14 +446,24 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                               ),
                             ),
 
-                            // IconButton(
-                            //   icon: Icon(
-                            //     _isSearching ? Icons.close : Icons.search,
-                            //     color: const Color(0xFF1B2C49),
-                            //     size: 24,
-                            //   ),
-                            //   onPressed: _toggleSearch,
-                            // ),
+                            // Search Icon
+                            IconButton(
+                              icon: const Icon(
+                                Icons.search,
+                                color: Color(0xFF1B2C49),
+                                size: 24,
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const SearchDoctorScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            // Notification Icon
                             Stack(
                               clipBehavior: Clip.none,
                               children: [

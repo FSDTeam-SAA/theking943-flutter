@@ -7,6 +7,7 @@ import '../../../services/api_service.dart';
 import '../../../services/socket_service.dart';
 import '../../../services/agora_service.dart';
 import '../../../services/agora_chat_service.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 
 class VideoCallScreen extends StatefulWidget {
   final String chatId;
@@ -173,12 +174,23 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       debugPrint('🔐 Call Token Secured');
 
       // Use chatId as channel name
-      await _agoraService.joinChannel(
-        channelName: widget.chatId,
-        uid: 0,
-        isVideo: true,
-        token: token, // Pass dynamic token
-      );
+      if (_currentUserId != null) {
+        await _agoraService.joinChannelWithUserAccount(
+          channelName: widget.chatId,
+          userAccount: _currentUserId!,
+          isVideo: true,
+          token: token,
+        );
+        debugPrint('✅ Joined Agora channel with User Account: $_currentUserId');
+      } else {
+        await _agoraService.joinChannel(
+          channelName: widget.chatId,
+          uid: 0,
+          isVideo: true,
+          token: token, // Pass dynamic token
+        );
+        debugPrint('⚠️ Joined Agora channel with UID 0 (Fallback)');
+      }
       debugPrint('✅ Joined Agora channel: ${widget.chatId}');
     } catch (e) {
       debugPrint('❌ Failed to join channel: $e');
@@ -281,6 +293,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     } catch (e) {
       debugPrint('⚠️ Failed to send call log: $e');
     }
+
+    // ✅ Clear CallKit state
+    await FlutterCallkitIncoming.endAllCalls();
 
     // Notify server
     SocketService.instance.emit('call:end', {

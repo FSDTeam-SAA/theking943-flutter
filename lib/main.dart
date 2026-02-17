@@ -33,6 +33,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   
   // ✅ Let notification_service.dart handle the actual notification display
   // This is already registered in NotificationService.init()
+  
+  if (message.data['type'] == 'incoming_call') {
+    debugPrint('📞 [BACKGROUND] Triggering CallKit for incoming call...');
+    await NotificationService.showIncomingCall(message.data);
+  }
 }
 
 bool _chatSocketInitializing = false;

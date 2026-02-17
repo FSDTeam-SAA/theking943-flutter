@@ -154,6 +154,37 @@ class AgoraService {
     }
   }
 
+  /// ✅ Join Channel with User Account (String UID support for MongoDB)
+  Future<void> joinChannelWithUserAccount({
+    required String channelName,
+    required String userAccount,
+    bool isVideo = true,
+    String? token,
+  }) async {
+    if (!_isInitialized) await initialize();
+
+    try {
+      if (isVideo) {
+        await _engine!.enableVideo();
+      } else {
+        await _engine!.disableVideo();
+      }
+
+      await _engine!.joinChannelWithUserAccount(
+        token: token ?? AgoraConfig.token,
+        channelId: channelName,
+        userAccount: userAccount,
+        options: const ChannelMediaOptions(
+          clientRoleType: ClientRoleType.clientRoleBroadcaster,
+        ),
+      );
+      debugPrint("⏳ Joining channel with User Account: $userAccount in $channelName");
+    } catch (e) {
+      debugPrint("❌ Error joining channel with user account: $e");
+      rethrow;
+    }
+  }
+
   Future<void> setSpeakerphone(bool enabled) async {
     await _engine?.setEnableSpeakerphone(enabled);
   }

@@ -7,6 +7,7 @@ import '../../../services/api_service.dart';
 import '../../../services/socket_service.dart';
 import '../../../services/agora_service.dart';
 import '../../../services/agora_chat_service.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 
 class AudioCallScreen extends StatefulWidget {
   final String chatId;
@@ -122,13 +123,24 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
       }
 
       // isVideo: false for audio only
-      await _agoraService.joinChannel(
-        channelName: widget.chatId,
-        uid: 0,
-        isVideo: false,
-        token: token,
-      );
-      debugPrint('✅ Joined Agora channel (Audio Mode) with Token');
+      if (_currentUserId != null) {
+        await _agoraService.joinChannelWithUserAccount(
+          channelName: widget.chatId,
+          userAccount: _currentUserId!,
+          isVideo: false,
+          token: token,
+        );
+        debugPrint('✅ Joined Agora channel (Audio Mode) with User Account: $_currentUserId');
+      } else {
+        // Fallback to integer UID if no user ID (should not happen if logged in)
+        await _agoraService.joinChannel(
+          channelName: widget.chatId,
+          uid: 0,
+          isVideo: false,
+          token: token,
+        );
+        debugPrint('⚠️ Joined Agora channel with UID 0 (Fallback)');
+      }
     } catch (e) {
       debugPrint('❌ Failed to join: $e');
       if (mounted) _showError('Failed to connect: $e');
@@ -206,6 +218,9 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
     } catch (e) {
       debugPrint('⚠️ Failed to send call log: $e');
     }
+
+    // ✅ Clear CallKit state
+    await FlutterCallkitIncoming.endAllCalls();
 
     SocketService.instance.emit('call:end', {
       'chatId': widget.chatId,

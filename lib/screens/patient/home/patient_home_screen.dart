@@ -13,6 +13,7 @@ import 'package:docmobi/providers/appointment_provider.dart';
 import 'package:docmobi/providers/user_provider.dart';
 import 'package:docmobi/providers/notification_provider.dart';
 import 'package:docmobi/screens/patient/home/see_all_doctors_screen.dart';
+import 'package:docmobi/screens/patient/home/search_doctor_screen.dart';
 import 'package:docmobi/screens/patient/doctor/doctor_detail_screen.dart';
 import 'package:docmobi/screens/patient/doctor/book_appointment_screen.dart';
 import 'package:docmobi/screens/patient/notification/patient_notification_screen.dart';
@@ -784,6 +785,39 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                               Expanded(
                                 child: Container(), // Dummy for space
                               ),
+                              // Search Icon
+                              GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => SearchDoctorScreen(
+                                      userPosition: _currentPosition,
+                                    ),
+                                  ),
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.05,
+                                        ),
+                                        blurRadius: 10,
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.search,
+                                    size: 28,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              // Notification Icon
                               GestureDetector(
                                 onTap: () => Navigator.push(
                                   context,

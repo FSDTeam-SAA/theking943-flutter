@@ -334,6 +334,43 @@ class NotificationService {
       } else {
         debugPrint('ℹ️ No initial message found (Normal Launch)');
       }
+
+      // 3. Check for Active Calls (CallKit) - Handle cold start from Call Accept
+      try {
+        final activeCalls = await FlutterCallkitIncoming.activeCalls();
+        if (activeCalls is List && activeCalls.isNotEmpty) {
+          debugPrint('📞 [STARTUP] Found active call(s): ${activeCalls.length}');
+          final firstCall = activeCalls.first;
+          final extra = firstCall['extra'];
+          
+          if (extra != null) {
+            Map<String, dynamic> data = {};
+            if (extra is Map) {
+              data = Map<String, dynamic>.from(extra);
+            } else {
+              data = jsonDecode(jsonEncode(extra));
+            }
+
+            // ✅ TIMESTAMP CHECK: Prevent Ghost Calls
+            if (data['timestamp'] != null) {
+              final callTime = DateTime.parse(data['timestamp']);
+              final diff = DateTime.now().difference(callTime).inMinutes;
+              
+              if (diff > 2) { // Call is older than 2 minutes
+                debugPrint('⚠️ [STARTUP] Found STALE call (Age: $diff min) - Clearing it.');
+                await FlutterCallkitIncoming.endAllCalls();
+                return;
+              }
+            }
+            
+            debugPrint('✅ [STARTUP] Found VALID active call - Navigating to call screen');
+            // Trigger navigation
+            _handleCallKitAction({'extra': data}, accept: true);
+          }
+        }
+      } catch (e) {
+        debugPrint('⚠️ Error checking active calls: $e');
+      }
     } catch (e) {
       debugPrint('⚠️ Error checking initial message: $e');
     }
@@ -532,19 +569,29 @@ class NotificationService {
   // ✅ FIXED CALLKIT IMPLEMENTATION
   // ========================================
 
+  /// ✅ SHOW INCOMING CALL (Public Helper for Background Handler)
+  static Future<void> showIncomingCall(Map<String, dynamic> data) async {
+    await _showCallKitIncoming(data);
+  }
+
   /// ✅ Show CallKit Incoming UI with FULL-SCREEN support
   static Future<void> _showCallKitIncoming(Map<String, dynamic> data) async {
     try {
-      final uuid = const Uuid().v4();
+      // ✅ Use UUID from backend to ensure we can cancel it later
+      final uuid = data['uuid'] ?? const Uuid().v4();
       final String callerName = data['callerName'] ?? 'Unknown';
-      final String callerId = data['callerId'] ?? 'unknown_id';
+      // ✅ Sanitize callerId
+      final String? rawCallerId = data['callerId']?.toString();
+      final String? callerId = rawCallerId?.split('/').first;
       final String callerAvatar = data['callerAvatar'] ?? '';
       final bool isVideo = data['isVideo'] == 'true' || data['isVideo'] == true;
-      
+      final chatId = data['chatId']; // Added this line as per instruction
+
       debugPrint('📞 [CallKit] Preparing to show call screen');
       debugPrint('   - Caller: $callerName');
       debugPrint('   - Video: $isVideo');
       debugPrint('   - Chat ID: ${data['chatId']}');
+      debugPrint('   - Caller ID: $callerId (Raw: $rawCallerId)'); // Added this line as per instruction
       
       final CallKitParams params = CallKitParams(
         id: uuid,
@@ -567,24 +614,19 @@ class NotificationService {
         
         // ✅ ANDROID CONFIGURATION - FULL-SCREEN UI
         android: AndroidParams(
-          isCustomNotification: true, // ✅ Changed to true for full control
+          isCustomNotification: true, // ✅ Full control over notification
           isShowLogo: false,
           ringtonePath: 'system_ringtone_default',
           backgroundColor: '#0955fa',
           backgroundUrl: callerAvatar.isNotEmpty ? callerAvatar : '',
           actionColor: '#4CAF50',
-          incomingCallNotificationChannelName: "Incoming Calls",
-          
-          // ✅ CRITICAL: Full-screen configuration
-          isCustomSmallExNotification: true,
-          isShowCallID: false,
+          incomingCallNotificationChannelName: 'Incoming Call',
+          missedCallNotificationChannelName: 'Missed Call',
         ),
-        
-        // ✅ iOS CONFIGURATION
-        ios: IOSParams(
+        ios: const IOSParams(
           iconName: 'CallKitLogo',
           handleType: 'generic',
-          supportsVideo: isVideo,
+          supportsVideo: true,
           maximumCallGroups: 2,
           maximumCallsPerCallGroup: 1,
           audioSessionMode: 'default',
@@ -600,74 +642,9 @@ class NotificationService {
       );
 
       await FlutterCallkitIncoming.showCallkitIncoming(params);
-      debugPrint('✅ [CallKit] Full-screen call UI displayed successfully');
+      debugPrint('✅ [CallKit] Call screen displayed with UUID: $uuid');
     } catch (e) {
-      debugPrint('❌ [CallKit] Error showing incoming call: $e');
-      debugPrint('Stack trace: ${StackTrace.current}');
-    }
-  }
-
-  /// ✅ Handle CallKit actions (Accept/Decline)
-  static void _handleCallKitAction(Map<String, dynamic> body, {required bool accept}) async {
-    try {
-      // Extract call data from extra field
-      final extra = body['extra'];
-      Map<String, dynamic> data = {};
-      
-      if (extra != null) {
-        if (extra is Map) {
-          data = Map<String, dynamic>.from(extra);
-        } else {
-          data = jsonDecode(jsonEncode(extra));
-        }
-      }
-
-      final chatId = data['chatId'];
-      final callerId = data['callerId'];
-      final callerName = data['callerName'] ?? 'Unknown';
-      final isVideo = data['isVideo'] == 'true' || data['isVideo'] == true;
-
-      debugPrint('📞 [CallKit Action] ${accept ? 'ACCEPT' : 'DECLINE'}');
-      debugPrint('   - Chat ID: $chatId');
-      debugPrint('   - Caller ID: $callerId');
-      
-      if (accept) {
-        // ✅ Accept call - Navigate to call screen
-        debugPrint('✅ Call accepted, navigating to call screen...');
-        
-        if (navigatorKey?.currentState != null) {
-          // Navigator is ready - navigate immediately
-          navigatorKey!.currentState?.push(
-            MaterialPageRoute(
-              builder: (context) => IncomingCallScreen(
-                chatId: chatId ?? '',
-                callerName: callerName,
-                callerAvatar: data['callerAvatar'],
-                callerId: callerId ?? '',
-                isVideoCall: isVideo,
-              ),
-            ),
-          );
-        } else {
-          // Navigator not ready - store for later
-          debugPrint('⚠️ Navigator not ready, storing pending payload');
-          pendingPayload = jsonEncode(data);
-        }
-      } else {
-        // ✅ Decline call - Send socket rejection
-        debugPrint('❌ Call declined, sending rejection to caller...');
-        
-        SocketService.instance.emit('call:reject', {
-          'chatId': chatId,
-          'toUserId': callerId,
-        });
-        
-        // End CallKit call
-        await FlutterCallkitIncoming.endCall(body['id'] as String);
-        debugPrint('✅ Call rejection sent successfully');
-      }
-    } catch (e) {
-      debugPrint('❌ Error handling CallKit action: $e');
+      debugPrint('❌ Error showing CallKit incoming: $e');
     }
   }
 
@@ -727,5 +704,78 @@ class NotificationService {
 
   static Future<void> cancelAllNotifications() async {
     await _localNotifications.cancelAll();
+  }
+
+  /// ✅ Handle CallKit Action (Accept/Decline)
+  static void _handleCallKitAction(Map<String, dynamic> data, {required bool accept}) async {
+    try {
+      // 🔄 Normalize data: Extract from 'extra' if needed
+      Map<String, dynamic> finalData = Map.from(data);
+      if (finalData['chatId'] == null && finalData['extra'] != null) {
+        if (finalData['extra'] is Map) {
+          finalData.addAll(Map<String, dynamic>.from(finalData['extra']));
+        } else if (finalData['extra'] is String) {
+          try {
+             finalData.addAll(jsonDecode(finalData['extra']));
+          } catch(e) {
+             debugPrint('⚠️ Failed to parse extra data string: $e');
+          }
+        }
+      }
+
+      final chatId = finalData['chatId'];
+      final rawCallerId = finalData['callerId']?.toString();
+      final callerId = rawCallerId?.split('/').first;
+      final callerName = finalData['callerName'] ?? 'Unknown';
+      final isVideo = finalData['isVideo'] == 'true' || finalData['isVideo'] == true;
+
+      debugPrint('📞 [CallKit Action] ${accept ? 'ACCEPT' : 'DECLINE'}');
+      debugPrint('   - Chat ID: $chatId');
+      debugPrint('   - Caller ID: $callerId (Raw: $rawCallerId)');
+
+      if (accept) {
+        // ✅ Accept call - Navigate to call screen
+        debugPrint('✅ Call accepted, navigating to call screen...');
+        
+        if (navigatorKey?.currentState != null) {
+          // Navigator is ready - navigate immediately
+          navigatorKey!.currentState?.push(
+            MaterialPageRoute(
+              builder: (context) => IncomingCallScreen(
+                chatId: chatId ?? '',
+                callerName: callerName,
+                callerAvatar: finalData['callerAvatar'],
+                callerId: callerId ?? '',
+                isVideoCall: isVideo,
+              ),
+            ),
+          );
+        } else {
+          // Navigator not ready - store for later
+          debugPrint('⚠️ Navigator not ready, storing pending payload');
+          pendingPayload = jsonEncode(finalData);
+        }
+      } else {
+        // ✅ Decline call - Send socket rejection
+        debugPrint('❌ Call declined, sending rejection to caller...');
+        
+        if (chatId != null && callerId != null) {
+             SocketService.instance.emit('call:reject', {
+              'chatId': chatId,
+              'toUserId': callerId, // Use sanitized ID
+            });
+            debugPrint('✅ Call rejection sent successfully');
+        } else {
+           debugPrint('⚠️ Cannot reject call: Missing chatId or callerId');
+        }
+
+        // End CallKit call
+        if (finalData['id'] != null) {
+          await FlutterCallkitIncoming.endCall(finalData['id'] as String);
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error handling CallKit action: $e');
+    }
   }
 }

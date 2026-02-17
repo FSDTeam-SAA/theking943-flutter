@@ -158,29 +158,8 @@ class CallManager {
       return;
     }
 
-    debugPrint('📱 Doctor available - Showing incoming call dialog');
-
-    /* 
-    // AGENT UPDATE: Disabled custom dialog to prevent duplicate UI with CallKit
-    // CallKit (via FCM) handles the incoming call UI consistently.
-    try {
-      showDialog(
-        context: _context!,
-        barrierDismissible: false,
-        builder: (context) => IncomingCallDialog(
-          fromUserId: fromUserId,
-          chatId: chatId,
-          isVideo: isVideo,
-          callerName: callerName,
-          callerAvatar: callerAvatar,
-        ),
-      );
-      debugPrint('✅ Dialog shown successfully');
-    } catch (e) {
-      debugPrint('❌ Error showing dialog: $e');
-    }
-    */
-    debugPrint('ℹ️ Incoming call UI handled by CallKit (suppressing custom dialog)');
+    debugPrint('📱 Doctor available - Incoming call UI will be handled by CallKit');
+    debugPrint('ℹ️ CallKit will display full-screen incoming call notification');
   }
 
   /// Check if current user (doctor) is available for calls
