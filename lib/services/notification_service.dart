@@ -10,6 +10,8 @@ import 'package:flutter/material.dart';
 import '../screens/doctor/messages/doctor_chat_screen.dart';
 import '../screens/patient/messages/patient_chat_screen.dart';
 import '../screens/common/calls/incoming_call_screen.dart';
+import '../screens/common/calls/video_call_screen.dart';
+import '../screens/common/calls/audio_call_screen.dart';
 import 'socket_service.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_callkit_incoming/entities/entities.dart';
@@ -49,7 +51,14 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       debugPrint('📴 [BACKGROUND] Call cancelled by caller.');
       try {
         await Firebase.initializeApp();
-        await FlutterCallkitIncoming.endAllCalls();
+        final uuid = data['uuid'];
+        if (uuid != null && uuid.toString().isNotEmpty) {
+          await FlutterCallkitIncoming.endCall(uuid.toString());
+          debugPrint('✅ [BACKGROUND] Ended specific call: $uuid');
+        } else {
+          await FlutterCallkitIncoming.endAllCalls();
+          debugPrint('✅ [BACKGROUND] Ended all calls (no UUID)');
+        }
       } catch (e) {
         debugPrint('❌ [BACKGROUND] Error ending calls: $e');
       }
@@ -285,7 +294,14 @@ class NotificationService {
         await _showCallKitIncoming(message.data);
       } else if (message.data['type'] == 'cancel_call') {
         debugPrint('📴 [FOREGROUND] Call cancelled by caller.');
-        await FlutterCallkitIncoming.endAllCalls();
+        final uuid = message.data['uuid'];
+        if (uuid != null && uuid.toString().isNotEmpty) {
+          await FlutterCallkitIncoming.endCall(uuid.toString());
+          debugPrint('✅ [FOREGROUND] Ended specific call: $uuid');
+        } else {
+          await FlutterCallkitIncoming.endAllCalls();
+          debugPrint('✅ [FOREGROUND] Ended all calls (no UUID)');
+        }
       } else {
         await _showLocalNotification(message);
       }
@@ -734,22 +750,45 @@ class NotificationService {
       debugPrint('   - Caller ID: $callerId (Raw: $rawCallerId)');
 
       if (accept) {
-        // ✅ Accept call - Navigate to call screen
-        debugPrint('✅ Call accepted, navigating to call screen...');
+        // ✅ Accept call - Navigate DIRECTLY to call screen (skip IncomingCallScreen)
+        debugPrint('✅ Call accepted from CallKit, navigating directly to call screen...');
+
+        // ✅ Send call:accept socket event so caller knows
+        if (chatId != null && callerId != null) {
+          SocketService.instance.emit('call:accept', {
+            'chatId': chatId,
+            'fromUserId': callerId,
+          });
+          debugPrint('✅ call:accept socket event sent');
+        }
         
         if (navigatorKey?.currentState != null) {
-          // Navigator is ready - navigate immediately
-          navigatorKey!.currentState?.push(
-            MaterialPageRoute(
-              builder: (context) => IncomingCallScreen(
-                chatId: chatId ?? '',
-                callerName: callerName,
-                callerAvatar: finalData['callerAvatar'],
-                callerId: callerId ?? '',
-                isVideoCall: isVideo,
+          // Navigator is ready - navigate directly to call screen
+          if (isVideo) {
+            navigatorKey!.currentState?.push(
+              MaterialPageRoute(
+                builder: (context) => VideoCallScreen(
+                  chatId: chatId ?? '',
+                  userName: callerName,
+                  userAvatar: finalData['callerAvatar'],
+                  otherUserId: callerId ?? '',
+                  isInitiator: false, // We are the receiver
+                ),
               ),
-            ),
-          );
+            );
+          } else {
+            navigatorKey!.currentState?.push(
+              MaterialPageRoute(
+                builder: (context) => AudioCallScreen(
+                  chatId: chatId ?? '',
+                  userName: callerName,
+                  userAvatar: finalData['callerAvatar'],
+                  otherUserId: callerId ?? '',
+                  isInitiator: false, // We are the receiver
+                ),
+              ),
+            );
+          }
         } else {
           // Navigator not ready - store for later
           debugPrint('⚠️ Navigator not ready, storing pending payload');

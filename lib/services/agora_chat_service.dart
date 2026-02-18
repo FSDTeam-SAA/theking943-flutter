@@ -73,6 +73,8 @@ class AgoraChatService {
         final currentId = await ChatClient.getInstance.getCurrentUserId();
         if (currentId == userId) {
           debugPrint('✅ Already logged in as $userId');
+          // ✅ Still sync from server in case of reinstall
+          _syncAllConversationsFromServer();
           return;
         }
         await ChatClient.getInstance.logout();
@@ -96,10 +98,14 @@ class AgoraChatService {
         await ChatClient.getInstance.loginWithPassword(userId, userId);
       }
       debugPrint('✅ Agora Chat Login Success: $userId');
+
+      // ✅ Sync conversations from server after login (handles reinstall case)
+      _syncAllConversationsFromServer();
     } on ChatError catch (e) {
       if (e.code == 200) {
         // ✅ Error 200 means "User already logged in"
         debugPrint('ℹ️ User already logged in (Code 200)');
+        _syncAllConversationsFromServer();
       } else if (e.code == 204) {
         // ✅ Error 204 means "User does not exist" - Try to register
         debugPrint(
@@ -124,6 +130,80 @@ class AgoraChatService {
           '❌ Agora Chat Login Failed: ${e.description} (Code: ${e.code})',
         );
       }
+    }
+  }
+
+  /// ✅ Sync all conversations and recent messages from Agora server
+  /// This ensures chat history is available after app reinstall
+  void _syncAllConversationsFromServer() async {
+    try {
+      debugPrint('🔄 [Agora] Syncing conversations from server...');
+
+      // First, try to get conversation list from local
+      List<ChatConversation> conversations = await ChatClient
+          .getInstance
+          .chatManager
+          .loadAllConversations();
+
+      // If no local conversations (e.g., after reinstall), try to get chat list from backend
+      if (conversations.isEmpty) {
+        debugPrint('📋 [Agora] No local conversations, fetching from backend...');
+        try {
+          final response = await ApiService.getMyChats();
+          if (response['success'] == true && response['data'] != null) {
+            final chatList = response['data'] as List? ?? [];
+            debugPrint('📋 [Agora] Found ${chatList.length} chats from backend');
+            
+            // For each chat, fetch history messages from Agora server using the other user's ID
+            for (final chat in chatList) {
+              final participants = chat['participants'] as List? ?? [];
+              for (final participant in participants) {
+                final participantId = participant['_id']?.toString();
+                if (participantId != null) {
+                  try {
+                    await ChatClient.getInstance.chatManager
+                        .fetchHistoryMessagesByOption(
+                          participantId,
+                          ChatConversationType.Chat,
+                          cursor: '',
+                          pageSize: 20,
+                        );
+                    debugPrint('  ✅ Synced messages for $participantId');
+                  } catch (e) {
+                    debugPrint('  ⚠️ Failed to sync messages for $participantId: $e');
+                  }
+                }
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('⚠️ [Agora] Backend chat list fetch failed: $e');
+        }
+      } else {
+        debugPrint('📋 [Agora] Found ${conversations.length} local conversations');
+        
+        // For each conversation, fetch recent messages from server to ensure they're up to date
+        for (final conv in conversations) {
+          try {
+            final messages = await ChatClient.getInstance.chatManager
+                .fetchHistoryMessagesByOption(
+                  conv.id,
+                  ChatConversationType.Chat,
+                  cursor: '',
+                  pageSize: 20,
+                );
+            debugPrint(
+              '  ✅ Synced ${messages.data.length} messages for ${conv.id}',
+            );
+          } catch (e) {
+            debugPrint('  ⚠️ Failed to sync messages for ${conv.id}: $e');
+          }
+        }
+      }
+
+      debugPrint('✅ [Agora] Server sync complete');
+    } catch (e) {
+      debugPrint('⚠️ [Agora] Server sync failed: $e');
     }
   }
 

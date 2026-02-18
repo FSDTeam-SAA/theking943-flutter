@@ -43,6 +43,9 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
   Timer? _timer;
   int _callDuration = 0;
 
+  // ✅ Unanswered call timeout (30 seconds)
+  Timer? _unansweredTimer;
+
   @override
   void initState() {
     super.initState();
@@ -98,6 +101,13 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
 
       if (widget.isInitiator) {
         setState(() => _callStatus = 'Calling...');
+        // ✅ Start 30-second unanswered timer
+        _unansweredTimer = Timer(const Duration(seconds: 30), () {
+          if (mounted && !_callConnected) {
+            debugPrint('⏱️ Audio call not answered in 30 seconds, auto-ending...');
+            _showError('No answer');
+          }
+        });
         // Wait for accept
       } else {
         await _joinAgoraChannel();
@@ -157,6 +167,9 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
 
     socket.on('call:accepted', (data) async {
       if (data['chatId'] == widget.chatId) {
+        // ✅ Cancel unanswered timer
+        _unansweredTimer?.cancel();
+        _unansweredTimer = null;
         setState(() => _callStatus = 'Connecting...');
         await _joinAgoraChannel();
       }
@@ -253,6 +266,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
   void dispose() {
     debugPrint('🧹 Disposing AudioCallScreen');
     WakelockPlus.disable();
+    _unansweredTimer?.cancel();
     _timer?.cancel();
     _agoraService.leaveChannel();
 

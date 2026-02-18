@@ -47,6 +47,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   int _callDurationSeconds = 0;
   String _callDuration = '00:00';
 
+  // ✅ Unanswered call timeout (30 seconds)
+  Timer? _unansweredTimer;
+
   @override
   void initState() {
     super.initState();
@@ -145,6 +148,13 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       // 4. Join Channel
       if (widget.isInitiator) {
         setState(() => _callStatus = 'Calling...');
+        // ✅ Start 30-second unanswered timer
+        _unansweredTimer = Timer(const Duration(seconds: 30), () {
+          if (mounted && !_isCallConnected) {
+            debugPrint('⏱️ Call not answered in 30 seconds, auto-ending...');
+            _showError('No answer');
+          }
+        });
         // Wait for 'call:accepted' event before joining to avoid joining empty channel
       } else {
         // Receiver joins immediately
@@ -211,6 +221,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       debugPrint('📥 Received call:accepted event');
       if (data['chatId'] == widget.chatId) {
         debugPrint('✅ Call accepted, joining Agora channel...');
+        // ✅ Cancel unanswered timer
+        _unansweredTimer?.cancel();
+        _unansweredTimer = null;
         setState(() => _callStatus = 'Connecting...');
         await _joinAgoraChannel();
       }
@@ -329,6 +342,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     debugPrint('🧹 Disposing VideoCallScreen');
     WakelockPlus.disable();
     _callTimer?.cancel();
+    _unansweredTimer?.cancel();
 
     // ⚠️ DO NOT use socket.off('event') here as it removes ALL listeners,
     // including the ones in CallManager.
