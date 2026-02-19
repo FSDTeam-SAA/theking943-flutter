@@ -75,13 +75,21 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
       // ✅ Start all operations in parallel WITHOUT blocking
       // UI will render immediately with loading states
 
-      // 1. Fetch user profile (non-blocking) - for name and avatar
-      legacy_provider.Provider.of<UserProvider>(
+      // 0. Load CACHED profile first for instant UI (if not already loaded)
+      final userProvider = legacy_provider.Provider.of<UserProvider>(
         context,
         listen: false,
-      ).fetchUserProfile().then(
+      );
+      
+      if (userProvider.user == null) {
+        debugPrint('💾 Loading cached profile for instant UI...');
+        userProvider.loadFromCache();
+      }
+
+      // 1. Fetch fresh user profile (non-blocking) - for name and avatar
+      userProvider.fetchUserProfile().then(
         (_) {
-          debugPrint('✅ User profile loaded');
+          debugPrint('✅ Fresh user profile loaded');
         },
         onError: (e) {
           debugPrint('Error fetching user profile: $e');

@@ -254,9 +254,10 @@ class AgoraChatService {
           );
           message.attributes = msgAttributes;
 
-          // Add status listener for better debugging
+          // Add status listener for better debugging — use fixed key to prevent duplicates
+          ChatClient.getInstance.chatManager.removeMessageEvent("SEND_FILE_HANDLER");
           ChatClient.getInstance.chatManager.addMessageEvent(
-            "SEND_HANDLER_${DateTime.now().millisecondsSinceEpoch}",
+            "SEND_FILE_HANDLER",
             ChatMessageEvent(
               onSuccess: (msgId, msg) =>
                   debugPrint("✅ File sent via Agora: $msgId"),
@@ -287,8 +288,10 @@ class AgoraChatService {
         );
         message.attributes = msgAttributes;
 
+        // Use fixed key to prevent stacking duplicate handlers
+        ChatClient.getInstance.chatManager.removeMessageEvent("SEND_MSG_HANDLER");
         ChatClient.getInstance.chatManager.addMessageEvent(
-          "SEND_HANDLER_${DateTime.now().millisecondsSinceEpoch}",
+          "SEND_MSG_HANDLER",
           ChatMessageEvent(
             onSuccess: (msgId, msg) =>
                 debugPrint("✅ Message sent via Agora: $msgId"),

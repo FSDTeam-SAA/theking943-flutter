@@ -3,6 +3,9 @@ import 'package:docmobi/screens/patient/profile/add_dependents_screen.dart';
 import 'package:docmobi/screens/patient/profile/edit_dependent_screen.dart';
 import 'package:docmobi/screens/patient/profile/dependents_list_screen.dart';
 import 'package:docmobi/services/call_manager_service.dart';
+import 'package:docmobi/services/active_call_state.dart';
+import 'package:docmobi/screens/common/calls/video_call_screen.dart';
+import 'package:docmobi/screens/common/calls/audio_call_screen.dart';
 import 'package:docmobi/services/socket_service.dart';
 import 'package:docmobi/screens/patient/notification/patient_notification_screen.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +20,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:docmobi/providers/locale_provider.dart';
 import 'package:docmobi/services/notification_service.dart';
 import 'services/auth_service.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
@@ -29,8 +35,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   bool _isLoggedIn = false;
   bool _isLoading = true;
   String? _userRole;
-  final GlobalKey<NavigatorState> _navigatorKey =
-      GlobalKey<NavigatorState>(); // ✅ ADDED
+  bool _launchingIntoCall = false;
+  // final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>(); // Removed
 
   @override
   void initState() {
@@ -65,7 +71,61 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
             SocketService.instance.connect(uid);
           }
         });
+
+        // 3. ✅ Check for active call that needs to be restored
+        _restoreActiveCallIfNeeded();
       }
+    }
+  }
+
+  /// ✅ Restore active call screen if the app was closed during an active call
+  Future<void> _restoreActiveCallIfNeeded() async {
+    try {
+      final callData = await ActiveCallState.getActiveCall();
+      if (callData == null) return;
+
+      final navigator = navigatorKey.currentState;
+      if (navigator == null) return;
+
+      debugPrint('📞 Restoring active call: ${callData['callType']} with ${callData['userName']}');
+
+      final callType = callData['callType'] ?? 'audio';
+      final chatId = callData['chatId'] ?? '';
+      final userName = callData['userName'] ?? 'Unknown';
+      final userAvatar = callData['userAvatar'];
+      final otherUserId = callData['otherUserId'] ?? '';
+      final isInitiator = callData['isInitiator'] ?? false;
+
+      if (callType == 'video') {
+        navigator.push(
+          MaterialPageRoute(
+            builder: (context) => VideoCallScreen(
+              chatId: chatId,
+              userName: userName,
+              userAvatar: userAvatar,
+              otherUserId: otherUserId,
+              isInitiator: isInitiator,
+            ),
+          ),
+        );
+      } else {
+        navigator.push(
+          MaterialPageRoute(
+            builder: (context) => AudioCallScreen(
+              chatId: chatId,
+              userName: userName,
+              userAvatar: userAvatar,
+              otherUserId: otherUserId,
+              isInitiator: isInitiator,
+            ),
+          ),
+        );
+      }
+      debugPrint('✅ Active call screen restored successfully');
+    } catch (e) {
+      debugPrint('⚠️ Failed to restore active call: $e');
+      // Clear stale call state if restoration fails
+      await ActiveCallState.clearActiveCall();
     }
   }
 
@@ -86,7 +146,38 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       debugPrint('   • Role: ${role ?? "❌ Not found"}');
       debugPrint('   • User ID: ${userId ?? "❌ Not found"}');
 
-      // Update state immediately
+      // ✅ Check for active CallKit calls BEFORE building home screen
+      if (token != null && token.isNotEmpty) {
+        try {
+          final activeCalls = await FlutterCallkitIncoming.activeCalls();
+          if (activeCalls is List && activeCalls.isNotEmpty) {
+            final firstCall = activeCalls.first;
+            final extra = firstCall['extra'];
+            if (extra != null) {
+              Map<String, dynamic> data = {};
+              if (extra is Map) {
+                data = Map<String, dynamic>.from(extra);
+              }
+              if (data['timestamp'] != null) {
+                final callTime = DateTime.parse(data['timestamp']);
+                final diff = DateTime.now().difference(callTime).inMinutes;
+                if (diff <= 2) {
+                  _launchingIntoCall = true;
+                  NotificationService.pendingCallData = data;
+                  debugPrint('📞 Active call found on startup — will skip home screen');
+                } else {
+                  await FlutterCallkitIncoming.endAllCalls();
+                  debugPrint('⚠️ Stale call found ($diff min old) — cleared');
+                }
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('⚠️ Error checking active calls on startup: $e');
+        }
+      }
+
+      // Update state
       setState(() {
         _isLoggedIn = token != null && token.isNotEmpty;
         _userRole = role?.toLowerCase();
@@ -101,15 +192,19 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
 
         // Initialize CallManager after navigation is ready
         WidgetsBinding.instance.addPostFrameCallback((_) async {
-          if (_navigatorKey.currentContext != null) {
-            NotificationService.navigatorKey = _navigatorKey; // ✅ Added
-            CallManager.instance.initialize(_navigatorKey.currentContext!);
+          if (navigatorKey.currentContext != null) {
+            NotificationService.navigatorKey = navigatorKey; // ✅ Added
+            CallManager.instance.initialize(navigatorKey.currentContext!);
             
-            // ✅ Check for launch message and await results
-            await NotificationService.checkInitialMessage(); 
-            
-            // ✅ Consume immediately after check returns
-            NotificationService.consumePendingPayload();
+            // ✅ PRIORITY 1: Check for pending call from cold-start CallKit accept
+            if (NotificationService.consumePendingCallData()) {
+              debugPrint('📞 Navigated directly to call screen from cold start');
+              if (mounted) setState(() => _launchingIntoCall = false);
+            } else {
+              // ✅ PRIORITY 2: Standard initial message check
+              await NotificationService.checkInitialMessage(); 
+              NotificationService.consumePendingPayload();
+            }
             
             debugPrint('✅ CallManager & Notification Navigator initialized');
           }
@@ -135,7 +230,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     final currentLocale = ref.watch(localeProvider);
 
     return MaterialApp(
-      navigatorKey: _navigatorKey, // ✅ ADDED for CallManager
+      navigatorKey: navigatorKey, // ✅ ADDED for CallManager
       title: 'Docmobi',
       locale: currentLocale,
       localizationsDelegates: [
@@ -226,6 +321,25 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     if (!_isLoggedIn) {
       debugPrint('📱 Rendering: SplashScreen (Not logged in)');
       return const SplashScreen();
+    }
+
+    // ✅ Show minimal screen while transitioning to call (avoids home screen flash)
+    if (_launchingIntoCall) {
+      debugPrint('📞 Rendering: Connecting to call screen (skip home)');
+      return const Scaffold(
+        backgroundColor: Color(0xFF1B2C49),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Colors.white),
+              SizedBox(height: 16),
+              Text('Connecting to call...',
+                style: TextStyle(color: Colors.white, fontSize: 16)),
+            ],
+          ),
+        ),
+      );
     }
 
     debugPrint('📱 Rendering: ${_userRole?.toUpperCase()} Dashboard');

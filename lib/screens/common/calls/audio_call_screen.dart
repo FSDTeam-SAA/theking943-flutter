@@ -7,6 +7,7 @@ import '../../../services/api_service.dart';
 import '../../../services/socket_service.dart';
 import '../../../services/agora_service.dart';
 import '../../../services/agora_chat_service.dart';
+import '../../../services/active_call_state.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 
 class AudioCallScreen extends StatefulWidget {
@@ -39,6 +40,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
   String _callStatus = 'Connecting...';
   String? _currentUserId;
   bool _isDisposed = false;
+  bool _channelJoined = false; // ✅ Prevents duplicate join attempts
 
   Timer? _timer;
   int _callDuration = 0;
@@ -77,6 +79,27 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
     try {
       setState(() => _callStatus = 'Setting up audio...');
 
+      // ✅ Ensure Socket is Connected (Critical for receiving call:accepted)
+      if (_currentUserId != null) {
+        if (!SocketService.instance.isConnected) {
+          debugPrint('⚠️ Socket disconnected in AudioCallScreen - Reconnecting...');
+          await SocketService.instance.connect(_currentUserId!);
+        } else {
+           // Ensure we are in the user room (idempotent)
+           SocketService.instance.socket?.emit('joinUserRoom', _currentUserId!);
+        }
+      }
+
+      // ✅ Save active call state for restore on app reopen
+      await ActiveCallState.saveActiveCall(
+        chatId: widget.chatId,
+        userName: widget.userName,
+        userAvatar: widget.userAvatar,
+        otherUserId: widget.otherUserId,
+        isInitiator: widget.isInitiator,
+        callType: 'audio',
+      );
+
       await _agoraService.initialize();
 
       // Events
@@ -97,7 +120,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
         }
       };
 
-      _setupSocketListeners();
+      _setupSocketListeners(); // Now safe to call
 
       if (widget.isInitiator) {
         setState(() => _callStatus = 'Calling...');
@@ -118,6 +141,13 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
   }
 
   Future<void> _joinAgoraChannel() async {
+    // ✅ Prevent duplicate join attempts (call:accepted fires multiple times)
+    if (_channelJoined) {
+      debugPrint('⚠️ Already joined/joining channel — skipping duplicate');
+      return;
+    }
+    _channelJoined = true;
+
     try {
       setState(() => _callStatus = 'Securing connection...');
 
@@ -166,7 +196,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
     socket.off('call:rejected');
 
     socket.on('call:accepted', (data) async {
-      if (data['chatId'] == widget.chatId) {
+      if (data['chatId'] == widget.chatId && !_channelJoined) {
         // ✅ Cancel unanswered timer
         _unansweredTimer?.cancel();
         _unansweredTimer = null;
@@ -215,6 +245,9 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
     _isDisposed = true;
 
     _timer?.cancel();
+
+    // ✅ Clear active call state
+    await ActiveCallState.clearActiveCall();
 
     // ✅ Log Call to Chat (Initiator Only to prevent duplicates)
     try {
@@ -268,10 +301,25 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
     WakelockPlus.disable();
     _unansweredTimer?.cancel();
     _timer?.cancel();
-    _agoraService.leaveChannel();
 
-    // ⚠️ DO NOT use socket.off('event') here as it removes ALL listeners,
-    // including the ones in CallManager.
+    // ✅ If _endCall() was NOT called (e.g., app killed during call),
+    // perform minimal cleanup: leave channel, notify server, clear state.
+    if (!_isDisposed) {
+      debugPrint('⚠️ AudioCallScreen disposed without _endCall — cleaning up');
+      _isDisposed = true;
+      ActiveCallState.clearActiveCall();
+      _agoraService.leaveChannel();
+      FlutterCallkitIncoming.endAllCalls();
+      SocketService.instance.emit('call:end', {
+        'chatId': widget.chatId,
+        'toUserId': widget.otherUserId,
+        'fromUserId': _currentUserId,
+      });
+    }
+
+    // Clear callbacks to avoid calling setState on disposed widget
+    _agoraService.onUserJoined = null;
+    _agoraService.onUserOffline = null;
 
     super.dispose();
   }

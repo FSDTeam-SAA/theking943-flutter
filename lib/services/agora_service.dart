@@ -19,10 +19,27 @@ class AgoraService {
   Function(int uid, bool muted)? onUserMuteAudio;
   Function(int uid, bool muted)? onUserMuteVideo;
   Function(ConnectionStateType state, ConnectionChangedReasonType reason)?
-  onConnectionStateChanged;
+      onConnectionStateChanged;
 
+  /// Initialize the Agora engine ONCE. Reused across all calls.
+  /// The engine is a native singleton — releasing and recreating it
+  /// in quick succession causes AgoraRtcException(-17).
   Future<void> initialize() async {
-    if (_isInitialized) return;
+    // ✅ If engine is already initialized and healthy, reuse it
+    if (_isInitialized && _engine != null) {
+      debugPrint("✅ Agora Engine already initialized — reusing");
+      return;
+    }
+
+    // Clean up bad state (engine exists but not initialized)
+    if (_engine != null) {
+      debugPrint("⚠️ Engine in bad state — force releasing before re-init");
+      try { await _engine!.release(); } catch (_) {}
+      _engine = null;
+      // Add delay to let native singleton fully release
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+    _isInitialized = false;
 
     try {
       // 1. Request permissions
@@ -37,18 +54,18 @@ class AgoraService {
         ),
       );
 
-      // 3. Set Video Profile (Optimized for High Quality Mobile)
+      // 3. Set Video Profile
       await _engine!.setVideoEncoderConfiguration(
         const VideoEncoderConfiguration(
-          dimensions: VideoDimensions(width: 960, height: 540), // 540p Quality
-          frameRate: 24, // Smoother motion
-          bitrate: 1200, // Higher bitrate for clarity
+          dimensions: VideoDimensions(width: 960, height: 540),
+          frameRate: 24,
+          bitrate: 1200,
           orientationMode: OrientationMode.orientationModeAdaptive,
           degradationPreference: DegradationPreference.maintainQuality,
         ),
       );
 
-      // 4. Set Audio Profile (High Fidelity)
+      // 4. Set Audio Profile
       await _engine!.setAudioProfile(
         profile: AudioProfileType.audioProfileMusicStandard,
         scenario: AudioScenarioType.audioScenarioGameStreaming,
@@ -56,14 +73,10 @@ class AgoraService {
 
       // 5. Enable Advanced Features
       await _engine!.enableDualStreamMode(enabled: true);
-      await _engine!.setParameters(
-        '{"che.audio.opensl":true}',
-      ); // Low latency audio
-      await _engine!.setParameters(
-        '{"rtc.noise_suppression":true}',
-      ); // AI Noise Suppression
+      await _engine!.setParameters('{"che.audio.opensl":true}');
+      await _engine!.setParameters('{"rtc.noise_suppression":true}');
 
-      // 4. Register event handlers
+      // 6. Register event handlers
       _engine!.registerEventHandler(
         RtcEngineEventHandler(
           onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
@@ -75,64 +88,58 @@ class AgoraService {
             debugPrint("👋 Remote user $remoteUid joined");
             onUserJoined?.call(remoteUid, elapsed);
           },
-          onUserOffline:
-              (
-                RtcConnection connection,
-                int remoteUid,
-                UserOfflineReasonType reason,
-              ) {
-                debugPrint("🏃 Remote user $remoteUid left channel: $reason");
-                onUserOffline?.call(remoteUid, reason);
-              },
+          onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
+            debugPrint("🏃 Remote user $remoteUid left channel: $reason");
+            onUserOffline?.call(remoteUid, reason);
+          },
           onLeaveChannel: (RtcConnection connection, RtcStats stats) {
             debugPrint("👋 Left channel");
             onLeaveChannel?.call(stats);
           },
-          onUserMuteAudio:
-              (RtcConnection connection, int remoteUid, bool muted) {
-                debugPrint("🔇 Remote user $remoteUid audio muted: $muted");
-                onUserMuteAudio?.call(remoteUid, muted);
-              },
-          onUserMuteVideo:
-              (RtcConnection connection, int remoteUid, bool muted) {
-                debugPrint("📷 Remote user $remoteUid video muted: $muted");
-                onUserMuteVideo?.call(remoteUid, muted);
-              },
-          onConnectionStateChanged:
-              (
-                RtcConnection connection,
-                ConnectionStateType state,
-                ConnectionChangedReasonType reason,
-              ) {
-                debugPrint(
-                  "📶 Connection state changed: $state, reason: $reason",
-                );
-                onConnectionStateChanged?.call(state, reason);
-              },
+          onUserMuteAudio: (RtcConnection connection, int remoteUid, bool muted) {
+            debugPrint("🔇 Remote user $remoteUid audio muted: $muted");
+            onUserMuteAudio?.call(remoteUid, muted);
+          },
+          onUserMuteVideo: (RtcConnection connection, int remoteUid, bool muted) {
+            debugPrint("📷 Remote user $remoteUid video muted: $muted");
+            onUserMuteVideo?.call(remoteUid, muted);
+          },
+          onConnectionStateChanged: (RtcConnection connection, ConnectionStateType state, ConnectionChangedReasonType reason) {
+            debugPrint("📶 Connection state changed: $state, reason: $reason");
+            onConnectionStateChanged?.call(state, reason);
+          },
         ),
       );
 
-      // 4. Enable audio/video
+      // 7. Enable audio/video
       await _engine!.enableVideo();
       await _engine!.startPreview();
 
       _isInitialized = true;
-      debugPrint("✅ Agora Engine Initialized");
+      debugPrint("✅ Agora Engine Initialized Successfully");
     } catch (e) {
       debugPrint("❌ Error initializing Agora: $e");
+      _engine = null;
+      _isInitialized = false;
       rethrow;
     }
   }
 
   Future<void> joinChannel({
     required String channelName,
-    required int uid, // Use 0 for auto-assign if not strict
+    required int uid,
     bool isVideo = true,
-    String? token, // ✅ Dynamic Token
+    String? token,
   }) async {
     if (!_isInitialized) await initialize();
 
     try {
+      // ✅ Always leave any existing channel first to prevent error -17
+      try {
+        await _engine!.leaveChannel();
+        debugPrint("🔄 Left previous channel before joining new one");
+      } catch (_) {} // Ignore — might not be in a channel
+
       if (isVideo) {
         await _engine!.enableVideo();
       } else {
@@ -140,7 +147,7 @@ class AgoraService {
       }
 
       await _engine!.joinChannel(
-        token: token ?? AgoraConfig.token, // Prioritize dynamic token
+        token: token ?? AgoraConfig.token,
         channelId: channelName,
         uid: uid,
         options: const ChannelMediaOptions(
@@ -164,6 +171,12 @@ class AgoraService {
     if (!_isInitialized) await initialize();
 
     try {
+      // ✅ Always leave any existing channel first to prevent error -17
+      try {
+        await _engine!.leaveChannel();
+        debugPrint("🔄 Left previous channel before joining new one");
+      } catch (_) {} // Ignore — might not be in a channel
+
       if (isVideo) {
         await _engine!.enableVideo();
       } else {
@@ -189,31 +202,44 @@ class AgoraService {
     await _engine?.setEnableSpeakerphone(enabled);
   }
 
+  /// ✅ Leave channel WITHOUT releasing the engine.
+  /// The engine is a native singleton — releasing it causes issues
+  /// when creating a new one for the next call.
   Future<void> leaveChannel() async {
     try {
-      await _engine!.leaveChannel();
-      // Don't destroy engine here if we want to reuse it,
-      // but usually for a clean state in single call apps, we might want to release.
-      // For now, just leaving channel.
+      if (_engine != null) {
+        await _engine!.leaveChannel();
+        debugPrint("✅ Left Agora channel (engine kept alive for reuse)");
+      }
     } catch (e) {
-      debugPrint("❌ Error leaving channel: $e");
+      debugPrint("⚠️ Error leaving channel (may not have been in one): $e");
+      // If leaving fails badly, force reinit on next call
+      if (e.toString().contains('release') || e.toString().contains('destroy')) {
+        try { await _engine?.release(); } catch (_) {}
+        _engine = null;
+        _isInitialized = false;
+      }
     }
   }
 
   Future<void> toggleAudio(bool muted) async {
-    await _engine!.muteLocalAudioStream(muted);
+    await _engine?.muteLocalAudioStream(muted);
   }
 
   Future<void> toggleVideo(bool muted) async {
-    await _engine!.muteLocalVideoStream(muted);
+    await _engine?.muteLocalVideoStream(muted);
   }
 
   Future<void> switchCamera() async {
-    await _engine!.switchCamera();
+    await _engine?.switchCamera();
   }
 
+  /// Only call on app termination — not between calls
   Future<void> dispose() async {
     if (_engine != null) {
+      try {
+        await _engine!.leaveChannel();
+      } catch (_) {}
       await _engine!.release();
       _engine = null;
       _isInitialized = false;

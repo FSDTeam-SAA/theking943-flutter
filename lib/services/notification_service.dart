@@ -149,6 +149,10 @@ class NotificationService {
   static GlobalKey<NavigatorState>? navigatorKey;
   static String? currentChatId;
   static String? pendingPayload;
+  
+  /// ✅ Stores accepted call data when app cold-starts from CallKit
+  /// This allows direct navigation to call screen without home screen flash
+  static Map<String, dynamic>? pendingCallData;
 
   /// Initialize Firebase and Local Notifications
   static Future<void> init() async {
@@ -262,12 +266,24 @@ class NotificationService {
         showBadge: true,
       );
 
-      await _localNotifications
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(chatChannel);
+      // ✅ Incoming call channel — matches backend FCM channelId
+      const AndroidNotificationChannel callChannel = AndroidNotificationChannel(
+        'incoming_call_channel',
+        'Incoming Calls',
+        description: 'Notifications for incoming audio and video calls',
+        importance: Importance.max,
+        playSound: true,
+        enableVibration: true,
+        showBadge: false,
+      );
 
-      debugPrint('✅ Android notification channels created');
+      final androidPlugin = _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      await androidPlugin?.createNotificationChannel(chatChannel);
+      await androidPlugin?.createNotificationChannel(callChannel);
+
+      debugPrint('✅ Android notification channels created (chat + incoming_call)');
     } catch (e) {
       debugPrint('❌ Error creating Android notification channels: $e');
     }
@@ -291,6 +307,8 @@ class NotificationService {
       
       if (message.data['type'] == 'incoming_call') {
         debugPrint('📞 [FOREGROUND] Showing CallKit for incoming call');
+        // ✅ Cancel any system notification for this call (prevents double UI)
+        await _localNotifications.cancelAll();
         await _showCallKitIncoming(message.data);
       } else if (message.data['type'] == 'cancel_call') {
         debugPrint('📴 [FOREGROUND] Call cancelled by caller.');
@@ -581,6 +599,19 @@ class NotificationService {
     }
   }
 
+  /// ✅ Consume pending call data and navigate directly to call screen
+  /// Returns true if there was a pending call that was consumed
+  static bool consumePendingCallData() {
+    if (pendingCallData != null && navigatorKey?.currentState != null) {
+      debugPrint('📞 Consuming pending call data — navigating directly to call screen');
+      final data = pendingCallData!;
+      pendingCallData = null;
+      _handleCallKitAction({'extra': data}, accept: true);
+      return true;
+    }
+    return false;
+  }
+
   // ========================================
   // ✅ FIXED CALLKIT IMPLEMENTATION
   // ========================================
@@ -725,7 +756,13 @@ class NotificationService {
   /// ✅ Handle CallKit Action (Accept/Decline)
   static void _handleCallKitAction(Map<String, dynamic> data, {required bool accept}) async {
     try {
-      // 🔄 Normalize data: Extract from 'extra' if needed
+      // � CRITICAL: Ensure API Service is initialized (loads token) for Cold Start
+      if (!ApiService.isLoggedIn) {
+        debugPrint('⚠️ ApiService not initialized in handleCallKitAction - initializing now...');
+        await ApiService.init();
+      }
+
+      // �🔄 Normalize data: Extract from 'extra' if needed
       Map<String, dynamic> finalData = Map.from(data);
       if (finalData['chatId'] == null && finalData['extra'] != null) {
         if (finalData['extra'] is Map) {
@@ -753,13 +790,25 @@ class NotificationService {
         // ✅ Accept call - Navigate DIRECTLY to call screen (skip IncomingCallScreen)
         debugPrint('✅ Call accepted from CallKit, navigating directly to call screen...');
 
-        // ✅ Send call:accept socket event so caller knows
         if (chatId != null && callerId != null) {
-          SocketService.instance.emit('call:accept', {
+          // 🚀 1. Send via REST API (FAST & RELIABLE for cold starts)
+          ApiService.acceptCall({
             'chatId': chatId,
             'fromUserId': callerId,
+          }).then((_) => debugPrint('✅ API: Call accepted signal sent'))
+            .catchError((e) => debugPrint('❌ API: Call accept failed: $e'));
+
+          // 🚀 2. Ensure Socket Connected & Emit (Contextual Backup)
+          // Don't await this if you want immediate UI navigation
+          SocketService.instance.ensureConnected().then((connected) {
+            if (connected) {
+              SocketService.instance.emit('call:accept', {
+                'chatId': chatId,
+                'fromUserId': callerId,
+              });
+              debugPrint('✅ SOCKET: call:accept event sent');
+            }
           });
-          debugPrint('✅ call:accept socket event sent');
         }
         
         if (navigatorKey?.currentState != null) {
@@ -790,9 +839,9 @@ class NotificationService {
             );
           }
         } else {
-          // Navigator not ready - store for later
-          debugPrint('⚠️ Navigator not ready, storing pending payload');
-          pendingPayload = jsonEncode(finalData);
+          // Navigator not ready - store call data specifically for direct navigation
+          debugPrint('⚠️ Navigator not ready, storing pending CALL data for direct navigation');
+          pendingCallData = finalData;
         }
       } else {
         // ✅ Decline call - Send socket rejection

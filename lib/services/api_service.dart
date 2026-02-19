@@ -341,6 +341,13 @@ class ApiService {
     }
   }
 
+  /// ✅ Accept call via REST API (Fallback for slow socket connection)
+  static Future<Map<String, dynamic>> acceptCall(Map<String, dynamic> data) async {
+    debugPrint('📞 Accepting call via REST API: $data');
+    final response = await post('/api/v1/call/accept', data, requiresAuth: true);
+    return response;
+  }
+
   // ========================================
   // 🔐 AUTH APIs
   // ========================================

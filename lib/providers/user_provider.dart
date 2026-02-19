@@ -1,8 +1,7 @@
-// providers/user_provider.dart
-// ✅ UPDATED with Video Call Toggle Support
-
+import 'dart:convert'; // ✅ Added for JSON encoding/decoding
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // ✅ Added for caching
 import '../models/user_model.dart';
 import '../services/user_service.dart';
 import '../services/doctor_schedule_service.dart';
@@ -17,11 +16,43 @@ class UserProvider with ChangeNotifier {
   String? get error => _error;
   bool get isLoggedIn => _user != null;
 
-  /// Fetch user profile
-  Future<bool> fetchUserProfile() async {
-    _isLoading = true;
+  /// ✅ Load user from local cache immediately on app start
+  Future<void> loadFromCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString('cached_user_profile');
+      if (userJson != null) {
+        debugPrint('💾 Loading user profile from CACHE...');
+        final Map<String, dynamic> data = jsonDecode(userJson);
+        _user = UserModel.fromJson(data);
+        notifyListeners(); // Update UI immediately
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error loading cached profile: $e');
+    }
+  }
+
+  /// ✅ Save user to local cache
+  Future<void> _saveToCache(Map<String, dynamic> data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cached_user_profile', jsonEncode(data));
+      debugPrint('💾 User profile cached locally');
+    } catch (e) {
+      debugPrint('⚠️ Error caching profile: $e');
+    }
+  }
+
+  /// Fetch user profile with Caching & Silent Refresh
+  Future<bool> fetchUserProfile({bool forceRefresh = false}) async {
+    // 1. Silent Refresh: If we already have data, don't show loading spinner
+    // unless explicitly forced.
+    if (_user == null || forceRefresh) {
+      _isLoading = true;
+      notifyListeners();
+    }
+    
     _error = null;
-    notifyListeners();
 
     try {
       debugPrint('📥 Fetching user profile...');
@@ -29,29 +60,29 @@ class UserProvider with ChangeNotifier {
 
       if (response['success'] == true && response['data'] != null) {
         _user = UserModel.fromJson(response['data']);
+        
+        // ✅ Cache the fresh data
+        _saveToCache(response['data']);
+
         debugPrint('✅ User profile loaded: ${_user?.fullName}');
-        debugPrint('✅ Profile image: ${_user?.profileImage}');
-        debugPrint('✅ Specialty: ${_user?.specialty}');
-        debugPrint('✅ Bio: ${_user?.bio}');
-        debugPrint('✅ Video Call Available: ${_user?.isVideoCallAvailable}');
-        debugPrint(
-          '✅ Location: lat=${_user?.latitude}, lng=${_user?.longitude}',
-        );
         _isLoading = false;
         notifyListeners();
         return true;
       } else {
         _error = response['message'] ?? 'Failed to fetch profile';
-        debugPrint('❌ Profile fetch failed: $_error');
-        _isLoading = false;
-        notifyListeners();
+        // Only stop loading if we were loading
+        if (_isLoading) {
+           _isLoading = false;
+           notifyListeners();
+        }
         return false;
       }
     } catch (e) {
       _error = 'Error: $e';
-      debugPrint('❌ Exception: $e');
-      _isLoading = false;
-      notifyListeners();
+      if (_isLoading) {
+         _isLoading = false;
+         notifyListeners();
+      }
       return false;
     }
   }

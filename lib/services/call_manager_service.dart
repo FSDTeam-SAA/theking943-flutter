@@ -5,6 +5,7 @@ import 'package:docmobi/screens/common/calls/video_call_screen.dart';
 import 'package:docmobi/screens/common/calls/audio_call_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
+import 'package:docmobi/services/notification_service.dart';
 
 class CallManager {
   static final CallManager _instance = CallManager._internal();
@@ -159,7 +160,20 @@ class CallManager {
     }
 
     debugPrint('📱 Doctor available - Incoming call UI will be handled by CallKit');
-    debugPrint('ℹ️ CallKit will display full-screen incoming call notification');
+    
+    // ✅ TRIGGER CALLKIT UI
+    debugPrint('🚀 Triggering NotificationService.showIncomingCall from Socket Event');
+    
+    NotificationService.showIncomingCall({
+      'uuid': data['uuid'], // Use backend UUID if available
+      'callerId': fromUserId,
+      'callerName': callerName,
+      'callerAvatar': callerAvatar,
+      'chatId': chatId,
+      'isVideo': isVideo,
+      'callType': isVideo ? 'video' : 'audio',
+      'type': 'incoming_call',
+    });
   }
 
   /// Check if current user (doctor) is available for calls
