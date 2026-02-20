@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/doctor_model.dart';
 import '../services/doctor_service.dart';
 
@@ -13,32 +15,61 @@ class DoctorProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  static const _cacheKey = 'cached_nearby_doctors';
+  static const _cacheTimeKey = 'cached_nearby_doctors_time';
+  static const _cacheDurationMinutes = 10; // ১০ মিনিট cache valid থাকবে
+
+  /// ✅ Cache থেকে doctors load করো — instant UI
+  Future<void> loadFromCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final json = prefs.getString(_cacheKey);
+      final cacheTime = prefs.getInt(_cacheTimeKey) ?? 0;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final ageMinutes = (now - cacheTime) / 60000;
+
+      if (json != null && ageMinutes < _cacheDurationMinutes) {
+        final List<dynamic> data = jsonDecode(json);
+        _nearbyDoctors = data.map((d) => Doctor.fromJson(d)).toList();
+        debugPrint('💾 Doctors loaded from cache (${_nearbyDoctors.length} doctors, ${ageMinutes.toStringAsFixed(1)} min old)');
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error loading doctors cache: $e');
+    }
+  }
+
+  /// ✅ Cache এ save করো
+  Future<void> _saveToCache(List<Doctor> doctors) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = doctors.map((d) => d.toJson()).toList();
+      await prefs.setString(_cacheKey, jsonEncode(jsonList));
+      await prefs.setInt(_cacheTimeKey, DateTime.now().millisecondsSinceEpoch);
+      debugPrint('💾 ${doctors.length} doctors cached');
+    } catch (e) {
+      debugPrint('⚠️ Error saving doctors cache: $e');
+    }
+  }
+
   Future<bool> fetchNearbyDoctors({double? lat, double? lng}) async {
-    _isLoading = true;
+    // ✅ Cache আছে? Loading spinner দেখাবো না
+    if (_nearbyDoctors.isEmpty) {
+      _isLoading = true;
+      notifyListeners();
+    }
     _error = null;
-    notifyListeners();
 
     try {
       debugPrint('📡 Fetching doctors from API...');
-      final response = await _doctorService.getNearbyDoctors(
-        lat: lat,
-        lng: lng,
-      );
-
-      debugPrint('📥 API Response:');
-      debugPrint('   - Success: ${response['success']}');
-      debugPrint(
-        '   - Data count: ${(response['data'] as List?)?.length ?? 0}',
-      );
+      final response = await _doctorService.getNearbyDoctors(lat: lat, lng: lng);
 
       if (response['success'] == true) {
         List<dynamic> data = [];
 
-        // Fix: Handle both List and Map (paginated) responses
         if (response['data'] is List) {
           data = response['data'];
         } else if (response['data'] is Map<String, dynamic>) {
-          // Try common pagination keys
           final mapData = response['data'] as Map<String, dynamic>;
           if (mapData.containsKey('docs')) {
             data = mapData['docs'];
@@ -47,34 +78,28 @@ class DoctorProvider with ChangeNotifier {
           } else if (mapData.containsKey('doctors')) {
             data = mapData['doctors'];
           } else {
-            // If no known key, maybe the map itself is a single object?
-            // But for 'nearby' we expect a list.
-            // It's safer to leave it empty or log a warning if structure is unknown.
             debugPrint('⚠️ Unknown data structure: $mapData');
           }
         }
 
-        debugPrint('✅ Fetched ${data.length} doctors raw data');
-
-        // Parse to Doctor objects
         _nearbyDoctors = data.map((json) => Doctor.fromJson(json)).toList();
+        debugPrint('✅ Fetched ${_nearbyDoctors.length} doctors');
 
-        debugPrint('✅ Successfully parsed ${_nearbyDoctors.length} doctors');
+        // ✅ Cache এ save করো
+        _saveToCache(_nearbyDoctors);
 
         _isLoading = false;
         notifyListeners();
         return true;
       } else {
         _error = response['message'] ?? 'Failed to fetch doctors';
-        debugPrint('❌ API Error: $_error');
         _isLoading = false;
         notifyListeners();
         return false;
       }
     } catch (e, stackTrace) {
       _error = 'Error: $e';
-      debugPrint('❌ Exception in fetchNearbyDoctors:');
-      debugPrint('   Error: $e');
+      debugPrint('❌ Exception in fetchNearbyDoctors: $e');
       debugPrint('   StackTrace: $stackTrace');
       _isLoading = false;
       notifyListeners();
@@ -83,7 +108,6 @@ class DoctorProvider with ChangeNotifier {
   }
 
   void clearDoctors() {
-    debugPrint('🗑️ Clearing doctors list');
     _nearbyDoctors = [];
     _error = null;
     _isLoading = false;

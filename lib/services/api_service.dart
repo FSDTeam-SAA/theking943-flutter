@@ -759,6 +759,26 @@ class ApiService {
     }, requiresAuth: true);
   }
 
+  /// ✅ Unregister FCM Token (on logout — prevents calls to logged-out devices)
+  static Future<Map<String, dynamic>> unregisterFCMToken({
+    required String token,
+  }) async {
+    try {
+      if (!isLoggedIn) return {'success': false, 'message': 'Not logged in'};
+      final url = '$_baseUrl/api/v1/user/fcm-token';
+      final headers = _getHeaders(requiresAuth: true);
+      final response = await http.delete(
+        Uri.parse(url),
+        headers: headers,
+        body: jsonEncode({'token': token}),
+      ).timeout(const Duration(seconds: 5));
+      return _handleResponse(response);
+    } catch (e) {
+      debugPrint('⚠️ FCM token unregister failed: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
   // ========================================
   // 📅 APPOINTMENT APIs
   // ========================================

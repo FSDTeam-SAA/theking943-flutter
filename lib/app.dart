@@ -21,6 +21,7 @@ import 'package:docmobi/providers/locale_provider.dart';
 import 'package:docmobi/services/notification_service.dart';
 import 'services/auth_service.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -36,35 +37,40 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   bool _isLoading = true;
   String? _userRole;
   bool _launchingIntoCall = false;
-  // final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>(); // Removed
+
+  // ✅ FIX: Throttle resume events to prevent excessive data reloads
+  DateTime? _lastResumeTime;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this); // ✅ Register observer
+    WidgetsBinding.instance.addObserver(this);
     _checkLoginStatus();
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this); // ✅ Remove observer
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  // ✅ Handle App Lifecycle Changes
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     debugPrint('🔄 App Lifecycle State: $state');
 
     if (state == AppLifecycleState.resumed) {
-      // App came to foreground - Refresh data
-      debugPrint('⚡ App resumed - Refreshing notifications & socket...');
+      // ✅ FIX: Throttle — ignore rapid resume events within 30 seconds
+      final now = DateTime.now();
+      if (_lastResumeTime != null && now.difference(_lastResumeTime!).inSeconds < 30) {
+        debugPrint('⏳ Resume throttled (${now.difference(_lastResumeTime!).inSeconds}s since last)');
+        return;
+      }
+      _lastResumeTime = now;
+      debugPrint('⚡ App resumed - Refreshing...');
 
       if (_isLoggedIn) {
-        // 1. Refresh Notifications
         NotificationPoller().refreshNotifications();
 
-        // 2. Ensure Socket is connected
         SharedPreferences.getInstance().then((prefs) {
           final uid = prefs.getString('user_id');
           if (uid != null && !SocketService.instance.isConnected) {
@@ -72,13 +78,11 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
           }
         });
 
-        // 3. ✅ Check for active call that needs to be restored
         _restoreActiveCallIfNeeded();
       }
     }
   }
 
-  /// ✅ Restore active call screen if the app was closed during an active call
   Future<void> _restoreActiveCallIfNeeded() async {
     try {
       final callData = await ActiveCallState.getActiveCall();
@@ -87,7 +91,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       final navigator = navigatorKey.currentState;
       if (navigator == null) return;
 
-      debugPrint('📞 Restoring active call: ${callData['callType']} with ${callData['userName']}');
+      debugPrint(
+          '📞 Restoring active call: ${callData['callType']} with ${callData['userName']}');
 
       final callType = callData['callType'] ?? 'audio';
       final chatId = callData['chatId'] ?? '';
@@ -97,57 +102,50 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       final isInitiator = callData['isInitiator'] ?? false;
 
       if (callType == 'video') {
-        navigator.push(
-          MaterialPageRoute(
-            builder: (context) => VideoCallScreen(
-              chatId: chatId,
-              userName: userName,
-              userAvatar: userAvatar,
-              otherUserId: otherUserId,
-              isInitiator: isInitiator,
-            ),
+        navigator.push(MaterialPageRoute(
+          builder: (context) => VideoCallScreen(
+            chatId: chatId,
+            userName: userName,
+            userAvatar: userAvatar,
+            otherUserId: otherUserId,
+            isInitiator: isInitiator,
           ),
-        );
+        ));
       } else {
-        navigator.push(
-          MaterialPageRoute(
-            builder: (context) => AudioCallScreen(
-              chatId: chatId,
-              userName: userName,
-              userAvatar: userAvatar,
-              otherUserId: otherUserId,
-              isInitiator: isInitiator,
-            ),
+        navigator.push(MaterialPageRoute(
+          builder: (context) => AudioCallScreen(
+            chatId: chatId,
+            userName: userName,
+            userAvatar: userAvatar,
+            otherUserId: otherUserId,
+            isInitiator: isInitiator,
           ),
-        );
+        ));
       }
-      debugPrint('✅ Active call screen restored successfully');
     } catch (e) {
       debugPrint('⚠️ Failed to restore active call: $e');
-      // Clear stale call state if restoration fails
       await ActiveCallState.clearActiveCall();
     }
   }
 
   Future<void> _checkLoginStatus() async {
     try {
-      debugPrint('');
-      debugPrint('═══════════════════════════════════════');
       debugPrint('🔍 Checking app login status...');
-      debugPrint('═══════════════════════════════════════');
 
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
       final role = prefs.getString('user_role');
       final userId = prefs.getString('user_id');
 
-      debugPrint('📦 SharedPreferences Check:');
-      debugPrint('   • Token: ${token != null ? "✅ Found" : "❌ Not found"}');
-      debugPrint('   • Role: ${role ?? "❌ Not found"}');
-      debugPrint('   • User ID: ${userId ?? "❌ Not found"}');
+      debugPrint('   Token: ${token != null ? "✅" : "❌"}');
+      debugPrint('   Role: ${role ?? "❌"}');
+      debugPrint('   User ID: ${userId ?? "❌"}');
 
-      // ✅ Check for active CallKit calls BEFORE building home screen
-      if (token != null && token.isNotEmpty) {
+      final isLoggedIn = token != null && token.isNotEmpty;
+
+      // ✅ FIX: Cold start CallKit check — app closed অবস্থায় call accept করলে
+      // Home screen দেখানোর আগেই check করি active call আছে কিনা
+      if (isLoggedIn) {
         try {
           final activeCalls = await FlutterCallkitIncoming.activeCalls();
           if (activeCalls is List && activeCalls.isNotEmpty) {
@@ -162,62 +160,50 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
                 final callTime = DateTime.parse(data['timestamp']);
                 final diff = DateTime.now().difference(callTime).inMinutes;
                 if (diff <= 2) {
+                  // ✅ Valid active call — skip home screen entirely
                   _launchingIntoCall = true;
                   NotificationService.pendingCallData = data;
-                  debugPrint('📞 Active call found on startup — will skip home screen');
+                  debugPrint('📞 Valid active call on startup — will skip home screen');
                 } else {
                   await FlutterCallkitIncoming.endAllCalls();
-                  debugPrint('⚠️ Stale call found ($diff min old) — cleared');
+                  debugPrint('⚠️ Stale call ($diff min old) — cleared');
                 }
               }
             }
           }
         } catch (e) {
-          debugPrint('⚠️ Error checking active calls on startup: $e');
+          debugPrint('⚠️ Error checking active calls: $e');
         }
       }
 
-      // Update state
       setState(() {
-        _isLoggedIn = token != null && token.isNotEmpty;
+        _isLoggedIn = isLoggedIn;
         _userRole = role?.toLowerCase();
         _isLoading = false;
       });
 
       if (_isLoggedIn) {
-        debugPrint('✅ User is logged in as: $_userRole');
-        debugPrint(
-          '🚀 Will navigate to: ${_userRole == "doctor" ? "Doctor Dashboard" : "Patient Dashboard"}',
-        );
+        debugPrint('✅ User logged in as: $_userRole');
 
-        // Initialize CallManager after navigation is ready
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           if (navigatorKey.currentContext != null) {
-            NotificationService.navigatorKey = navigatorKey; // ✅ Added
+            NotificationService.navigatorKey = navigatorKey;
             CallManager.instance.initialize(navigatorKey.currentContext!);
-            
-            // ✅ PRIORITY 1: Check for pending call from cold-start CallKit accept
+
+            // ✅ FIX: Pending call navigate করো — home screen flash না করে
+            // সরাসরি call screen এ যাবে
             if (NotificationService.consumePendingCallData()) {
-              debugPrint('📞 Navigated directly to call screen from cold start');
+              debugPrint('📞 Navigated directly to call screen (cold start)');
               if (mounted) setState(() => _launchingIntoCall = false);
             } else {
-              // ✅ PRIORITY 2: Standard initial message check
-              await NotificationService.checkInitialMessage(); 
+              await NotificationService.checkInitialMessage();
               NotificationService.consumePendingPayload();
             }
-            
-            debugPrint('✅ CallManager & Notification Navigator initialized');
           }
         });
-      } else {
-        debugPrint('⚠️ User not logged in - Will show SplashScreen');
       }
-
-      debugPrint('═══════════════════════════════════════');
-      debugPrint('');
     } catch (e) {
       debugPrint('❌ Error checking login status: $e');
-
       setState(() {
         _isLoading = false;
         _isLoggedIn = false;
@@ -230,7 +216,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     final currentLocale = ref.watch(localeProvider);
 
     return MaterialApp(
-      navigatorKey: navigatorKey, // ✅ ADDED for CallManager
+      navigatorKey: navigatorKey,
       title: 'Docmobi',
       locale: currentLocale,
       localizationsDelegates: [
@@ -239,7 +225,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-
       supportedLocales: const [Locale('en'), Locale('ar'), Locale('fr')],
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -250,10 +235,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         ),
       ),
       debugShowCheckedModeBanner: false,
-
       home: _buildHomeScreen(),
-
-      // ✅ Named routes for navigation
       routes: {
         '/splash': (context) => const SplashScreen(),
         '/patient-home': (context) => const PatientMainNavigation(),
@@ -262,70 +244,42 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         '/add-dependent': (context) => const AddDependentScreen(),
         '/edit-dependent': (context) => const EditDependentScreen(),
         '/notifications': (context) => const NotificationScreen(),
-        // Add more routes as needed
       },
-
-      // ✅ Route generator for dynamic routes
       onGenerateRoute: (settings) {
-        debugPrint('🔗 Navigating to: ${settings.name}');
-
         if (settings.name == '/edit-dependent') {
           return MaterialPageRoute(
             builder: (context) => const EditDependentScreen(),
             settings: settings,
           );
         }
-
-        return null; // Let the routes table handle it
+        return null;
       },
-
-      // ✅ Handle unknown routes
       onUnknownRoute: (settings) {
-        debugPrint('⚠️ Unknown route: ${settings.name}');
         return MaterialPageRoute(builder: (context) => const SplashScreen());
       },
     );
   }
 
   Widget _buildHomeScreen() {
+    // Loading
     if (_isLoading) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: Colors.white,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1664CD)),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Loading...',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Checking authentication',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-            ],
-          ),
-        ),
+        body: Center(child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1664CD)),
+        )),
       );
     }
 
+    // Not logged in
     if (!_isLoggedIn) {
-      debugPrint('📱 Rendering: SplashScreen (Not logged in)');
       return const SplashScreen();
     }
 
-    // ✅ Show minimal screen while transitioning to call (avoids home screen flash)
+    // ✅ FIX: App closed অবস্থায় call accept করলে — সরাসরি dark screen দেখাও
+    // home screen flash করবে না
     if (_launchingIntoCall) {
-      debugPrint('📞 Rendering: Connecting to call screen (skip home)');
+      debugPrint('📞 Showing call connecting screen (no home screen flash)');
       return const Scaffold(
         backgroundColor: Color(0xFF1B2C49),
         body: Center(
@@ -334,36 +288,26 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
             children: [
               CircularProgressIndicator(color: Colors.white),
               SizedBox(height: 16),
-              Text('Connecting to call...',
-                style: TextStyle(color: Colors.white, fontSize: 16)),
+              Text(
+                'Connecting to call...',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
             ],
           ),
         ),
       );
     }
 
-    debugPrint('📱 Rendering: ${_userRole?.toUpperCase()} Dashboard');
-
+    // Normal navigation
     switch (_userRole) {
       case 'doctor':
-        debugPrint('   → DoctorMainNavigation');
         return const DoctorMainNavigation();
-
       case 'patient':
-        debugPrint('   → PatientMainNavigation');
         return const PatientMainNavigation();
-
       case 'admin':
-        debugPrint('   → AdminMainNavigation (Fallback to Patient)');
         return const PatientMainNavigation();
-
       default:
-        debugPrint('⚠️ Unknown role detected: $_userRole');
-        debugPrint('🔄 Logging out and redirecting to splash...');
-
-        // Logout in background
         _logout();
-
         return Scaffold(
           backgroundColor: Colors.white,
           body: Center(
@@ -397,20 +341,16 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1664CD),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 12,
-                    ),
+                        horizontal: 32, vertical: 12),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   child: const Text(
                     'Go to Login',
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white),
                   ),
                 ),
               ],
@@ -422,55 +362,47 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
 
   Future<void> _logout() async {
     try {
-      debugPrint('🔄 Logging out user (Optimistic)...');
+      // ✅ FIX: Deactivate FCM token BEFORE clearing credentials
+      // This prevents call notifications reaching this device after logout
+      try {
+        final fcmToken = await FirebaseMessaging.instance.getToken();
+        if (fcmToken != null) {
+          await ApiService.unregisterFCMToken(token: fcmToken);
+          debugPrint('✅ FCM token deactivated on server');
+        }
+      } catch (e) {
+        debugPrint('⚠️ FCM token deactivation failed: $e');
+      }
 
-      // 1. Immediately clear local state
       if (mounted) {
         setState(() {
           _isLoggedIn = false;
           _userRole = null;
-          _isLoading = false; // Ensure loading is off so splash/login shows
+          _isLoading = false;
         });
       }
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
-
-      // Clear ApiService token in memory
       await ApiService.clearToken();
-      debugPrint('✅ Local state cleared immediately');
 
-      // 2. Perform background cleanup (Fire and Forget)
       Future.wait([
-            // Stop notification polling
-            Future(() {
-              NotificationPoller().stopPolling();
-              return NotificationPoller().clearAllData();
-            }),
-
-            // Backend Logout
-            AuthService().logout(),
-
-            // Socket Disconnect
-            Future(() {
-              SocketService.instance.disconnect();
-              debugPrint('✅ Socket disconnected');
-            }),
-
-            // CallManager Dispose
-            Future(() {
-              CallManager.instance.dispose();
-            }),
-          ])
-          .then((_) {
-            debugPrint('✅ Background logout tasks completed');
-          })
-          .catchError((e) {
-            debugPrint('⚠️ Background logout tasks had error: $e');
-          });
+        Future(() {
+          NotificationPoller().stopPolling();
+          return NotificationPoller().clearAllData();
+        }),
+        AuthService().logout(),
+        Future(() {
+          SocketService.instance.disconnect();
+        }),
+        Future(() {
+          CallManager.instance.dispose();
+        }),
+      ]).catchError((e) {
+        debugPrint('⚠️ Background logout error: $e');
+      });
     } catch (e) {
-      debugPrint('❌ Error during optimistic logout: $e');
-      // Even if error, ensure state is cleared
+      debugPrint('❌ Logout error: $e');
       if (mounted) {
         setState(() {
           _isLoggedIn = false;
@@ -478,70 +410,5 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         });
       }
     }
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// 🔧 DEBUGGING HELPER WIDGET (Remove in production)
-// ═══════════════════════════════════════════════════════════════
-
-/// ✅ Optional: Debug overlay to check token status
-class DebugTokenOverlay extends StatelessWidget {
-  final Widget child;
-
-  const DebugTokenOverlay({super.key, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        child,
-
-        // Debug info in bottom-right corner
-        Positioned(
-          bottom: 16,
-          right: 16,
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.black87,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      ApiService.isLoggedIn ? Icons.check_circle : Icons.cancel,
-                      color: ApiService.isLoggedIn ? Colors.green : Colors.red,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      ApiService.isLoggedIn ? 'Logged In' : 'Not Logged In',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                if (ApiService.token != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'Token: ${ApiService.token!.substring(0, 10)}...',
-                    style: const TextStyle(color: Colors.white70, fontSize: 8),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }

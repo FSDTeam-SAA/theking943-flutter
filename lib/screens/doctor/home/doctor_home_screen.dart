@@ -167,11 +167,19 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
       _handleTokenMissing();
       return;
     }
+
+     // ✅ আগে cache load করো
+  final userProvider = legacy_provider.Provider.of<UserProvider>(
+    context, listen: false,
+  );
+  if (userProvider.user == null) {
+    await userProvider.loadFromCache();
+  }
     await _loadUserData();
     await _loadPosts();
-  }
+   }
 
-  void _handleTokenMissing() {
+   void _handleTokenMissing() {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
     setState(() {

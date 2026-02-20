@@ -49,14 +49,18 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   final Set<Polyline> _directionPolylines = {};
   // String? _selectedDoctorId; // Unused
   Timer? _refreshTimer; // ✅ Auto refresh timer
+  bool _isScreenInitialized = false; // ✅ FIX: Prevent duplicate init calls on rebuild
 
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeScreen();
-      _startAutoRefresh(); // ✅ Start timer
+      if (!_isScreenInitialized) {
+        _isScreenInitialized = true;
+        _initializeScreen();
+        _startAutoRefresh(); // ✅ Start timer
+      }
     });
   }
 
@@ -70,65 +74,61 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     });
   }
 
-  Future<void> _initializeScreen() async {
+ Future<void> _initializeScreen() async {
     try {
-      // ✅ Start all operations in parallel WITHOUT blocking
-      // UI will render immediately with loading states
-
-      // 0. Load CACHED profile first for instant UI (if not already loaded)
       final userProvider = legacy_provider.Provider.of<UserProvider>(
         context,
         listen: false,
       );
-      
-      if (userProvider.user == null) {
-        debugPrint('💾 Loading cached profile for instant UI...');
-        userProvider.loadFromCache();
-      }
+      final doctorProvider = legacy_provider.Provider.of<DoctorProvider>(
+        context,
+        listen: false,
+      );
+      final appointmentProvider = legacy_provider.Provider.of<AppointmentProvider>(
+        context,
+        listen: false,
+      );
 
-      // 1. Fetch fresh user profile (non-blocking) - for name and avatar
+      // ✅ STEP 1: আগে cache থেকে load করো — instant UI, no loading spinner
+      await Future.wait([
+        if (userProvider.user == null) userProvider.loadFromCache(),
+        if (appointmentProvider.appointments.isEmpty) appointmentProvider.loadFromCache(),
+        if (doctorProvider.nearbyDoctors.isEmpty) doctorProvider.loadFromCache(),
+      ]);
+
+      // ✅ STEP 2: Background এ fresh data fetch করো (non-blocking)
+
+      // User profile
       userProvider.fetchUserProfile().then(
-        (_) {
-          debugPrint('✅ Fresh user profile loaded');
-        },
+        (_) => debugPrint('✅ Fresh user profile loaded'),
         onError: (e) {
           debugPrint('Error fetching user profile: $e');
           return false;
         },
       );
 
-      // 2. Fetch appointments (non-blocking)
-      legacy_provider.Provider.of<AppointmentProvider>(
-        context,
-        listen: false,
-      ).fetchAppointments().then(
-        (_) {
-          debugPrint('✅ Appointments loaded');
-        },
+      // Appointments
+      appointmentProvider.fetchAppointments().then(
+        (_) => debugPrint('✅ Appointments loaded'),
         onError: (e) {
           debugPrint('Error fetching appointments: $e');
-          return false; // Return value for onError handler
+          return false;
         },
       );
 
-      // 3. Get Location (non-blocking, with timeout)
+      // Location → তারপর Doctors
       _getCurrentLocation()
           .then((_) {
-            // After location is obtained, fetch doctors
             if (mounted) {
               double? lat = _currentPosition.latitude;
               double? lng = _currentPosition.longitude;
 
-              // If location is default, don't pass it
               if (lat == 0 && lng == 0) {
                 lat = null;
                 lng = null;
               }
 
-              legacy_provider.Provider.of<DoctorProvider>(
-                    context,
-                    listen: false,
-                  )
+              doctorProvider
                   .fetchNearbyDoctors(lat: lat, lng: lng)
                   .then(
                     (_) => debugPrint('✅ Doctors loaded'),
@@ -145,9 +145,6 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
               setState(() => _isLoadingLocation = false);
             }
           });
-
-      // 4. Fetch doctors will be called after location updates
-      // This happens automatically via the location callback
     } catch (e) {
       debugPrint('Error initializing screen: $e');
       setState(() {

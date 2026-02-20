@@ -18,8 +18,8 @@ class AppointmentModel {
   final String? reason;
   final DateTime? createdAt;
   final BookedForInfo? bookedFor;
-  final List<String>? medicalDocuments; // ✅ FIXED: Added proper field
-  final String? paymentScreenshot; // ✅ FIXED: Added proper field
+  final List<String>? medicalDocuments;
+  final String? paymentScreenshot;
 
   AppointmentModel({
     required this.id,
@@ -39,12 +39,11 @@ class AppointmentModel {
     this.reason,
     this.createdAt,
     this.bookedFor,
-    this.medicalDocuments, // ✅ FIXED
-    this.paymentScreenshot, // ✅ FIXED
+    this.medicalDocuments,
+    this.paymentScreenshot,
   });
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
-    // ✅ Safely parse doctor object
     final doctorData = json['doctor'];
     String doctorId = '';
     String? doctorName;
@@ -56,8 +55,6 @@ class AppointmentModel {
         doctorId = doctorData['_id'] ?? doctorData['id'] ?? '';
         doctorName = doctorData['fullName'];
         specialty = doctorData['specialty'];
-
-        // Handle nested avatar object
         final avatar = doctorData['avatar'];
         if (avatar != null && avatar is Map<String, dynamic>) {
           doctorImage = avatar['url'];
@@ -67,20 +64,16 @@ class AppointmentModel {
       }
     }
 
-    // ✅ Fallback: Check root level doctorId if not found in nested object
     if (doctorId.isEmpty && json['doctorId'] != null) {
       doctorId = json['doctorId'].toString();
     }
 
-    // 🔍 DEBUG: Log if doctorId is still empty
     if (doctorId.isEmpty) {
       debugPrint('🚨 AppointmentModel: doctorId is EMPTY!');
       debugPrint('   -> json["doctor"]: ${json['doctor']}');
       debugPrint('   -> json["doctorId"]: ${json['doctorId']}');
-      debugPrint('   -> Entire JSON: $json');
     }
 
-    // ✅ Safely parse patient object
     final patientData = json['patient'];
     String patientId = '';
     String? patientName;
@@ -90,8 +83,6 @@ class AppointmentModel {
       if (patientData is Map<String, dynamic>) {
         patientId = patientData['_id'] ?? patientData['id'] ?? '';
         patientName = patientData['fullName'];
-
-        // Handle nested avatar object
         final avatar = patientData['avatar'];
         if (avatar != null && avatar is Map<String, dynamic>) {
           patientImage = avatar['url'];
@@ -101,7 +92,6 @@ class AppointmentModel {
       }
     }
 
-    // ✅ Parse date safely
     DateTime appointmentDate;
     try {
       appointmentDate = DateTime.parse(
@@ -112,7 +102,6 @@ class AppointmentModel {
       debugPrint('⚠️ Date parse error: $e');
     }
 
-    // ✅ Parse createdAt safely
     DateTime? createdAt;
     try {
       if (json['createdAt'] != null) {
@@ -122,76 +111,40 @@ class AppointmentModel {
       debugPrint('⚠️ CreatedAt parse error: $e');
     }
 
-    // ✅ FIXED: Parse medicalDocuments
     List<String>? medicalDocuments;
-    if (json['medicalDocuments'] != null) {
-      debugPrint(
-        '🔍 Raw medicalDocuments: ${json['medicalDocuments']}',
-      ); // Debug
-
-      if (json['medicalDocuments'] is List) {
-        medicalDocuments = (json['medicalDocuments'] as List)
-            .map((doc) {
-              String docStr = doc.toString();
-              debugPrint('📄 Processing doc: $docStr'); // Debug
-
-              // ✅ Extract Cloudinary URL if present
-              if (docStr.contains('https://res.cloudinary.com')) {
-                final match = RegExp(
-                  r'https://res\.cloudinary\.com[^\s,}]+',
-                ).firstMatch(docStr);
-                if (match != null) {
-                  String url = match.group(0)!;
-                  debugPrint('☁️ Extracted Cloudinary URL: $url'); // Debug
-                  return url;
-                }
-              }
-
-              // ✅ Extract public_id if present
-              if (docStr.contains('public_id')) {
-                final match = RegExp(
-                  r'"public_id"\s*:\s*"([^"]+)"',
-                ).firstMatch(docStr);
-                if (match != null) {
-                  String publicId = match.group(1)!;
-                  debugPrint('📁 Extracted public_id: $publicId'); // Debug
-                  return publicId;
-                }
-              }
-
-              return docStr;
-            })
-            .where((url) => url.isNotEmpty) // Remove empty strings
-            .toList();
-
-        debugPrint('✅ Final medicalDocuments: $medicalDocuments'); // Debug
-      }
-    } else {
-      debugPrint('⚠️ No medicalDocuments in JSON'); // Debug
+    if (json['medicalDocuments'] != null && json['medicalDocuments'] is List) {
+      medicalDocuments = (json['medicalDocuments'] as List)
+          .map((doc) {
+            String docStr = doc.toString();
+            if (docStr.contains('https://res.cloudinary.com')) {
+              final match = RegExp(
+                r'https://res\.cloudinary\.com[^\s,}]+',
+              ).firstMatch(docStr);
+              if (match != null) return match.group(0)!;
+            }
+            if (docStr.contains('public_id')) {
+              final match = RegExp(
+                r'"public_id"\s*:\s*"([^"]+)"',
+              ).firstMatch(docStr);
+              if (match != null) return match.group(1)!;
+            }
+            return docStr;
+          })
+          .where((url) => url.isNotEmpty)
+          .toList();
     }
 
-    // ✅ FIXED: Parse paymentScreenshot
     String? paymentScreenshot;
     if (json['paymentScreenshot'] != null) {
       String psStr = json['paymentScreenshot'].toString();
-      debugPrint('💳 Raw paymentScreenshot: $psStr'); // Debug
-
-      // ✅ Extract Cloudinary URL if present
       if (psStr.contains('https://res.cloudinary.com')) {
         final match = RegExp(
           r'https://res\.cloudinary\.com[^\s,}]+',
         ).firstMatch(psStr);
-        if (match != null) {
-          paymentScreenshot = match.group(0)!;
-          debugPrint('☁️ Extracted payment URL: $paymentScreenshot'); // Debug
-        }
+        if (match != null) paymentScreenshot = match.group(0)!;
       } else {
         paymentScreenshot = psStr;
       }
-
-      debugPrint('✅ Final paymentScreenshot: $paymentScreenshot'); // Debug
-    } else {
-      debugPrint('⚠️ No paymentScreenshot in JSON'); // Debug
     }
 
     return AppointmentModel(
@@ -214,29 +167,41 @@ class AppointmentModel {
       bookedFor: json['bookedFor'] != null
           ? BookedForInfo.fromJson(json['bookedFor'])
           : null,
-      medicalDocuments: medicalDocuments, // ✅ FIXED
-      paymentScreenshot: paymentScreenshot, // ✅ FIXED
+      medicalDocuments: medicalDocuments,
+      paymentScreenshot: paymentScreenshot,
     );
   }
 
+  /// ✅ FIX: Cache এর জন্য সব field save করো
   Map<String, dynamic> toJson() {
     return {
-      'doctorId': doctorId,
-      'appointmentDate': appointmentDate.toIso8601String().split('T')[0],
+      '_id': id,
+      'doctor': {
+        '_id': doctorId,
+        'fullName': doctorName,
+        'specialty': specialty,
+        if (doctorImage != null) 'avatar': {'url': doctorImage},
+      },
+      'patient': {
+        '_id': patientId,
+        'fullName': patientName,
+        if (patientImage != null) 'avatar': {'url': patientImage},
+      },
+      'appointmentDate': appointmentDate.toIso8601String(),
       'time': appointmentTime,
-      'appointmentType': appointmentType ?? 'physical',
-      if (symptoms != null && symptoms!.isNotEmpty) 'symptoms': symptoms,
-      if (notes != null && notes!.isNotEmpty) 'notes': notes,
-      if (reason != null && reason!.isNotEmpty) 'reason': reason,
+      'appointmentTime': appointmentTime,
+      'status': status,
+      if (appointmentType != null) 'appointmentType': appointmentType,
+      if (symptoms != null) 'symptoms': symptoms,
+      if (notes != null) 'notes': notes,
+      if (reason != null) 'reason': reason,
+      if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
       if (bookedFor != null) 'bookedFor': bookedFor!.toJson(),
-      if (medicalDocuments != null && medicalDocuments!.isNotEmpty)
-        'medicalDocuments': medicalDocuments,
-      if (paymentScreenshot != null && paymentScreenshot!.isNotEmpty)
-        'paymentScreenshot': paymentScreenshot,
+      if (medicalDocuments != null) 'medicalDocuments': medicalDocuments,
+      if (paymentScreenshot != null) 'paymentScreenshot': paymentScreenshot,
     };
   }
 
-  // Helper method for status color
   String get statusColor {
     switch (status.toLowerCase()) {
       case 'confirmed':
@@ -253,26 +218,14 @@ class AppointmentModel {
     }
   }
 
-  // Helper method for formatted date
   String get formattedDate {
     final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     return '${appointmentDate.day} ${months[appointmentDate.month - 1]}, ${appointmentDate.year}';
   }
 
-  // Copy with method for easy updates
   AppointmentModel copyWith({
     String? id,
     String? doctorId,
@@ -318,12 +271,11 @@ class AppointmentModel {
   }
 }
 
-// ✅ BookedForInfo Class
 class BookedForInfo {
-  final String type; // "self" or "dependent"
+  final String type;
   final String? dependentId;
   final String? dependentName;
-  final String? relationship; // Category: Son, Father, Mother, Daughter, etc.
+  final String? relationship;
 
   BookedForInfo({
     required this.type,
@@ -332,28 +284,16 @@ class BookedForInfo {
     this.relationship,
   });
 
-  // ✅ Properly shows relationship/category in UI
   String get bookingLabel {
     if (type == 'dependent') {
-      // যদি name এবং relationship দুটোই থাকে: "John (Son)"
       if (dependentName != null &&
           dependentName!.isNotEmpty &&
           relationship != null &&
           relationship!.isNotEmpty) {
         return "$dependentName ($relationship)";
       }
-
-      // শুধু relationship থাকলে: "Son", "Father" etc
-      if (relationship != null && relationship!.isNotEmpty) {
-        return relationship!;
-      }
-
-      // শুধু name থাকলে
-      if (dependentName != null && dependentName!.isNotEmpty) {
-        return dependentName!;
-      }
-
-      // কিছুই না থাকলে
+      if (relationship != null && relationship!.isNotEmpty) return relationship!;
+      if (dependentName != null && dependentName!.isNotEmpty) return dependentName!;
       return "Dependent";
     }
     return 'Self';

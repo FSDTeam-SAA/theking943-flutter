@@ -1,4 +1,6 @@
-import 'package:flutter/foundation.dart'; // for compute
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/appointment_model.dart';
 import '../services/appointment_service.dart';
 
@@ -9,11 +11,10 @@ List<AppointmentModel> _parseAppointments(dynamic data) {
   final List<AppointmentModel> parsed = data
       .map((json) {
         try {
-          // 🔍 DEBUG: Log raw JSON for the first appointment to inspect structure
           if (data.indexOf(json) == 0) {
-            debugPrint('\n\n�🔴🔴 RAW JSON START 🔴🔴🔴');
+            debugPrint('\n🔴🔴 RAW JSON START 🔴🔴');
             debugPrint(json.toString());
-            debugPrint('🔴🔴🔴 RAW JSON END 🔴🔴🔴\n\n');
+            debugPrint('🔴🔴 RAW JSON END 🔴🔴\n');
           }
           return AppointmentModel.fromJson(json as Map<String, dynamic>);
         } catch (e) {
@@ -24,9 +25,7 @@ List<AppointmentModel> _parseAppointments(dynamic data) {
       .whereType<AppointmentModel>()
       .toList();
 
-  // Sort by date (newest first)
   parsed.sort((a, b) => b.appointmentDate.compareTo(a.appointmentDate));
-
   return parsed;
 }
 
@@ -42,36 +41,69 @@ class AppointmentProvider with ChangeNotifier {
   String? get error => _error;
   bool get hasAppointments => _appointments.isNotEmpty;
 
-  // Filter by status
-  List<AppointmentModel> get pendingAppointments => _appointments
-      .where((apt) => apt.status.toLowerCase() == 'pending')
-      .toList();
+  static const _cacheKey = 'cached_appointments';
+  static const _cacheTimeKey = 'cached_appointments_time';
+  static const _cacheDurationMinutes = 5; // ৫ মিনিট cache valid
 
-  List<AppointmentModel> get acceptedAppointments => _appointments
-      .where((apt) => apt.status.toLowerCase() == 'accepted')
-      .toList();
+  List<AppointmentModel> get pendingAppointments =>
+      _appointments.where((apt) => apt.status.toLowerCase() == 'pending').toList();
+
+  List<AppointmentModel> get acceptedAppointments =>
+      _appointments.where((apt) => apt.status.toLowerCase() == 'accepted').toList();
 
   List<AppointmentModel> get upcomingAppointments => _appointments
-      .where(
-        (apt) =>
-            apt.status.toLowerCase() == 'pending' ||
-            apt.status.toLowerCase() == 'accepted',
-      )
+      .where((apt) =>
+          apt.status.toLowerCase() == 'pending' ||
+          apt.status.toLowerCase() == 'accepted')
       .toList();
 
-  List<AppointmentModel> get completedAppointments => _appointments
-      .where((apt) => apt.status.toLowerCase() == 'completed')
-      .toList();
+  List<AppointmentModel> get completedAppointments =>
+      _appointments.where((apt) => apt.status.toLowerCase() == 'completed').toList();
 
-  List<AppointmentModel> get cancelledAppointments => _appointments
-      .where((apt) => apt.status.toLowerCase() == 'cancelled')
-      .toList();
+  List<AppointmentModel> get cancelledAppointments =>
+      _appointments.where((apt) => apt.status.toLowerCase() == 'cancelled').toList();
+
+  /// ✅ Cache থেকে appointments load করো — instant UI
+  Future<void> loadFromCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final json = prefs.getString(_cacheKey);
+      final cacheTime = prefs.getInt(_cacheTimeKey) ?? 0;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final ageMinutes = (now - cacheTime) / 60000;
+
+      if (json != null && ageMinutes < _cacheDurationMinutes) {
+        final List<dynamic> data = jsonDecode(json);
+        _appointments = await compute(_parseAppointments, data);
+        debugPrint('💾 Appointments from cache (${_appointments.length} items, ${ageMinutes.toStringAsFixed(1)} min old)');
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error loading appointments cache: $e');
+    }
+  }
+
+  /// ✅ Cache এ save করো
+  Future<void> _saveToCache(List<AppointmentModel> appointments) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = appointments.map((a) => a.toJson()).toList();
+      await prefs.setString(_cacheKey, jsonEncode(jsonList));
+      await prefs.setInt(_cacheTimeKey, DateTime.now().millisecondsSinceEpoch);
+      debugPrint('💾 ${appointments.length} appointments cached');
+    } catch (e) {
+      debugPrint('⚠️ Error saving appointments cache: $e');
+    }
+  }
 
   /// Fetch appointments
   Future<bool> fetchAppointments() async {
-    _isLoading = true;
+    // ✅ Cache আছে? Loading spinner দেখাবো না
+    if (_appointments.isEmpty) {
+      _isLoading = true;
+      notifyListeners();
+    }
     _error = null;
-    notifyListeners();
 
     try {
       final response = await _appointmentService.getMyAppointments();
@@ -80,8 +112,9 @@ class AppointmentProvider with ChangeNotifier {
         final data = response['data'];
 
         if (data != null) {
-          // ✅ Run parsing in background isolate
           _appointments = await compute(_parseAppointments, data);
+          // ✅ Cache এ save করো
+          _saveToCache(_appointments);
         } else {
           _appointments = [];
         }
@@ -148,24 +181,15 @@ class AppointmentProvider with ChangeNotifier {
   /// Accept appointment (Doctor)
   Future<bool> acceptAppointment(String appointmentId) async {
     try {
-      debugPrint('Accepting appointment: $appointmentId');
-
       final response = await _appointmentService.updateAppointmentStatus(
         appointmentId: appointmentId,
         status: 'accepted',
       );
 
       if (response['success'] == true) {
-        // Update local state
-        final index = _appointments.indexWhere(
-          (apt) => apt.id == appointmentId,
-        );
+        final index = _appointments.indexWhere((apt) => apt.id == appointmentId);
         if (index != -1) {
-          _appointments[index] = _appointments[index].copyWith(
-            status: 'accepted',
-          );
-
-          // Create and send appointment confirmation notification
+          _appointments[index] = _appointments[index].copyWith(status: 'accepted');
           await _sendAppointmentConfirmationNotification(_appointments[index]);
         }
         notifyListeners();
@@ -183,24 +207,18 @@ class AppointmentProvider with ChangeNotifier {
     }
   }
 
-  /// Cancel appointment (Doctor/Patient)
+  /// Cancel appointment
   Future<bool> cancelAppointment(String appointmentId) async {
     try {
-      debugPrint('Cancelling appointment: $appointmentId');
-
       final response = await _appointmentService.updateAppointmentStatus(
         appointmentId: appointmentId,
         status: 'cancelled',
       );
 
       if (response['success'] == true) {
-        final index = _appointments.indexWhere(
-          (apt) => apt.id == appointmentId,
-        );
+        final index = _appointments.indexWhere((apt) => apt.id == appointmentId);
         if (index != -1) {
-          _appointments[index] = _appointments[index].copyWith(
-            status: 'cancelled',
-          );
+          _appointments[index] = _appointments[index].copyWith(status: 'cancelled');
         }
         notifyListeners();
         return true;
@@ -217,36 +235,24 @@ class AppointmentProvider with ChangeNotifier {
     }
   }
 
-  /// Complete appointment (Doctor - from Session Holder)
-  /// FIXED: এখন updateAppointmentStatus কেই call করছে সঠিক data দিয়ে
+  /// Complete appointment (Doctor)
   Future<bool> completeAppointment({
     required String appointmentId,
     required String patientName,
     required double price,
   }) async {
     try {
-      debugPrint('Completing appointment: $appointmentId');
-      debugPrint('   Patient: $patientName, Price: $price');
-
-      // গুরুত্বপূর্ণ ফিক্স: backend এর expected key গুলো পাঠানো হচ্ছে
       final response = await _appointmentService.updateAppointmentStatus(
         appointmentId: appointmentId,
         status: 'completed',
-        patient: patientName, // backend validation এর জন্য দরকার
-        price: price, // এটাই paidAmount হিসেবে save হবে
+        patient: patientName,
+        price: price,
       );
 
       if (response['success'] == true) {
-        // Update local state
-        final index = _appointments.indexWhere(
-          (apt) => apt.id == appointmentId,
-        );
+        final index = _appointments.indexWhere((apt) => apt.id == appointmentId);
         if (index != -1) {
-          _appointments[index] = _appointments[index].copyWith(
-            status: 'completed',
-            // যদি model এ paidAmount field থাকে তাহলে এখানে add করতে পারো
-            // paidAmount: price,
-          );
+          _appointments[index] = _appointments[index].copyWith(status: 'completed');
         }
         notifyListeners();
         return true;
@@ -263,14 +269,13 @@ class AppointmentProvider with ChangeNotifier {
     }
   }
 
-  /// Send appointment confirmation notification
   Future<void> _sendAppointmentConfirmationNotification(
     AppointmentModel appointment,
   ) async {
     try {
-      debugPrint('✅ Appointment confirmed for appointment ${appointment.id}');
+      debugPrint('✅ Appointment confirmed: ${appointment.id}');
     } catch (e) {
-      debugPrint('❌ Error sending appointment confirmation notification: $e');
+      debugPrint('❌ Error sending confirmation: $e');
     }
   }
 

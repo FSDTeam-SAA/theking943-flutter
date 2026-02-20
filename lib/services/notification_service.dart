@@ -682,7 +682,7 @@ class NotificationService {
         nameCaller: callerName,
         appName: 'Docmobi',
         avatar: callerAvatar,
-        handle: callerId,
+        handle: 'Docmobi Call', // ✅ FIX: Instead of showing UUID, show a clean subtitle
         type: isVideo ? 1 : 0,
         textAccept: 'Accept',
         textDecline: 'Decline',
@@ -696,8 +696,9 @@ class NotificationService {
         extra: data,
         headers: <String, dynamic>{'platform': 'flutter'},
         android: AndroidParams(
-          isCustomNotification: true,
+          isCustomNotification: false, // ✅ FIX: false = native Android full-screen call UI with reliable Answer/Decline buttons
           isShowLogo: false,
+          isShowFullLockedScreen: true, // ✅ FIX: Show full-screen UI when screen is locked
           ringtonePath: 'system_ringtone_default',
           backgroundColor: '#0955fa',
           backgroundUrl: callerAvatar.isNotEmpty ? callerAvatar : '',
@@ -839,25 +840,27 @@ class NotificationService {
             '✅ Call accepted from CallKit, navigating directly to call screen...');
 
         if (chatId != null && callerId != null) {
-          // ✅ FIX 2: Agora token pre-fetch করো BEFORE navigation — timeout fix
-          try {
-            final channelName = 'call_$chatId';
-            debugPrint('🔄 Pre-fetching Agora token for: $channelName');
-            final tokenResponse =
-                await ApiService.get('/call/token?channelName=$channelName');
-            final fetchedToken = tokenResponse['data']?['token'];
-            if (fetchedToken != null) {
-              _cachedAgoraToken = fetchedToken;
-              _cachedChannelName = channelName;
-              debugPrint('✅ Agora token pre-fetched and cached!');
+          // ✅ FIX: Agora token pre-fetch with retry — prevent 'Securing connection...' hang
+          for (int retry = 0; retry < 2; retry++) {
+            try {
+              final channelName = 'call_$chatId';
+              debugPrint('🔄 Pre-fetching Agora token (attempt ${retry + 1}): $channelName');
+              final tokenResponse = await ApiService.get('/call/token?channelName=$channelName')
+                  .timeout(const Duration(seconds: 8));
+              final fetchedToken = tokenResponse['data']?['token'];
+              if (fetchedToken != null) {
+                _cachedAgoraToken = fetchedToken;
+                _cachedChannelName = channelName;
+                debugPrint('✅ Agora token pre-fetched and cached!');
+                break; // Success — no more retries
+              }
+            } catch (e) {
+              debugPrint('⚠️ Token pre-fetch attempt ${retry + 1} failed: $e');
+              if (retry == 0) await Future.delayed(const Duration(milliseconds: 500));
             }
-          } catch (e) {
-            debugPrint(
-                '⚠️ Token pre-fetch failed (will retry in call screen): $e');
-            // Continue anyway — call screen এ retry করবে
           }
 
-          // 🚀 1. Send via REST API
+          // 🚀 1. Send via REST API (most reliable path for cold start)
           ApiService.acceptCall({
             'chatId': chatId,
             'fromUserId': callerId,
@@ -866,41 +869,51 @@ class NotificationService {
               .catchError(
                   (e) => debugPrint('❌ API: Call accept failed: $e'));
 
-          // 🚀 2. Socket emit
-          SocketService.instance.ensureConnected().then((connected) {
+          // 🚀 2. Socket emit — PROPERLY AWAIT connection first
+          try {
+            final connected = await SocketService.instance.ensureConnected()
+                .timeout(const Duration(seconds: 5), onTimeout: () => false);
             if (connected) {
               SocketService.instance.emit('call:accept', {
                 'chatId': chatId,
                 'fromUserId': callerId,
               });
               debugPrint('✅ SOCKET: call:accept event sent');
+            } else {
+              debugPrint('⚠️ Socket not connected — relying on API accept path');
             }
-          });
+          } catch (e) {
+            debugPrint('⚠️ Socket connection failed: $e — relying on API accept path');
+          }
         }
 
         if (navigatorKey?.currentState != null) {
           if (isVideo) {
             navigatorKey!.currentState?.push(
-              MaterialPageRoute(
-                builder: (context) => VideoCallScreen(
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) => VideoCallScreen(
                   chatId: chatId ?? '',
                   userName: callerName,
                   userAvatar: finalData['callerAvatar'],
                   otherUserId: callerId ?? '',
                   isInitiator: false,
                 ),
+                transitionDuration: Duration.zero,
+                reverseTransitionDuration: Duration.zero,
               ),
             );
           } else {
             navigatorKey!.currentState?.push(
-              MaterialPageRoute(
-                builder: (context) => AudioCallScreen(
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) => AudioCallScreen(
                   chatId: chatId ?? '',
                   userName: callerName,
                   userAvatar: finalData['callerAvatar'],
                   otherUserId: callerId ?? '',
                   isInitiator: false,
                 ),
+                transitionDuration: Duration.zero,
+                reverseTransitionDuration: Duration.zero,
               ),
             );
           }

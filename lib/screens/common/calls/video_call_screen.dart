@@ -60,15 +60,26 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   Future<void> _loadCurrentUserIdAndInitialize() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final userDataString = prefs.getString('user_data');
 
-      final profileResult = await ApiService.getUserProfile();
-      if (profileResult['success'] == true) {
-        _currentUserId = profileResult['data']['_id']?.toString();
-        debugPrint('✅ Current user ID loaded: $_currentUserId');
+      // ✅ FIX: SharedPreferences থেকে userId নাও — API call না করে
+      _currentUserId = prefs.getString('user_id');
+
+      if (_currentUserId != null && _currentUserId!.isNotEmpty) {
+        debugPrint('✅ User ID from cache: $_currentUserId');
         await _initializeCall();
       } else {
-        throw Exception('Failed to load user profile');
+        debugPrint('⚠️ User ID not cached, fetching from API...');
+        final profileResult = await ApiService.getUserProfile();
+        if (profileResult['success'] == true) {
+          _currentUserId = profileResult['data']['_id']?.toString();
+          if (_currentUserId != null) {
+            await prefs.setString('user_id', _currentUserId!);
+          }
+          debugPrint('✅ User ID loaded: $_currentUserId');
+          await _initializeCall();
+        } else {
+          throw Exception('Failed to load user profile');
+        }
       }
     } catch (e) {
       debugPrint('❌ Error loading user ID: $e');
@@ -189,10 +200,19 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       if (token != null) {
         debugPrint('✅ Using pre-fetched Agora token — no API delay!');
       } else {
-        // Cache নেই — API থেকে আনো
+        // Cache নেই — API থেকে আনো with retry
         debugPrint('🔄 No cached token, fetching from API...');
-        final result = await ApiService.getAgoraToken(channelName: widget.chatId);
-        token = (result['success'] == true) ? result['data']['token'] : null;
+        for (int attempt = 0; attempt < 2; attempt++) {
+          try {
+            final result = await ApiService.getAgoraToken(channelName: widget.chatId)
+                .timeout(const Duration(seconds: 8));
+            token = (result['success'] == true) ? result['data']['token'] : null;
+            if (token != null) break;
+          } catch (e) {
+            debugPrint('⚠️ Token fetch attempt ${attempt + 1} failed: $e');
+            if (attempt == 0) await Future.delayed(const Duration(milliseconds: 500));
+          }
+        }
       }
 
       if (token == null) {
@@ -230,11 +250,13 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     if (socket == null) return;
 
     socket.off('call:accepted');
+    socket.off('call:accept');
     socket.off('call:ended');
     socket.off('call:rejected');
 
-    socket.on('call:accepted', (data) async {
-      debugPrint('📥 Received call:accepted event');
+    // ✅ FIX: Listen for BOTH event names — handles both API and socket paths
+    void handleCallAccepted(dynamic data) async {
+      debugPrint('📥 Received call accepted event');
       if (data['chatId'] == widget.chatId && !_channelJoined) {
         debugPrint('✅ Call accepted, joining Agora channel...');
         _unansweredTimer?.cancel();
@@ -242,7 +264,10 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         setState(() => _callStatus = 'Connecting...');
         await _joinAgoraChannel();
       }
-    });
+    }
+
+    socket.on('call:accepted', handleCallAccepted);
+    socket.on('call:accept', handleCallAccepted); // ✅ Legacy event name support
 
     socket.on('call:ended', (data) {
       if (data['chatId'] == widget.chatId) {

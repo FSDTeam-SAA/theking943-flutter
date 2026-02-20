@@ -1,3 +1,4 @@
+// UPDATED - uses SharedPreferences for userId instead of API call
 import 'package:flutter/material.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'dart:async';
@@ -56,14 +57,27 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
   Future<void> _loadCurrentUserIdAndInitialize() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final userDataString = prefs.getString('user_data');
 
-      final profileResult = await ApiService.getUserProfile();
-      if (profileResult['success'] == true) {
-        _currentUserId = profileResult['data']['_id']?.toString();
+      // ✅ FIX: SharedPreferences থেকে userId নাও — API call করো না
+      // Cold start এ API call time নেয়, SharedPreferences instant হয়
+      _currentUserId = prefs.getString('user_id');
+
+      if (_currentUserId != null && _currentUserId!.isNotEmpty) {
+        debugPrint('✅ User ID from cache: $_currentUserId');
         await _initializeCall();
       } else {
-        throw Exception('Failed to load user profile');
+        // Fallback: cache এ না থাকলে API থেকে আনো
+        debugPrint('⚠️ User ID not cached, fetching from API...');
+        final profileResult = await ApiService.getUserProfile();
+        if (profileResult['success'] == true) {
+          _currentUserId = profileResult['data']['_id']?.toString();
+          if (_currentUserId != null) {
+            await prefs.setString('user_id', _currentUserId!);
+          }
+          await _initializeCall();
+        } else {
+          throw Exception('Failed to load user profile');
+        }
       }
     } catch (e) {
       if (mounted) _showError('Failed to initialize: $e');
@@ -147,10 +161,19 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
       if (token != null) {
         debugPrint('✅ Using pre-fetched Agora token — no API delay!');
       } else {
-        // Cache নেই — API থেকে আনো
+        // Cache নেই — API থেকে আনো with retry
         debugPrint('🔄 No cached token, fetching from API...');
-        final result = await ApiService.getAgoraToken(channelName: widget.chatId);
-        token = (result['success'] == true) ? result['data']['token'] : null;
+        for (int attempt = 0; attempt < 2; attempt++) {
+          try {
+            final result = await ApiService.getAgoraToken(channelName: widget.chatId)
+                .timeout(const Duration(seconds: 8));
+            token = (result['success'] == true) ? result['data']['token'] : null;
+            if (token != null) break;
+          } catch (e) {
+            debugPrint('⚠️ Token fetch attempt ${attempt + 1} failed: $e');
+            if (attempt == 0) await Future.delayed(const Duration(milliseconds: 500));
+          }
+        }
       }
 
       if (token == null) {
@@ -186,17 +209,23 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
     if (socket == null) return;
 
     socket.off('call:accepted');
+    socket.off('call:accept');
     socket.off('call:ended');
     socket.off('call:rejected');
 
-    socket.on('call:accepted', (data) async {
+    // ✅ FIX: Listen for BOTH event names — backend API emits 'call:accepted',
+    // socket handler also emits 'call:accepted', belt-and-suspenders
+    void handleCallAccepted(dynamic data) async {
       if (data['chatId'] == widget.chatId && !_channelJoined) {
         _unansweredTimer?.cancel();
         _unansweredTimer = null;
         setState(() => _callStatus = 'Connecting...');
         await _joinAgoraChannel();
       }
-    });
+    }
+
+    socket.on('call:accepted', handleCallAccepted);
+    socket.on('call:accept', handleCallAccepted); // ✅ Legacy event name support
 
     socket.on('call:ended', (data) {
       if (data['chatId'] == widget.chatId) {
