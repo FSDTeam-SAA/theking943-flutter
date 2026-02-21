@@ -43,10 +43,10 @@ class _SessionHolderScreenState extends State<SessionHolderScreen> {
       final patientName = _nameController.text.trim();
       final amount = double.parse(_amountController.text.trim());
 
-      debugPrint('📤 Completing appointment:');
+      debugPrint(' Completing appointment:');
       debugPrint('   ID: ${widget.appointment.id}');
       debugPrint('   Patient: $patientName');
-      debugPrint('   Amount: $amount DZD'); // ✅ Logged in DZD
+      debugPrint('   Amount: $amount DZD');
 
       final provider = context.read<AppointmentProvider>();
       final success = await provider.completeAppointment(
@@ -75,7 +75,7 @@ class _SessionHolderScreenState extends State<SessionHolderScreen> {
           await Future.delayed(const Duration(milliseconds: 500));
 
           if (mounted) {
-            // ✅ Return true so that the previous screen knows it needs to refresh earnings
+           
             Navigator.pop(context, true);
           }
         } else {

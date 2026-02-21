@@ -660,7 +660,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get notif_reel_commented_body => 'Quelqu\'un a commenté votre reel.';
 
   @override
-  String get reviewSubmitted => 'Avis soumis avec succès ! ⭐';
+  String get reviewSubmitted => 'Avis soumis avec succès ! ';
 
   @override
   String get failedSubmitReview => 'Échec de l\'envoi de l\'avis';
@@ -829,7 +829,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get completeSession => 'Terminer la session';
 
   @override
-  String get sessionCompleted => 'Session terminée avec succès ! ✅';
+  String get sessionCompleted => 'Session terminée avec succès ! ';
 
   @override
   String get failedCompleteSession => 'Échec de la fin de session';

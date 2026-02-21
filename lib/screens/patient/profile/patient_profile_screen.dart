@@ -420,13 +420,13 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen> {
                       ),
                     ])
                     .then((_) {
-                      debugPrint('✅ Background logout tasks completed');
+                      debugPrint(' Background logout tasks completed');
                     })
                     .catchError((e) {
-                      debugPrint('⚠️ Background logout tasks warning: $e');
+                      debugPrint(' Background logout tasks warning: $e');
                     });
               } catch (e) {
-                debugPrint('❌ Error during optimistic logout: $e');
+                debugPrint(' Error during optimistic logout: $e');
                 // Even on error, we force navigation to login
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(

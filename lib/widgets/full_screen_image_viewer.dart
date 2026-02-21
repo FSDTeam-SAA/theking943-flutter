@@ -123,7 +123,7 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
             minScale: PhotoViewComputedScale.contained * 0.8,
             maxScale: PhotoViewComputedScale.covered * 2.5,
             heroAttributes: PhotoViewHeroAttributes(tag: url),
-            filterQuality: FilterQuality.high, // ✅ Improve zoom quality
+            filterQuality: FilterQuality.high, 
           );
         },
         itemCount: widget.imageUrls.length,

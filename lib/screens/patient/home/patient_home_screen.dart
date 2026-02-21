@@ -19,7 +19,7 @@ import 'package:docmobi/screens/patient/doctor/book_appointment_screen.dart';
 import 'package:docmobi/screens/patient/notification/patient_notification_screen.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../services/location_service.dart';
-import '../../../services/directions_service.dart'; // ✅ Add this line
+import '../../../services/directions_service.dart'; 
 import '../../../utils/marker_factory.dart';
 import 'package:docmobi/screens/patient/profile/patient_profile_screen.dart';
 import '../../../widgets/custom_image.dart';
@@ -35,21 +35,21 @@ class PatientHomeScreen extends ConsumerStatefulWidget {
 class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   final LocationService _locationService = LocationService();
   final MarkerFactory _markerFactory = MarkerFactory();
-  final DirectionsService _directionsService = DirectionsService(); // ✅ Add
+  final DirectionsService _directionsService = DirectionsService(); 
 
   final TextEditingController _searchController = TextEditingController();
   GoogleMapController? _mapController;
 
-  // Default location (Dhaka, Bangladesh)
+
   LatLng _currentPosition = const LatLng(23.8103, 90.4125);
   bool _isLoadingLocation = true;
   bool _locationPermissionGranted = false;
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
   final Set<Polyline> _directionPolylines = {};
-  // String? _selectedDoctorId; // Unused
-  Timer? _refreshTimer; // ✅ Auto refresh timer
-  bool _isScreenInitialized = false; // ✅ FIX: Prevent duplicate init calls on rebuild
+
+  Timer? _refreshTimer; 
+  bool _isScreenInitialized = false; 
 
   @override
   void initState() {
@@ -59,12 +59,12 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
       if (!_isScreenInitialized) {
         _isScreenInitialized = true;
         _initializeScreen();
-        _startAutoRefresh(); // ✅ Start timer
+        _startAutoRefresh(); 
       }
     });
   }
 
-  // ✅ Auto Refresh Logic
+
   void _startAutoRefresh() {
     _refreshTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
       // Refresh every 5 minutes to avoid constant background activity
@@ -89,14 +89,13 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
         listen: false,
       );
 
-      // ✅ STEP 1: আগে cache থেকে load করো — instant UI, no loading spinner
+    
       await Future.wait([
         if (userProvider.user == null) userProvider.loadFromCache(),
         if (appointmentProvider.appointments.isEmpty) appointmentProvider.loadFromCache(),
         if (doctorProvider.nearbyDoctors.isEmpty) doctorProvider.loadFromCache(),
       ]);
 
-      // ✅ STEP 2: Background এ fresh data fetch করো (non-blocking)
 
       // User profile
       userProvider.fetchUserProfile().then(
@@ -116,7 +115,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
         },
       );
 
-      // Location → তারপর Doctors
+
       _getCurrentLocation()
           .then((_) {
             if (mounted) {
@@ -155,7 +154,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
   @override
   void dispose() {
-    _refreshTimer?.cancel(); // ✅ Cancel timer
+    _refreshTimer?.cancel(); 
     _searchController.dispose();
     _mapController?.dispose();
     super.dispose();
@@ -211,10 +210,10 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
         });
       }
 
-      // ✅ Use medium accuracy for faster GPS lock (2-5s vs 10-20s)
+  
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.medium,
-        timeLimit: const Duration(seconds: 5), // Shorter timeout
+        timeLimit: const Duration(seconds: 5), 
       );
 
       debugPrint(
@@ -313,10 +312,10 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     );
   }
 
-  /// 🔥 Console এ location print করবে
+
   Future<void> _printCurrentLocation() async {
     if (!_locationPermissionGranted) {
-      debugPrint('⚠️ Location permission নাই');
+      debugPrint('Location permission নাই');
       return;
     }
 
@@ -336,20 +335,19 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
       debugPrint('Timestamp: ${DateTime.now().toIso8601String()}');
       debugPrint(json.encode(locationData));
     } catch (e) {
-      debugPrint('❌ Location নিতে error: $e');
+      debugPrint(' Location নিতে error: $e');
     }
   }
 
-  // Get color based on distance (Green for near, Red for far)
   Color _getRouteColor(double distanceKm) {
     if (distanceKm <= 5) {
-      return Colors.green; // Very close
+      return Colors.green; 
     } else if (distanceKm <= 10) {
-      return Colors.lightGreen; // Close
+      return Colors.lightGreen; 
     } else if (distanceKm <= 15) {
-      return Colors.orange; // Medium distance
+      return Colors.orange; 
     } else {
-      return Colors.red; // Far
+      return Colors.red; 
     }
   }
 
@@ -361,26 +359,25 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
       // Add user location marker
       markers.add(_markerFactory.createUserMarker(_currentPosition));
-      debugPrint('📍 DOCTOR MARKERS - সম্পূর্ণ তথ্য');
+      debugPrint(' DOCTOR MARKERS');
       debugPrint(
-        '📍 Patient Location: ${_currentPosition.latitude}, ${_currentPosition.longitude}',
+        ' Patient Location: ${_currentPosition.latitude}, ${_currentPosition.longitude}',
       );
-      debugPrint('📍 Total Doctors: ${doctors.length}');
+      debugPrint(' Total Doctors: ${doctors.length}');
 
       for (int i = 0; i < doctors.length; i++) {
         final doctor = doctors[i];
 
-        // ✅ Backend থেকে আসা location check করুন
+       
         if (doctor.latitude != null && doctor.longitude != null) {
           final doctorLocation = LatLng(doctor.latitude!, doctor.longitude!);
 
-          // Calculate distance
+    
           double distanceKm = _locationService.calculateDistanceInKm(
             _currentPosition,
             doctorLocation,
           );
 
-          // ✅ Marker add করুন (Async with custom image)
           final marker = await _markerFactory.createCustomDoctorMarker(
             doctor: doctor,
             distanceKm: distanceKm,
@@ -390,7 +387,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
           );
           markers.add(marker);
 
-          // ✅ Polyline route add করুন
+      
           Color routeColor = _getRouteColor(distanceKm);
 
           polylines.add(
@@ -420,7 +417,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
         });
       }
     } catch (e) {
-      debugPrint('❌ Error adding doctor markers: $e');
+      debugPrint(' Error adding doctor markers: $e');
     }
   }
 
@@ -470,9 +467,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     if (directions != null && mounted) {
       final polylinePoints = directions['polylinePoints'] as List<LatLng>;
 
-      debugPrint('✅ Street route loaded with ${polylinePoints.length} points');
-      debugPrint('📏 Distance via road: ${directions['distance']}');
-      debugPrint('⏱️ Estimated time: ${directions['duration']}');
+      debugPrint('Street route loaded with ${polylinePoints.length} points');
+      debugPrint(' Distance via road: ${directions['distance']}');
+      debugPrint(' Estimated time: ${directions['duration']}');
 
       setState(() {
         // Clear old direction polylines
@@ -550,7 +547,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
         );
       }
     } else {
-      debugPrint('⚠️ Could not fetch street directions, using straight line');
+      debugPrint(' Could not fetch street directions, using straight line');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -618,7 +615,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
   Future<void> _onRefresh() async {
     try {
-      debugPrint('🔄 Refreshing patient home screen...');
+      debugPrint(' Refreshing patient home screen...');
 
       // Get current location for doctor fetch
       double? lat = _currentPosition.latitude;
@@ -662,9 +659,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
         await _addDoctorMarkers();
       }
 
-      debugPrint('✅ Refresh complete');
+      debugPrint('Refresh complete');
     } catch (e) {
-      debugPrint('❌ Error during refresh: $e');
+      debugPrint(' Error during refresh: $e');
       // Don't rethrow - let the RefreshIndicator complete gracefully
     }
   }
@@ -965,7 +962,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                                       polylines: {
                                         ..._polylines,
                                         ..._directionPolylines,
-                                      }, // ✅ নতুন (দুইটা combine)
+                                      }, 
                                       myLocationEnabled:
                                           _locationPermissionGranted,
                                       myLocationButtonEnabled: false,
@@ -1262,7 +1259,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                           );
                         }
 
-                        // ✅ Distance Filter: Only show doctors within 50 km
+                        //  Distance Filter: Only show doctors within 50 km
                         final nearbyDoctors = doctorProvider.nearbyDoctors
                             .where((doc) {
                               if (doc.latitude == null ||
@@ -1286,7 +1283,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                           );
                         }
 
-                        // ✅ Distance অনুযায়ী sort করুন (যাদের location আছে তারা আগে)
+                
                         nearbyDoctors.sort((a, b) {
                           if (a.latitude == null || a.longitude == null) {
                             return 1;
@@ -1369,22 +1366,22 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
   bool _isDoctorAvailable(Doctor doctor) {
     if (doctor.weeklySchedule == null || doctor.weeklySchedule!.isEmpty) {
-      debugPrint('❌ ${doctor.fullName}: No weeklySchedule');
+      debugPrint(' ${doctor.fullName}: No weeklySchedule');
       return false;
     }
 
     for (var schedule in doctor.weeklySchedule!) {
       debugPrint(
-        '📅 ${doctor.fullName} - ${schedule.day}: active=${schedule.isActive}, slots=${schedule.slots.length}',
+        ' ${doctor.fullName} - ${schedule.day}: active=${schedule.isActive}, slots=${schedule.slots.length}',
       );
 
       if (schedule.isActive && schedule.slots.isNotEmpty) {
-        debugPrint('✅ ${doctor.fullName}: Available on ${schedule.day}');
+        debugPrint(' ${doctor.fullName}: Available on ${schedule.day}');
         return true;
       }
     }
 
-    debugPrint('❌ ${doctor.fullName}: No active days with slots');
+    debugPrint(' ${doctor.fullName}: No active days with slots');
     return false;
   }
 

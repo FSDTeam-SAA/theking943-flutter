@@ -1,5 +1,5 @@
 // models/user_model.dart
-// ✅ UPDATED with Video Call Support
+
 
 class UserModel {
   final String id;
@@ -13,7 +13,7 @@ class UserModel {
   final String? address;
   final String? profileImage;
 
-  // ✅ Doctor fields from backend
+
   final String? bio;
   final String? specialty;
   final List<String>? specialties;
@@ -21,24 +21,20 @@ class UserModel {
   final String? medicalLicenseNumber;
   final String? visitingHoursText;
 
-  // ✅ NEW: Video call availability
   final bool isVideoCallAvailable;
 
-  // ✅ Fees structure
+
   final double? feesAmount;
   final String? feesCurrency;
 
-  // ✅ Degrees
   final List<Degree>? degrees;
 
-  // ✅ Weekly schedule
   final List<DaySchedule>? weeklySchedule;
 
-  // ✅ Location fields
+  
   final double? latitude;
   final double? longitude;
 
-  // ✅ Helper for fees
   Map<String, dynamic>? get fees => feesAmount != null
       ? {'amount': feesAmount, 'currency': feesCurrency}
       : null;
@@ -62,7 +58,7 @@ class UserModel {
     this.experienceYears,
     this.medicalLicenseNumber,
     this.visitingHoursText,
-    this.isVideoCallAvailable = false, // ✅ Default false
+    this.isVideoCallAvailable = false, 
     this.feesAmount,
     this.feesCurrency,
     this.degrees,
@@ -84,10 +80,9 @@ class UserModel {
       bloodGroup: json['bloodGroup'],
       address: json['address'],
 
-      // ✅ Handle avatar object from backend
+   
       profileImage: json['avatar']?['url'] ?? json['profileImage'],
 
-      // ✅ Doctor fields
       bio: json['bio'],
       specialty: json['specialty'],
       specialties: json['specialties'] != null
@@ -97,30 +92,26 @@ class UserModel {
       medicalLicenseNumber: json['medicalLicenseNumber'],
       visitingHoursText: json['visitingHoursText'],
 
-      // ✅ NEW: Video call availability - Robust parsing
       isVideoCallAvailable:
           json['isVideoCallAvailable'] ??
           json['isVideoAvailable'] ??
           json['isAvailable'] ??
           (json['video']?['isAvailable'] ?? false),
 
-      // ✅ Fees
       feesAmount: json['fees']?['amount']?.toDouble() ?? 0.0,
       feesCurrency: json['fees']?['currency'] ?? 'DZD',
 
-      // ✅ Degrees
       degrees: json['degrees'] != null
           ? (json['degrees'] as List).map((d) => Degree.fromJson(d)).toList()
           : null,
 
-      // ✅ Weekly schedule
+
       weeklySchedule: json['weeklySchedule'] != null
           ? (json['weeklySchedule'] as List)
                 .map((d) => DaySchedule.fromJson(d))
                 .toList()
           : null,
 
-      // ✅ Location fields - Handle nested structure from backend
       latitude:
           json['latitude']?.toDouble() ??
           (json['location'] != null
@@ -156,7 +147,7 @@ class UserModel {
       'experienceYears': experienceYears,
       'medicalLicenseNumber': medicalLicenseNumber,
       'visitingHoursText': visitingHoursText,
-      'isVideoCallAvailable': isVideoCallAvailable, // ✅ NEW
+      'isVideoCallAvailable': isVideoCallAvailable, 
       'fees': {'amount': feesAmount, 'currency': feesCurrency},
       'degrees': degrees?.map((d) => d.toJson()).toList(),
       'weeklySchedule': weeklySchedule?.map((d) => d.toJson()).toList(),
@@ -183,7 +174,7 @@ class UserModel {
     int? experienceYears,
     String? medicalLicenseNumber,
     String? visitingHoursText,
-    bool? isVideoCallAvailable, // ✅ NEW
+    bool? isVideoCallAvailable, 
     double? feesAmount,
     String? feesCurrency,
     List<Degree>? degrees,
@@ -210,7 +201,7 @@ class UserModel {
       medicalLicenseNumber: medicalLicenseNumber ?? this.medicalLicenseNumber,
       visitingHoursText: visitingHoursText ?? this.visitingHoursText,
       isVideoCallAvailable:
-          isVideoCallAvailable ?? this.isVideoCallAvailable, // ✅ NEW
+          isVideoCallAvailable ?? this.isVideoCallAvailable,
       feesAmount: feesAmount ?? this.feesAmount,
       feesCurrency: feesCurrency ?? this.feesCurrency,
       degrees: degrees ?? this.degrees,
@@ -222,7 +213,7 @@ class UserModel {
   }
 }
 
-// ✅ Degree model (unchanged)
+
 class Degree {
   final String title;
   final String? institute;
@@ -243,7 +234,7 @@ class Degree {
   }
 }
 
-// ✅ Day schedule model (unchanged)
+
 class DaySchedule {
   final String day;
   final bool isActive;
@@ -270,7 +261,7 @@ class DaySchedule {
   }
 }
 
-// ✅ Time slot model (unchanged)
+
 class TimeSlot {
   final String start;
   final String end;

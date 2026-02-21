@@ -69,7 +69,7 @@ class AppointmentModel {
     }
 
     if (doctorId.isEmpty) {
-      debugPrint('🚨 AppointmentModel: doctorId is EMPTY!');
+      debugPrint(' AppointmentModel: doctorId is EMPTY!');
       debugPrint('   -> json["doctor"]: ${json['doctor']}');
       debugPrint('   -> json["doctorId"]: ${json['doctorId']}');
     }
@@ -99,7 +99,7 @@ class AppointmentModel {
       );
     } catch (e) {
       appointmentDate = DateTime.now();
-      debugPrint('⚠️ Date parse error: $e');
+      debugPrint(' Date parse error: $e');
     }
 
     DateTime? createdAt;
@@ -108,7 +108,7 @@ class AppointmentModel {
         createdAt = DateTime.parse(json['createdAt']);
       }
     } catch (e) {
-      debugPrint('⚠️ CreatedAt parse error: $e');
+      debugPrint(' CreatedAt parse error: $e');
     }
 
     List<String>? medicalDocuments;
@@ -172,7 +172,7 @@ class AppointmentModel {
     );
   }
 
-  /// ✅ FIX: Cache এর জন্য সব field save করো
+
   Map<String, dynamic> toJson() {
     return {
       '_id': id,

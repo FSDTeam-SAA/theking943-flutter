@@ -409,7 +409,7 @@ class _AddDependentScreenState extends State<AddDependentScreen> {
     );
   }
 
-  // ✅ FIXED: Only Male and Female
+  // Only Male and Female
   Widget _buildGenderSelector() {
     return Row(
       children: ['Male', 'Female'].map((gender) {

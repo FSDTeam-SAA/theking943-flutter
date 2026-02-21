@@ -52,7 +52,7 @@ class _DoctorReelsScreenState extends State<DoctorReelsScreen> {
     });
 
     try {
-      debugPrint('📤 Loading reels...');
+      debugPrint(' Loading reels...');
       final response = await ApiService.getAllReels(page: 1, limit: 20);
 
       if (response['success'] == true) {
@@ -68,10 +68,10 @@ class _DoctorReelsScreenState extends State<DoctorReelsScreen> {
               (pagination['page'] * pagination['limit']) < pagination['total'];
           isLoading = false;
         });
-        debugPrint('✅ Loaded ${reelsList.length} reels');
+        debugPrint(' Loaded ${reelsList.length} reels');
       }
     } catch (e) {
-      debugPrint('❌ Error loading reels: $e');
+      debugPrint(' Error loading reels: $e');
       setState(() {
         hasError = true;
         isLoading = false;
@@ -113,7 +113,7 @@ class _DoctorReelsScreenState extends State<DoctorReelsScreen> {
         });
       }
     } catch (e) {
-      debugPrint('❌ Error loading more reels: $e');
+      debugPrint(' Error loading more reels: $e');
       setState(() {
         isLoading = false;
       });
@@ -424,7 +424,7 @@ class _DoctorReelsScreenState extends State<DoctorReelsScreen> {
         return uint8list;
       }
     } catch (e) {
-      debugPrint('❌ Error generating thumbnail: $e');
+      debugPrint(' Error generating thumbnail: $e');
     }
     return null;
   }

@@ -6,9 +6,9 @@ class DependentService {
   /// Get all dependents for current user
   Future<Map<String, dynamic>> getMyDependents() async {
     try {
-      debugPrint('📤 Fetching dependents...');
+      debugPrint(' Fetching dependents...');
 
-      // ✅ FIXED: Correct endpoint
+      // Correct endpoint
       final response = await ApiService.get(
         '/api/v1/user/me/dependents', // ← Fixed from /api/v1/user/profile/me/dependents
         requiresAuth: true,
@@ -16,15 +16,15 @@ class DependentService {
 
       if (response['success'] == true) {
         debugPrint(
-          '✅ Dependents fetched: ${(response['data'] as List?)?.length ?? 0}',
+          'Dependents fetched: ${(response['data'] as List?)?.length ?? 0}',
         );
       } else {
-        debugPrint('❌ Failed to fetch dependents: ${response['message']}');
+        debugPrint(' Failed to fetch dependents: ${response['message']}');
       }
 
       return response;
     } catch (e) {
-      debugPrint('❌ Get Dependents Error: $e');
+      debugPrint(' Get Dependents Error: $e');
       return {
         'success': false,
         'message': 'Failed to fetch dependents: $e',
@@ -43,7 +43,7 @@ class DependentService {
     String? notes,
   }) async {
     try {
-      debugPrint('📤 Creating dependent...');
+      debugPrint(' Creating dependent...');
 
       final body = {
         'fullName': fullName,
@@ -54,7 +54,7 @@ class DependentService {
         if (notes != null && notes.isNotEmpty) 'notes': notes,
       };
 
-      debugPrint('📦 Body: $body');
+      debugPrint('Body: $body');
 
       final response = await ApiService.post(
         '/api/v1/user/me/dependents',
@@ -63,14 +63,14 @@ class DependentService {
       );
 
       if (response['success'] == true) {
-        debugPrint('✅ Dependent created successfully');
+        debugPrint(' Dependent created successfully');
       } else {
-        debugPrint('❌ Failed to create dependent: ${response['message']}');
+        debugPrint('Failed to create dependent: ${response['message']}');
       }
 
       return response;
     } catch (e) {
-      debugPrint('❌ Create Dependent Error: $e');
+      debugPrint(' Create Dependent Error: $e');
       return {'success': false, 'message': 'Failed to create dependent: $e'};
     }
   }
@@ -87,7 +87,7 @@ class DependentService {
     bool? isActive,
   }) async {
     try {
-      debugPrint('📤 Updating dependent: $dependentId');
+      debugPrint(' Updating dependent: $dependentId');
 
       final body = <String, dynamic>{};
       if (fullName != null) body['fullName'] = fullName;
@@ -98,7 +98,7 @@ class DependentService {
       if (notes != null) body['notes'] = notes;
       if (isActive != null) body['isActive'] = isActive;
 
-      debugPrint('📦 Body: $body');
+      debugPrint(' Body: $body');
 
       final response = await ApiService.patch(
         '/api/v1/user/me/dependents/$dependentId',
@@ -107,14 +107,14 @@ class DependentService {
       );
 
       if (response['success'] == true) {
-        debugPrint('✅ Dependent updated successfully');
+        debugPrint(' Dependent updated successfully');
       } else {
-        debugPrint('❌ Failed to update dependent: ${response['message']}');
+        debugPrint('Failed to update dependent: ${response['message']}');
       }
 
       return response;
     } catch (e) {
-      debugPrint('❌ Update Dependent Error: $e');
+      debugPrint(' Update Dependent Error: $e');
       return {'success': false, 'message': 'Failed to update dependent: $e'};
     }
   }
@@ -122,7 +122,7 @@ class DependentService {
   /// Delete dependent
   Future<Map<String, dynamic>> deleteDependent(String dependentId) async {
     try {
-      debugPrint('📤 Deleting dependent: $dependentId');
+      debugPrint(' Deleting dependent: $dependentId');
 
       final response = await ApiService.delete(
         '/api/v1/user/me/dependents/$dependentId',
@@ -130,14 +130,14 @@ class DependentService {
       );
 
       if (response['success'] == true) {
-        debugPrint('✅ Dependent deleted successfully');
+        debugPrint(' Dependent deleted successfully');
       } else {
-        debugPrint('❌ Failed to delete dependent: ${response['message']}');
+        debugPrint(' Failed to delete dependent: ${response['message']}');
       }
 
       return response;
     } catch (e) {
-      debugPrint('❌ Delete Dependent Error: $e');
+      debugPrint(' Delete Dependent Error: $e');
       return {'success': false, 'message': 'Failed to delete dependent: $e'};
     }
   }

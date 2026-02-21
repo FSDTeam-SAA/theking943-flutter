@@ -107,7 +107,7 @@ class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
         });
       }
     } catch (e) {
-      debugPrint('❌ Error liking reel: $e');
+      debugPrint(' Error liking reel: $e');
       setState(() {
         _likedReels[reelId] = wasLiked;
         _likeCounts[reelId] = (_likeCounts[reelId] ?? 0) + (wasLiked ? 1 : -1);
@@ -132,7 +132,7 @@ class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
         _shareCounts[reelId] = (_shareCounts[reelId] ?? 0) + 1;
       });
     } catch (e) {
-      debugPrint('❌ Error sharing: $e');
+      debugPrint(' Error sharing: $e');
     }
   }
 

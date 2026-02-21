@@ -45,7 +45,7 @@ class _SearchDoctorScreenState extends State<SearchDoctorScreen> {
         requiresAuth: true,
       );
 
-      debugPrint('📥 Doctors API Response: $result');
+      debugPrint(' Doctors API Response: $result');
 
       if (result['success'] == true) {
         final doctorsData = result['data'] as List? ?? [];
@@ -54,7 +54,7 @@ class _SearchDoctorScreenState extends State<SearchDoctorScreen> {
           return Doctor.fromJson(json);
         }).toList();
 
-        // ✅ If user position is provided, calculate distance and sort
+        //  If user position is provided, calculate distance and sort
         if (widget.userPosition != null) {
           loadedDoctors.sort((a, b) {
             if (a.latitude == null || a.longitude == null) return 1;
@@ -78,7 +78,7 @@ class _SearchDoctorScreenState extends State<SearchDoctorScreen> {
           _isLoading = false;
         });
 
-        debugPrint('✅ Loaded ${_allDoctors.length} doctors');
+        debugPrint(' Loaded ${_allDoctors.length} doctors');
       } else {
         setState(() {
           _errorMessage = result['message'] ?? 'Failed to load doctors';
@@ -86,7 +86,7 @@ class _SearchDoctorScreenState extends State<SearchDoctorScreen> {
         });
       }
     } catch (e) {
-      debugPrint('❌ Error loading doctors: $e');
+      debugPrint(' Error loading doctors: $e');
       setState(() {
         _errorMessage = 'Failed to load doctors: $e';
         _isLoading = false;

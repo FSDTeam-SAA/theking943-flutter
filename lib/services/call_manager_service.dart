@@ -23,7 +23,7 @@ class CallManager {
     _context = context;
 
     if (_isListening) {
-      debugPrint('⚠️ CallManager already listening - updating context');
+      debugPrint(' CallManager already listening - updating context');
       return;
     }
 
@@ -34,7 +34,7 @@ class CallManager {
     _connectionSubscription =
         SocketService.instance.connectionStream.listen((connected) {
       if (connected) {
-        debugPrint('📡 CallManager: Socket connected - ensuring listeners');
+        debugPrint(' CallManager: Socket connected - ensuring listeners');
         _setupCallListeners();
       }
     });
@@ -42,26 +42,26 @@ class CallManager {
     _reconnectSubscription?.cancel();
     _reconnectSubscription =
         SocketService.instance.reconnectStream.listen((_) {
-      debugPrint('🔄 CallManager: Socket reconnected - ensuring listeners');
+      debugPrint('CallManager: Socket reconnected - ensuring listeners');
       _setupCallListeners();
     });
 
     debugPrint('');
     debugPrint('╔═══════════════════════════════════════════╗');
-    debugPrint('║     📞 CALL MANAGER INITIALIZED           ║');
+    debugPrint('║      CALL MANAGER INITIALIZED           ║');
     debugPrint('╚═══════════════════════════════════════════╝');
-    debugPrint('✅ Context: ${_context != null ? "Available" : "NULL"}');
+    debugPrint(' Context: ${_context != null ? "Available" : "NULL"}');
     debugPrint(
-      '✅ Socket: ${SocketService.instance.isConnected ? "Connected" : "Disconnected"}',
+      ' Socket: ${SocketService.instance.isConnected ? "Connected" : "Disconnected"}',
     );
-    debugPrint('✅ Listening for incoming calls');
+    debugPrint(' Listening for incoming calls');
     debugPrint('');
   }
 
   void _setupCallListeners() {
     final socket = SocketService.instance.socket;
     if (socket == null) {
-      debugPrint('⚠️ Socket not available for CallManager');
+      debugPrint('Socket not available for CallManager');
       return;
     }
 
@@ -75,7 +75,7 @@ class CallManager {
         '╔═══════════════════════════════════════════════════════════╗',
       );
       debugPrint(
-        '║              📞 INCOMING CALL RECEIVED                    ║',
+        '║               INCOMING CALL RECEIVED                    ║',
       );
       debugPrint(
         '╚═══════════════════════════════════════════════════════════╝',
@@ -88,7 +88,7 @@ class CallManager {
       } else if (data is Map) {
         callData = Map<String, dynamic>.from(data);
       } else {
-        debugPrint('❌ Invalid data format: ${data.runtimeType}');
+        debugPrint(' Invalid data format: ${data.runtimeType}');
         return;
       }
 
@@ -100,38 +100,38 @@ class CallManager {
       if (_context != null && _context!.mounted) {
         _handleIncomingCall(callData);
       } else {
-        debugPrint('❌ Context not available or not mounted');
+        debugPrint(' Context not available or not mounted');
       }
     });
 
     socket.on('call:accepted', (data) {
-      debugPrint('✅ Call accepted by other user');
+      debugPrint(' Call accepted by other user');
     });
 
     socket.on('call:rejected', (data) {
-      debugPrint('❌ Call rejected by other user');
+      debugPrint(' Call rejected by other user');
       _showSnackbar('Call rejected');
     });
 
-    debugPrint('👂 Listening: call:incoming, call:accepted, call:rejected');
+    debugPrint(' Listening: call:incoming, call:accepted, call:rejected');
   }
 
   void _handleIncomingCall(Map<String, dynamic> data) async {
     if (_context == null || !_context!.mounted) {
-      debugPrint('⚠️ Context not available');
+      debugPrint(' Context not available');
       return;
     }
 
-    // ✅ FIX: Login check — not logged in হলে socket call ও ignore করবো
+    //   Login check — not logged in হলে socket call ও ignore করবো
     try {
       final prefs = await SharedPreferences.getInstance();
       final authToken = prefs.getString('auth_token');
       if (authToken == null || authToken.isEmpty) {
-        debugPrint('⚠️ [CallManager] User not logged in — ignoring socket call');
+        debugPrint(' [CallManager] User not logged in — ignoring socket call');
         return;
       }
     } catch (e) {
-      debugPrint('⚠️ [CallManager] Could not check auth: $e');
+      debugPrint(' [CallManager] Could not check auth: $e');
       return;
     }
 
@@ -142,7 +142,7 @@ class CallManager {
     final callerName = data['callerName']?.toString() ?? 'Unknown User';
     final callerAvatar = data['callerAvatar']?.toString();
 
-    debugPrint('📋 Extracted:');
+    debugPrint(' Extracted:');
     debugPrint('   • fromUserId: $fromUserId');
     debugPrint('   • chatId: $chatId');
     debugPrint('   • isVideo: $isVideo');
@@ -152,13 +152,13 @@ class CallManager {
         fromUserId.isEmpty ||
         chatId == null ||
         chatId.isEmpty) {
-      debugPrint('❌ Missing required fields');
+      debugPrint(' Missing required fields');
       return;
     }
 
     // Check if doctor is available for calls
     if (!_isDoctorAvailableForCalls()) {
-      debugPrint('🚫 Doctor not available for calls - Auto rejecting');
+      debugPrint(' Doctor not available for calls - Auto rejecting');
       _rejectCallAutomatically(data);
       return;
     }
@@ -181,7 +181,7 @@ class CallManager {
   /// Check if current user (doctor) is available for calls
   bool _isDoctorAvailableForCalls() {
     if (_context == null || !_context!.mounted) {
-      debugPrint('⚠️ Context not available for availability check');
+      debugPrint(' Context not available for availability check');
       return false;
     }
 
@@ -190,14 +190,14 @@ class CallManager {
       final user = userProvider.user;
 
       if (user == null) {
-        debugPrint('⚠️ No user found in provider');
+        debugPrint('No user found in provider');
         return false;
       }
 
       final isDoctor = user.role == 'doctor';
       final isAvailableForCalls = user.isVideoCallAvailable;
 
-      debugPrint('📋 Doctor Availability Check:');
+      debugPrint('Doctor Availability Check:');
       debugPrint('   • Role: ${user.role}');
       debugPrint('   • Is Doctor: $isDoctor');
       debugPrint('   • Call Available: $isAvailableForCalls');
@@ -205,7 +205,7 @@ class CallManager {
       // Patients should always be able to receive calls
       return !isDoctor || isAvailableForCalls;
     } catch (e) {
-      debugPrint('❌ Error checking doctor availability: $e');
+      debugPrint(' Error checking doctor availability: $e');
       return false;
     }
   }
@@ -222,7 +222,7 @@ class CallManager {
     debugPrint(
         '╔═══════════════════════════════════════════════════════════╗');
     debugPrint(
-        '║              🚫 AUTO-REJECTING CALL                    ║');
+        '║               AUTO-REJECTING CALL                    ║');
     debugPrint(
         '╚═══════════════════════════════════════════════════════════╝');
     debugPrint(
@@ -246,9 +246,9 @@ class CallManager {
           'isAutoRejected': true,
         });
 
-        debugPrint('✅ Auto-reject events sent to caller');
+        debugPrint(' Auto-reject events sent to caller');
       } catch (e) {
-        debugPrint('❌ Error sending auto-reject: $e');
+        debugPrint(' Error sending auto-reject: $e');
       }
     }
   }
@@ -314,7 +314,7 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
 
     Future.delayed(const Duration(seconds: 60), () {
       if (mounted && !_isProcessing) {
-        debugPrint('⏱️ Call timeout - Auto rejecting');
+        debugPrint(' Call timeout - Auto rejecting');
         _rejectCall();
       }
     });
@@ -502,7 +502,7 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
     setState(() => _isProcessing = true);
 
     debugPrint('');
-    debugPrint('✅ ACCEPTING CALL');
+    debugPrint('ACCEPTING CALL');
     debugPrint('   • From: ${widget.fromUserId}');
     debugPrint('   • Chat: ${widget.chatId}');
 
@@ -513,7 +513,7 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
         'isVideo': widget.isVideo,
       });
 
-      debugPrint('   ✅ Accept event sent');
+      debugPrint('   Accept event sent');
 
       await Future.delayed(const Duration(milliseconds: 500));
 
@@ -542,7 +542,7 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
         ),
       );
     } catch (e) {
-      debugPrint('❌ Error accepting call: $e');
+      debugPrint(' Error accepting call: $e');
 
       if (mounted) {
         setState(() => _isProcessing = false);
@@ -561,7 +561,7 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
 
     setState(() => _isProcessing = true);
 
-    debugPrint('❌ REJECTING CALL');
+    debugPrint(' REJECTING CALL');
 
     try {
       SocketService.instance.emit('call:reject', {
@@ -578,7 +578,7 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
         Navigator.of(context).pop();
       }
     } catch (e) {
-      debugPrint('❌ Error rejecting call: $e');
+      debugPrint(' Error rejecting call: $e');
       if (mounted) {
         Navigator.of(context).pop();
       }

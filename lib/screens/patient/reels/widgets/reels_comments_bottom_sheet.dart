@@ -51,7 +51,7 @@ class _ReelCommentsBottomSheetState extends State<ReelCommentsBottomSheet> {
         });
       }
     } catch (e) {
-      debugPrint('❌ Error loading reel comments: $e');
+      debugPrint(' Error loading reel comments: $e');
       setState(() {
         _isLoading = false;
       });
@@ -78,7 +78,7 @@ class _ReelCommentsBottomSheetState extends State<ReelCommentsBottomSheet> {
         await _loadComments();
       }
     } catch (e) {
-      debugPrint('❌ Error submitting reel comment: $e');
+      debugPrint('Error submitting reel comment: $e');
     } finally {
       setState(() {
         _isSubmitting = false;

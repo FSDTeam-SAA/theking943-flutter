@@ -64,7 +64,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         setState(() => _isLoadingCategories = false);
       }
     } catch (e) {
-      debugPrint('❌ Error fetching categories: $e');
+      debugPrint('Error fetching categories: $e');
       setState(() => _isLoadingCategories = false);
     }
   }
@@ -78,12 +78,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
               response['data']['referralSystemEnabled'] ?? false;
           _isLoadingReferralSetting = false;
         });
-        debugPrint('✅ Referral system enabled: $_isReferralSystemEnabled');
+        debugPrint(' Referral system enabled: $_isReferralSystemEnabled');
       } else {
         setState(() => _isLoadingReferralSetting = false);
       }
     } catch (e) {
-      debugPrint('❌ Error fetching referral setting: $e');
+      debugPrint(' Error fetching referral setting: $e');
       setState(() => _isLoadingReferralSetting = false);
     }
   }
@@ -154,7 +154,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _isLoading = true);
 
     try {
-      debugPrint('🔄 Starting registration...');
+      debugPrint(' Starting registration...');
       debugPrint('   User Type: ${widget.userType}');
       debugPrint('   Name: ${_nameController.text.trim()}');
       debugPrint('   Email: ${_emailController.text.trim()}');
@@ -183,7 +183,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       setState(() => _isLoading = false);
 
-      debugPrint('📥 Registration result: ${result['success']}');
+      debugPrint('Registration result: ${result['success']}');
 
       if (result['success'] == true) {
         debugPrint('Registration successful');

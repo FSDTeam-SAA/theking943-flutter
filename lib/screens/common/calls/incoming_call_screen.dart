@@ -52,16 +52,16 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
       socket.on('call:ended', (data) async {
         debugPrint('📞 Call ended event received: $data');
         if (data['chatId'] == widget.chatId && mounted) {
-          // ✅ Log as missed call on receiver side
+          //  Log as missed call on receiver side
           try {
             await AgoraChatService.instance.sendCallLog(
               conversationId: widget.callerId,
               callType: widget.isVideoCall ? 'video' : 'audio',
               status: 'missed',
-              backendChatId: widget.chatId, // ✅ Trigger notification
+              backendChatId: widget.chatId, 
             );
           } catch (e) {
-            debugPrint('⚠️ Failed to log missed call: $e');
+            debugPrint('Failed to log missed call: $e');
           }
 
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -76,7 +76,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
       });
 
       socket.on('call:failed', (data) {
-        debugPrint('❌ Call failed event received: $data');
+        debugPrint(' Call failed event received: $data');
         if (mounted) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
@@ -101,24 +101,24 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
       _isAccepting = true;
     });
 
-    debugPrint('✅ Accepting call...');
-    debugPrint('💬 Chat ID: ${widget.chatId}');
-    debugPrint('👤 Caller ID: ${widget.callerId}');
-    debugPrint('📹 Is Video: ${widget.isVideoCall}');
+    debugPrint('Accepting call...');
+    debugPrint('Chat ID: ${widget.chatId}');
+    debugPrint(' Caller ID: ${widget.callerId}');
+    debugPrint('Is Video: ${widget.isVideoCall}');
 
     try {
-      // ✅ Send accept event BEFORE navigating
+   
       SocketService.instance.emit('call:accept', {
         'chatId': widget.chatId,
         'fromUserId': widget.callerId,
       });
 
-      debugPrint('📤 Call accept event sent');
+      debugPrint(' Call accept event sent');
 
-      // ✅ Small delay to ensure event is sent
+ 
       await Future.delayed(const Duration(milliseconds: 300));
 
-      // ✅ Navigate to appropriate call screen
+      // Navigate to appropriate call screen
       if (!mounted) return;
 
       Navigator.pushReplacement(
@@ -130,19 +130,19 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                   userName: widget.callerName,
                   userAvatar: widget.callerAvatar,
                   otherUserId: widget.callerId,
-                  isInitiator: false, // ✅ Receiver
+                  isInitiator: false, 
                 )
               : AudioCallScreen(
                   chatId: widget.chatId,
                   userName: widget.callerName,
                   userAvatar: widget.callerAvatar,
                   otherUserId: widget.callerId,
-                  isInitiator: false, // ✅ Receiver
+                  isInitiator: false, 
                 ),
         ),
       );
     } catch (e) {
-      debugPrint('❌ Error accepting call: $e');
+      debugPrint(' Error accepting call: $e');
       if (mounted) {
         setState(() {
           _isAccepting = false;
@@ -155,21 +155,21 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   }
 
   void _rejectCall() async {
-    debugPrint('❌ Rejecting call...');
-    debugPrint('💬 Chat ID: ${widget.chatId}');
-    debugPrint('👤 Caller ID: ${widget.callerId}');
+    debugPrint(' Rejecting call...');
+    debugPrint(' Chat ID: ${widget.chatId}');
+    debugPrint(' Caller ID: ${widget.callerId}');
 
     try {
-      // ✅ Log as declined call
+     
       try {
         await AgoraChatService.instance.sendCallLog(
           conversationId: widget.callerId,
           callType: widget.isVideoCall ? 'video' : 'audio',
           status: 'declined',
-          backendChatId: widget.chatId, // ✅ Trigger notification
+          backendChatId: widget.chatId, 
         );
       } catch (e) {
-        debugPrint('⚠️ Failed to log declined call: $e');
+        debugPrint(' Failed to log declined call: $e');
       }
 
       SocketService.instance.emit('call:reject', {
@@ -177,11 +177,11 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         'toUserId': widget.callerId,
       });
 
-      debugPrint('📤 Call reject event sent');
+      debugPrint('Call reject event sent');
 
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      debugPrint('❌ Error rejecting call: $e');
+      debugPrint(' Error rejecting call: $e');
       if (mounted) Navigator.pop(context);
     }
   }
@@ -206,7 +206,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            // Incoming call subtitle with icon
+     
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

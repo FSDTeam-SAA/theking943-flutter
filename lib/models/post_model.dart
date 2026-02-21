@@ -111,16 +111,15 @@ class PostModel {
   }
 }
 
-// ✅ UPDATED: Added bio, experienceYears, degrees
 class PostAuthor {
   final String id;
   final String fullName;
   final String? avatar;
   final String role;
   final String? specialty;
-  final String? bio; // ✅ NEW
-  final int? experienceYears; // ✅ NEW
-  final List<Map<String, dynamic>>? degrees; // ✅ NEW
+  final String? bio; 
+  final int? experienceYears; 
+  final List<Map<String, dynamic>>? degrees; 
 
   PostAuthor({
     required this.id,
@@ -128,9 +127,9 @@ class PostAuthor {
     this.avatar,
     required this.role,
     this.specialty,
-    this.bio, // ✅ NEW
-    this.experienceYears, // ✅ NEW
-    this.degrees, // ✅ NEW
+    this.bio, 
+    this.experienceYears, 
+    this.degrees, 
   });
 
   factory PostAuthor.fromJson(Map<String, dynamic> json) {
@@ -144,7 +143,7 @@ class PostAuthor {
       }
     }
 
-    // ✅ Parse degrees list
+
     List<Map<String, dynamic>>? degreesList;
     if (json['degrees'] != null && json['degrees'] is List) {
       degreesList = (json['degrees'] as List)
@@ -158,9 +157,9 @@ class PostAuthor {
       avatar: avatarUrl,
       role: json['role'] ?? 'user',
       specialty: json['specialty'],
-      bio: json['bio'], // ✅ NEW
-      experienceYears: json['experienceYears'], // ✅ NEW
-      degrees: degreesList, // ✅ NEW
+      bio: json['bio'], 
+      experienceYears: json['experienceYears'], 
+      degrees: degreesList, 
     );
   }
 

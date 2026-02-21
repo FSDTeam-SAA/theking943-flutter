@@ -11,8 +11,8 @@ class DoctorMyScheduleScreen extends StatefulWidget {
 
 class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
   bool onlineAppointment = true;
-  bool _initialOnlineAppointmentValue = true; // ✅ Track initial value
-  bool _hasUnsavedChanges = false; // ✅ Track unsaved changes
+  bool _initialOnlineAppointmentValue = true; 
+  bool _hasUnsavedChanges = false; 
   final TextEditingController _feesController = TextEditingController();
   final DoctorScheduleService _scheduleService = DoctorScheduleService();
 
@@ -184,7 +184,7 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
           });
         }
 
-        // ✅ Load video call availability (onlineAppointment)
+        //  Load video call availability (onlineAppointment)
         bool? isVideoAvailable =
             userData['isVideoCallAvailable'] ??
             userData['isVideoAvailable'] ??
@@ -194,9 +194,9 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
         if (isVideoAvailable != null) {
           setState(() {
             onlineAppointment = isVideoAvailable;
-            _initialOnlineAppointmentValue = isVideoAvailable; // ✅ Store initial value
+            _initialOnlineAppointmentValue = isVideoAvailable; 
           });
-          debugPrint('✅ Loaded video call availability: $onlineAppointment');
+          debugPrint('Loaded video call availability: $onlineAppointment');
         }
 
         // Load weeklySchedule
@@ -249,8 +249,8 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
     setState(() => _isSaving = true);
 
     try {
-      debugPrint('📤 Saving doctor schedule...');
-      debugPrint('   - Video Call Available: $onlineAppointment'); // ✅ Log this
+      debugPrint(' Saving doctor schedule...');
+      debugPrint('   - Video Call Available: $onlineAppointment'); 
 
       final List<Map<String, dynamic>> formattedSchedule = scheduleData.map((
         dayData,
@@ -274,20 +274,20 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
         'currency': 'USD',
       };
 
-      // ✅ IMPORTANT: Pass isVideoCallAvailable
+      //  IMPORTANT: Pass isVideoCallAvailable
       final response = await _scheduleService.saveWeeklySchedule(
         weeklySchedule: formattedSchedule,
         fees: fees,
-        isVideoCallAvailable: onlineAppointment, // ✅ This is the fix!
+        isVideoCallAvailable: onlineAppointment, 
       );
 
       if (mounted) {
         if (response['success'] == true) {
-          debugPrint('✅ Schedule saved successfully!');
+          debugPrint(' Schedule saved successfully!');
           debugPrint('   - isVideoCallAvailable saved as: $onlineAppointment');
-          debugPrint('   - Response data: ${response['data']}'); // ✅ Enhanced logging
+          debugPrint('   - Response data: ${response['data']}');
           
-          // ✅ Enhanced success message with online appointment status
+          //  Enhanced success message with online appointment status
           final statusText = onlineAppointment ? 'Enabled ✓' : 'Disabled ✗';
           _showSnackBar(
             '${AppLocalizations.of(context)!.scheduleSavedSuccess}\nOnline Appointment: $statusText',
@@ -295,7 +295,7 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
             duration: const Duration(seconds: 4),
           );
           
-          // ✅ Reset unsaved changes flag
+          // Reset unsaved changes flag
           setState(() {
             _hasUnsavedChanges = false;
             _initialOnlineAppointmentValue = onlineAppointment;
@@ -445,11 +445,11 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
                     onChanged: (val) {
                       setState(() {
                         onlineAppointment = val;
-                        // ✅ Mark as unsaved if value changed from initial
+                        //  Mark as unsaved if value changed from initial
                         _hasUnsavedChanges = (val != _initialOnlineAppointmentValue) ||
                             _feesController.text.isNotEmpty;
                       });
-                      debugPrint('📝 Online appointment changed to: $val (unsaved)');
+                      debugPrint(' Online appointment changed to: $val (unsaved)');
                     },
                   ),
                 ],
@@ -519,7 +519,7 @@ class _DoctorMyScheduleScreenState extends State<DoctorMyScheduleScreen> {
             const SizedBox(height: 20),
 
             // Save Changes Button
-            // ✅ Unsaved changes indicator
+            // Unsaved changes indicator
             if (_hasUnsavedChanges)
               Container(
                 padding: const EdgeInsets.all(12),

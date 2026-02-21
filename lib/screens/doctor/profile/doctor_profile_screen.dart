@@ -51,7 +51,7 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
     ).fetchUserProfile();
   }
 
-  /// ✅ Save video call availability to backend with Optimistic UI
+  /// Save video call availability to backend with Optimistic UI
   Future<void> _toggleVideoCall(bool value) async {
     // 1. Optimistic Update: Update UI immediately
     setState(() {
@@ -65,13 +65,13 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
         listen: false,
       );
 
-      debugPrint('🔄 Toggling video call to: $value');
+      debugPrint(' Toggling video call to: $value');
 
       // 2. Perform API Call - Use the dedicated method which ensures fees/schedule are sent
       final success = await userProvider.updateVideoCallAvailability(value);
 
       if (success) {
-        debugPrint('✅ Video call setting saved successfully');
+        debugPrint(' Video call setting saved successfully');
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -99,7 +99,7 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
         throw Exception('Update failed');
       }
     } catch (e) {
-      debugPrint('❌ Error updating video call setting: $e');
+      debugPrint('Error updating video call setting: $e');
 
       // 3. Rollback on Error
       if (mounted) {
@@ -124,11 +124,6 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
       if (mounted) {
         setState(() {
           _isSaving = false;
-          // We keep _optimisticVideoCallValue set until the next full refresh
-          // or we can clear it if we are sure provider is updated.
-          // To be safe against "switch jumping back", we can leave it null
-          // ONLY if we know the provider has the new value.
-          // For now, clearing it is safer if we trust _refreshProfile or updateUserProfile.
           _optimisticVideoCallValue = null;
         });
       }
@@ -186,7 +181,7 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
           final userRole = user?.role ?? 'doctor';
           final profileImageUrl = user?.profileImage;
 
-          // ✅ Use Optimistic Value if available, otherwise Provider value
+          //  Use Optimistic Value if available, otherwise Provider value
           final isVideoCallAvailable =
               _optimisticVideoCallValue ??
               (user?.isVideoCallAvailable ?? false);
@@ -314,13 +309,13 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
                     icon: isVideoCallAvailable
                         ? Icons.videocam
                         : Icons
-                              .videocam_off, // Changed icon to be more specific to video/calls
+                              .videocam_off,
                     title: l10n.audioVideoCalls,
                     onTap: _isSaving
                         ? null
                         : () => _toggleVideoCall(
                             !isVideoCallAvailable,
-                          ), // ✅ Row is now tappable
+                          ), 
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -642,13 +637,13 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
                       ),
                     ])
                     .then((_) {
-                      debugPrint('✅ Background logout tasks completed');
+                      debugPrint(' Background logout tasks completed');
                     })
                     .catchError((e) {
-                      debugPrint('⚠️ Background logout tasks warning: $e');
+                      debugPrint(' Background logout tasks warning: $e');
                     });
               } catch (e) {
-                debugPrint('❌ Error during optimistic logout: $e');
+                debugPrint(' Error during optimistic logout: $e');
                 // Even on error, we force navigation to login
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(

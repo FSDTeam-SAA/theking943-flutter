@@ -55,8 +55,8 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
   String? _actualUserAvatar;
   String? _actualUserName;
   bool _isAutoScrollEnabled = true;
-  final Set<String> _selectedMessageIds = {}; // ✅ For multi-select delete
-  bool _isSelectionMode = false; // ✅ Selection mode toggle
+  final Set<String> _selectedMessageIds = {}; 
+  bool _isSelectionMode = false;
   bool _isOtherUserTyping = false;
   Timer? _myTypingTimer;
   Timer? _otherUserTypingTimer;
@@ -68,21 +68,20 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     _actualUserAvatar = widget.userAvatar;
     _actualUserName = widget.userName;
     _loadCurrentUserProfile().then((_) {
-      _setupAgoraListeners(); // ✅ Setup listeners IMMEDIATELY
+      _setupAgoraListeners(); 
       _loadMessages();
       _ensureAgoraConnection();
-      _setupSocketListeners(); // ✅ Setup socket for real-time typing
+      _setupSocketListeners(); 
       final targetId = _resolvedOtherUserId ?? widget.otherUserId;
       if (targetId != null) {
         AgoraChatService.instance.markAllMessagesAsRead(targetId);
-        // ✅ Sync with backend
+      
         ApiService.markChatAsRead(chatId: widget.chatId);
       }
     });
 
-    // ✅ Track active chat to suppress notifications
     NotificationService.currentChatId = widget.chatId;
-    NotificationService.clearBadge(); // ✅ Clear badge on entering chat
+    NotificationService.clearBadge(); 
 
     _scrollController.addListener(() {
       if (_scrollController.hasClients) {
@@ -102,19 +101,19 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     // 2. Check if logged in
     final isLoggedIn = await ChatClient.getInstance.isLoginBefore();
     debugPrint(
-      '🔍 [Doctor] Agora Login Status: $isLoggedIn | CurrentUser: $_currentUserId',
+      ' [Doctor] Agora Login Status: $isLoggedIn | CurrentUser: $_currentUserId',
     );
 
     if (!isLoggedIn && _currentUserId != null) {
       debugPrint(
-        '🔄 [Doctor] Not logged in. Attempting login for $_currentUserId...',
+        ' [Doctor] Not logged in. Attempting login for $_currentUserId...',
       );
       await AgoraChatService.instance.login(_currentUserId!);
     } else if (isLoggedIn) {
       final currentAgoraUser = await ChatClient.getInstance.getCurrentUserId();
       if (currentAgoraUser != _currentUserId && _currentUserId != null) {
         debugPrint(
-          '⚠️ [Doctor] Agora ID mismatch ($currentAgoraUser vs $_currentUserId). Relogging...',
+          '[Doctor] Agora ID mismatch ($currentAgoraUser vs $_currentUserId). Relogging...',
         );
         await AgoraChatService.instance.logout();
         await AgoraChatService.instance.login(_currentUserId!);
@@ -135,14 +134,14 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
           _actualUserName = profileResult['data']['fullName']?.toString();
         });
 
-        debugPrint('✅ Current user profile loaded:');
+        debugPrint('Current user profile loaded:');
         debugPrint('   ID: $_currentUserId');
         debugPrint('   Role: $_currentUserRole');
         debugPrint('   Avatar: $_currentUserAvatar');
         debugPrint('   Name: $_currentUserName');
       }
     } catch (e) {
-      debugPrint('❌ Error loading user profile: $e');
+      debugPrint(' Error loading user profile: $e');
     }
   }
 
@@ -157,7 +156,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     }
 
     try {
-      // ✅ Use local database for initial load (Much faster!)
+      //  Use local database for initial load (Much faster!)
       final localMessages = await AgoraChatService.instance
           .loadMessagesFromLocal(conversationId: otherId);
 
@@ -184,13 +183,13 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
         _scrollToBottom();
       }
 
-      // 🔄 Sync from server in background silently
+      // Sync from server in background silently
       AgoraChatService.instance
           .fetchHistoryMessages(conversationId: otherId)
           .then((remoteMessages) {
             if (mounted && remoteMessages.isNotEmpty) {
               setState(() {
-                // ✅ MERGE instead of replace to preserve real-time messages
+                // MERGE instead of replace to preserve real-time messages
                 final existingIds = _messages.map((m) => m['_id']).toSet();
                 final newMessages = remoteMessages
                     .where((m) => !existingIds.contains(m.msgId))
@@ -215,7 +214,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     }
   }
 
-  // ✅ Real-time Socket Listeners
+  //  Real-time Socket Listeners
   void _setupSocketListeners() {
     if (_currentUserId != null) {
       SocketService.instance.ensureConnected();
@@ -264,7 +263,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     });
   }
 
-  // ✅ Multi-select Delete Helper
+  //  Multi-select Delete Helper
   void _toggleSelection(String msgId) {
     setState(() {
       if (_selectedMessageIds.contains(msgId)) {
@@ -334,7 +333,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
           );
         }
       } catch (e) {
-        debugPrint('❌ Failed to delete messages: $e');
+        debugPrint(' Failed to delete messages: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -405,7 +404,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     final content = _controller.text.trim();
 
     debugPrint(
-      '📤 [Doctor] Attempting to send message. Content length: ${content.length}',
+      '[Doctor] Attempting to send message. Content length: ${content.length}',
     );
 
     if (content.isEmpty && _selectedFiles.isEmpty) return;
@@ -426,11 +425,11 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
         conversationId: otherId,
         content: content,
         files: _selectedFiles.isNotEmpty ? _selectedFiles : null,
-        backendChatId: widget.chatId, // ✅ Trigger backend notification
+        backendChatId: widget.chatId, // Trigger backend notification
       );
 
       debugPrint(
-        '✅ [Doctor] Message returned from SDK: ${sentMessage?.msgId ?? "NULL"}',
+        '[Doctor] Message returned from SDK: ${sentMessage?.msgId ?? "NULL"}',
       );
 
       if (sentMessage != null && mounted) {
@@ -445,7 +444,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
         _scrollToBottom();
       }
     } catch (e) {
-      debugPrint('❌ [Doctor] Error sending message: $e');
+      debugPrint(' [Doctor] Error sending message: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -500,14 +499,14 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
       debugPrint(
         '${isVideo ? "📹" : "🎤"} Starting ${isVideo ? "video" : "audio"} call...',
       );
-      debugPrint('👤 Current user: $_currentUserId');
-      debugPrint('👤 Other user: $targetUserId');
-      debugPrint('💬 Chat ID: ${widget.chatId}');
+      debugPrint(' Current user: $_currentUserId');
+      debugPrint(' Other user: $targetUserId');
+      debugPrint(' Chat ID: ${widget.chatId}');
 
-      // ✅ Use API instead of direct socket emission
+      //  Use API instead of direct socket emission
       final socketService = SocketService.instance;
       if (!socketService.isConnected) {
-        debugPrint('⚠️ Socket not connected, attempting to connect...');
+        debugPrint(' Socket not connected, attempting to connect...');
         if (_currentUserId != null) {
           await socketService.connect(_currentUserId!);
           // Wait a bit for connection to stabilize
@@ -519,9 +518,9 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
         }
       }
 
-      debugPrint('✅ Socket connected, initiating call via API...');
+      debugPrint(' Socket connected, initiating call via API...');
 
-      // ✅ Use API instead of direct socket emission
+      // Use API instead of direct socket emission
       final result = await ApiService.initiateCall(
         chatId: widget.chatId,
         receiverId: targetUserId,
@@ -529,7 +528,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
       );
 
       if (result['success'] == true) {
-        debugPrint('📤 Call initiated successfully');
+        debugPrint(' Call initiated successfully');
 
         if (mounted) {
           final String stableChatId =
@@ -560,7 +559,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
         throw Exception(result['message'] ?? 'Failed to initiate call');
       }
     } catch (e) {
-      debugPrint('❌ Error starting call: $e');
+      debugPrint(' Error starting call: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -640,7 +639,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
                   )
                 : ListView.separated(
                     controller: _scrollController,
-                    reverse: true, // ✅ IMPORTANT: Newest at bottom
+                    reverse: true, 
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 10,
@@ -721,7 +720,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
 
   void _setupAgoraListeners() {
     final otherId = _resolvedOtherUserId ?? widget.otherUserId;
-    debugPrint('🔍 [DoctorChat] Setting up Agora listeners. Target: $otherId');
+    debugPrint(' [DoctorChat] Setting up Agora listeners. Target: $otherId');
 
     AgoraChatService.instance.addMessageListener(
       'doctor_chat_${widget.chatId}',
@@ -732,12 +731,12 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
 
           for (var msg in messages) {
             debugPrint(
-              '📩 [DoctorChat] Received message SDK: ID=${msg.msgId}, From=${msg.from}, Conv=${msg.conversationId}',
+              ' [DoctorChat] Received message SDK: ID=${msg.msgId}, From=${msg.from}, Conv=${msg.conversationId}',
             );
 
             if (msg.conversationId == currentCheckId ||
                 msg.from == currentCheckId) {
-              debugPrint('   ✅ Match found for this chat');
+              debugPrint(' Match found for this chat');
 
               // Prevent duplicates
               final bool alreadyExists = _messages.any(
@@ -751,7 +750,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
 
           if (incomingFormatted.isNotEmpty && mounted) {
             setState(() {
-              // ✅ Check for duplicates BEFORE insertion (more efficient)
+              //  Check for duplicates BEFORE insertion (more efficient)
               final existingIds = _messages.map((m) => m['_id']).toSet();
 
               for (var msg in incomingFormatted) {
@@ -761,9 +760,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
                 }
               }
 
-              // ✅ Only sort if messages might be out of order
-              // Agora usually delivers in order, so this is often unnecessary
-              // but kept for safety with multiple simultaneous messages
+            
               if (incomingFormatted.length > 1) {
                 _messages.sort(
                   (a, b) => DateTime.parse(
@@ -778,9 +775,9 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
             if (currentCheckId != null) {
               AgoraChatService.instance.markAllMessagesAsRead(
                 currentCheckId,
-              ); // ✅ Clear unread badge live
+              ); // Clear unread badge live
 
-              // ✅ Sync with backend
+              //  Sync with backend
               ApiService.markChatAsRead(chatId: widget.chatId);
             }
           }
@@ -788,7 +785,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
       ),
     );
     debugPrint(
-      '✅ Agora Chat handlers attached for ID: doctor_chat_${widget.chatId}',
+      ' Agora Chat handlers attached for ID: doctor_chat_${widget.chatId}',
     );
   }
 
@@ -831,7 +828,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
       'doctor_chat_${widget.chatId}',
     );
 
-    // ✅ Leave chat room
+    //  Leave chat room
     if (_currentUserId != null) {
       SocketService.instance.emit('chat:leave', {
         'chatId': widget.chatId,
@@ -841,7 +838,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     SocketService.instance.off('user:online');
     SocketService.instance.off('user:offline');
 
-    // ✅ Clear active chat
+    //  Clear active chat
     if (NotificationService.currentChatId == widget.chatId) {
       NotificationService.currentChatId = null;
     }

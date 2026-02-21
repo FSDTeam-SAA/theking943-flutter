@@ -203,7 +203,7 @@ class ReelThumbnailCard extends StatelessWidget {
         return uint8list;
       }
     } catch (e) {
-      debugPrint('❌ Error generating thumbnail: $e');
+      debugPrint(' Error generating thumbnail: $e');
     }
     return null;
   }

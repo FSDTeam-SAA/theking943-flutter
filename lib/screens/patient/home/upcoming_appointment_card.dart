@@ -31,7 +31,7 @@ class UpcomingAppointmentCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // ✅ Safe Image Loading
+            // Safe Image Loading
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: _buildDoctorImage(),
@@ -67,7 +67,7 @@ class UpcomingAppointmentCard extends StatelessWidget {
     );
   }
 
-  // ✅ Safe image builder
+  // Safe image builder
   Widget _buildDoctorImage() {
     return CustomImage(
       imageUrl: appointment.doctorImage,

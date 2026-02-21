@@ -1,7 +1,7 @@
-import 'dart:convert'; // ✅ Added for JSON encoding/decoding
+import 'dart:convert'; 
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // ✅ Added for caching
+import 'package:shared_preferences/shared_preferences.dart'; 
 import '../models/user_model.dart';
 import '../services/user_service.dart';
 import '../services/doctor_schedule_service.dart';
@@ -16,30 +16,30 @@ class UserProvider with ChangeNotifier {
   String? get error => _error;
   bool get isLoggedIn => _user != null;
 
-  /// ✅ Load user from local cache immediately on app start
+  ///  Load user from local cache immediately on app start
   Future<void> loadFromCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final userJson = prefs.getString('cached_user_profile');
       if (userJson != null) {
-        debugPrint('💾 Loading user profile from CACHE...');
+        debugPrint(' Loading user profile from CACHE...');
         final Map<String, dynamic> data = jsonDecode(userJson);
         _user = UserModel.fromJson(data);
         notifyListeners(); // Update UI immediately
       }
     } catch (e) {
-      debugPrint('⚠️ Error loading cached profile: $e');
+      debugPrint(' Error loading cached profile: $e');
     }
   }
 
-  /// ✅ Save user to local cache
+  ///  Save user to local cache
   Future<void> _saveToCache(Map<String, dynamic> data) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('cached_user_profile', jsonEncode(data));
-      debugPrint('💾 User profile cached locally');
+      debugPrint('User profile cached locally');
     } catch (e) {
-      debugPrint('⚠️ Error caching profile: $e');
+      debugPrint('Error caching profile: $e');
     }
   }
 
@@ -55,16 +55,16 @@ class UserProvider with ChangeNotifier {
     _error = null;
 
     try {
-      debugPrint('📥 Fetching user profile...');
+      debugPrint(' Fetching user profile...');
       final response = await UserService.getUserProfile();
 
       if (response['success'] == true && response['data'] != null) {
         _user = UserModel.fromJson(response['data']);
         
-        // ✅ Cache the fresh data
+        //  Cache the fresh data
         _saveToCache(response['data']);
 
-        debugPrint('✅ User profile loaded: ${_user?.fullName}');
+        debugPrint('User profile loaded: ${_user?.fullName}');
         _isLoading = false;
         notifyListeners();
         return true;
@@ -87,7 +87,7 @@ class UserProvider with ChangeNotifier {
     }
   }
 
-  /// ✅ NEW: Update video call availability
+  /// Update video call availability
   Future<bool> updateVideoCallAvailability(bool isAvailable) async {
     _isLoading = true;
     _error = null;
@@ -95,10 +95,10 @@ class UserProvider with ChangeNotifier {
 
     try {
       debugPrint(
-        '📤 Updating video call availability via Schedule Service: $isAvailable',
+        'Updating video call availability via Schedule Service: $isAvailable',
       );
 
-      // ✅ ENSURE PERSISTENCE: Use DoctorScheduleService which is known to work
+      //  ENSURE PERSISTENCE: Use DoctorScheduleService which is known to work
       // with this specific combination of fields.
       final scheduleService = DoctorScheduleService();
 
@@ -110,11 +110,11 @@ class UserProvider with ChangeNotifier {
         weeklySchedule: currentSchedule,
         fees: currentFees,
         isVideoCallAvailable: isAvailable,
-        isAvailable: isAvailable, // ✅ Send redundant field
+        isAvailable: isAvailable, 
       );
 
       if (response['success'] == true) {
-        debugPrint('✅ Server confirmed update. Refreshing profile...');
+        debugPrint('Server confirmed update. Refreshing profile...');
 
         // Patch locally immediately so the UI reflects it even if refresh returns stale data
         if (_user != null) {
@@ -125,10 +125,10 @@ class UserProvider with ChangeNotifier {
         // Force refresh from server to see what it actually stored
         await fetchUserProfile();
 
-        // ⚠️ FINAL PATCH: If server STILL returned stale data, force our intent
+        // FINAL PATCH: If server STILL returned stale data, force our intent
         if (_user != null && _user!.isVideoCallAvailable != isAvailable) {
           debugPrint(
-            '⚠️ Server returned stale data after refresh. Forcing local patch again.',
+            ' Server returned stale data after refresh. Forcing local patch again.',
           );
           _user = _user!.copyWith(isVideoCallAvailable: isAvailable);
           notifyListeners();
@@ -144,7 +144,7 @@ class UserProvider with ChangeNotifier {
       }
     } catch (e) {
       _error = 'Error: $e';
-      debugPrint('❌ Exception during availability update: $e');
+      debugPrint(' Exception during availability update: $e');
       _isLoading = false;
       notifyListeners();
       return false;
@@ -173,14 +173,14 @@ class UserProvider with ChangeNotifier {
     File? profileImage,
     double? latitude,
     double? longitude,
-    bool? isVideoCallAvailable, // ✅ NEW
+    bool? isVideoCallAvailable, 
   }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      debugPrint('📤 Updating profile...');
+      debugPrint(' Updating profile...');
       debugPrint('   - fullName: $fullName');
       debugPrint('   - phone: $phone');
       debugPrint('   - address: $address');
@@ -188,11 +188,11 @@ class UserProvider with ChangeNotifier {
       debugPrint('   - specialty: $specialty');
       debugPrint('   - latitude: $latitude');
       debugPrint('   - longitude: $longitude');
-      debugPrint('✅ Adding isVideoCallAvailable: $isVideoCallAvailable');
-      // ✅ NEW
+      debugPrint(' Adding isVideoCallAvailable: $isVideoCallAvailable');
+
       debugPrint('   - profileImage: ${profileImage != null ? "Yes" : "No"}');
 
-      // ✅ ENSURE PERSISTENCE for doctors: include current doctor-specific fields if not provided
+      
       final currentFees =
           fees ?? (_user?.role == 'doctor' ? _user?.fees : null);
       final currentSchedule =
@@ -210,11 +210,11 @@ class UserProvider with ChangeNotifier {
           medicalLicenseNumber ??
           (_user?.role == 'doctor' ? _user?.medicalLicenseNumber : null);
 
-      // ✅ Location handling - persist if not explicitly updated
+      //  Location handling - persist if not explicitly updated
       final currentLat = latitude ?? (_user?.latitude);
       final currentLng = longitude ?? (_user?.longitude);
 
-      // ✅ Pass ONLY provided fields (plus required doctor fields for persistence)
+      //  Pass ONLY provided fields (plus required doctor fields for persistence)
       final response = await UserService.updateUserProfile(
         fullName: fullName,
         username: username,
@@ -244,12 +244,12 @@ class UserProvider with ChangeNotifier {
       if (response['success'] == true && response['data'] != null) {
         var updatedUser = UserModel.fromJson(response['data']);
 
-        // ⚠️ PATCH: The backend might return stale data for isVideoCallAvailable.
+        //  PATCH: The backend might return stale data for isVideoCallAvailable.
         // If we explicitly updated it and the server confirms success, we trust the intent.
         if (isVideoCallAvailable != null &&
             updatedUser.isVideoCallAvailable != isVideoCallAvailable) {
           debugPrint(
-            '⚠️ Server returned stale video call data. Forcing local update to: $isVideoCallAvailable',
+            ' Server returned stale video call data. Forcing local update to: $isVideoCallAvailable',
           );
           updatedUser = updatedUser.copyWith(
             isVideoCallAvailable: isVideoCallAvailable,
@@ -257,7 +257,7 @@ class UserProvider with ChangeNotifier {
         }
 
         _user = updatedUser;
-        debugPrint('✅ Profile updated successfully!');
+        debugPrint('Profile updated successfully!');
         debugPrint('   - Name: ${_user?.fullName}');
         debugPrint('   - Specialty: ${_user?.specialty}');
         debugPrint('   - Bio: ${_user?.bio}');
@@ -265,21 +265,21 @@ class UserProvider with ChangeNotifier {
         debugPrint(
           '   - Location: lat=${_user?.latitude}, lng=${_user?.longitude}',
         );
-        debugPrint('   - Video Call: ${_user?.isVideoCallAvailable}'); // ✅ NEW
+        debugPrint('   - Video Call: ${_user?.isVideoCallAvailable}');
         debugPrint('   - New avatar: ${_user?.profileImage}');
         _isLoading = false;
         notifyListeners();
         return true;
       } else {
         _error = response['message'] ?? 'Failed to update profile';
-        debugPrint('❌ Update failed: $_error');
+        debugPrint(' Update failed: $_error');
         _isLoading = false;
         notifyListeners();
         return false;
       }
     } catch (e) {
       _error = 'Error: $e';
-      debugPrint('❌ Exception during update: $e');
+      debugPrint(' Exception during update: $e');
       _isLoading = false;
       notifyListeners();
       return false;
@@ -304,20 +304,20 @@ class UserProvider with ChangeNotifier {
       );
 
       if (response['success'] == true) {
-        debugPrint('✅ Password changed successfully');
+        debugPrint(' Password changed successfully');
         _isLoading = false;
         notifyListeners();
         return true;
       } else {
         _error = response['message'] ?? 'Failed to change password';
-        debugPrint('❌ Password change failed: $_error');
+        debugPrint(' Password change failed: $_error');
         _isLoading = false;
         notifyListeners();
         return false;
       }
     } catch (e) {
       _error = 'Error: $e';
-      debugPrint('❌ Exception: $e');
+      debugPrint(' Exception: $e');
       _isLoading = false;
       notifyListeners();
       return false;
@@ -328,7 +328,7 @@ class UserProvider with ChangeNotifier {
   void setUser(UserModel user) {
     _user = user;
     _error = null;
-    debugPrint('👤 User set: ${user.fullName}');
+    debugPrint(' User set: ${user.fullName}');
     notifyListeners();
   }
 
@@ -337,14 +337,14 @@ class UserProvider with ChangeNotifier {
     _user = null;
     _error = null;
     _isLoading = false;
-    debugPrint('🚪 User cleared (logged out)');
+    debugPrint(' User cleared (logged out)');
     notifyListeners();
   }
 
   /// Update local user data without API call
   void updateLocalUser(UserModel updatedUser) {
     _user = updatedUser;
-    debugPrint('🔄 Local user updated: ${updatedUser.fullName}');
+    debugPrint(' Local user updated: ${updatedUser.fullName}');
     notifyListeners();
   }
 

@@ -4,8 +4,8 @@ import 'package:docmobi/services/agora_chat_service.dart';
 import 'package:docmobi/services/socket_service.dart';
 import 'package:docmobi/services/api_service.dart';
 import 'package:docmobi/services/notification_service.dart';
-import 'package:docmobi/screens/common/calls/video_call_screen.dart'; // ✅ Added for call
-import 'package:docmobi/screens/common/calls/audio_call_screen.dart'; // ✅ Added for call
+import 'package:docmobi/screens/common/calls/video_call_screen.dart'; 
+import 'package:docmobi/screens/common/calls/audio_call_screen.dart'; 
 import 'package:agora_chat_sdk/agora_chat_sdk.dart';
 import 'dart:io';
 import 'dart:async';
@@ -49,15 +49,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   String? _currentUserAvatar;
   String? _currentUserName;
   String? _otherUserId;
-  String? _actualDoctorAvatar; // ✅ Real avatar from API
+  String? _actualDoctorAvatar; 
   String? _actualDoctorName;
   bool _isOtherUserTyping = false;
   Timer? _myTypingTimer;
-  Timer? _otherUserTypingTimer; // To auto-hide if they don't stop properly
+  Timer? _otherUserTypingTimer; 
 
   bool _isAutoScrollEnabled = true;
-  final Set<String> _selectedMessageIds = {}; // ✅ For multi-select delete
-  bool _isSelectionMode = false; // ✅ Selection mode toggle
+  final Set<String> _selectedMessageIds = {}; 
+  bool _isSelectionMode = false; 
 
   @override
   void initState() {
@@ -65,20 +65,20 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _actualDoctorAvatar = widget.doctorAvatar;
     _actualDoctorName = widget.doctorName;
     _loadCurrentUserProfile().then((_) {
-      _setupAgoraListeners(); // ✅ Setup listeners IMMEDIATELY
+      _setupAgoraListeners(); 
       _loadMessages();
       _ensureAgoraConnection();
-      _setupSocketListeners(); // ✅ Setup socket for real-time typing
+      _setupSocketListeners(); 
       if (widget.doctorId != null) {
         AgoraChatService.instance.markAllMessagesAsRead(widget.doctorId!);
-        // ✅ Sync with backend
+       
         ApiService.markChatAsRead(chatId: widget.chatId);
       }
     });
 
-    // ✅ Track active chat to suppress notifications
+   
     NotificationService.currentChatId = widget.chatId;
-    NotificationService.clearBadge(); // ✅ Clear badge on entering chat
+    NotificationService.clearBadge(); 
 
     _scrollController.addListener(() {
       if (_scrollController.hasClients) {
@@ -89,7 +89,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     });
   }
 
-  // ✅ Real-time Socket Listeners
+
   void _setupSocketListeners() {
     if (_currentUserId != null) {
       SocketService.instance.ensureConnected();
@@ -146,17 +146,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     // 2. Check if logged in
     final isLoggedIn = await ChatClient.getInstance.isLoginBefore();
     debugPrint(
-      '🔍 Agora Login Status: $isLoggedIn | CurrentUser: $_currentUserId',
+      ' Agora Login Status: $isLoggedIn | CurrentUser: $_currentUserId',
     );
 
     if (!isLoggedIn && _currentUserId != null) {
-      debugPrint('🔄 Not logged in. Attempting login for $_currentUserId...');
+      debugPrint('Not logged in. Attempting login for $_currentUserId...');
       await AgoraChatService.instance.login(_currentUserId!);
     } else if (isLoggedIn) {
       final currentAgoraUser = await ChatClient.getInstance.getCurrentUserId();
       if (currentAgoraUser != _currentUserId && _currentUserId != null) {
         debugPrint(
-          '⚠️ Agora ID mismatch ($currentAgoraUser vs $_currentUserId). Relogging...',
+          ' Agora ID mismatch ($currentAgoraUser vs $_currentUserId). Relogging...',
         );
         await AgoraChatService.instance.logout();
         await AgoraChatService.instance.login(_currentUserId!);
@@ -174,12 +174,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               ?.toString();
           _currentUserName = profileResult['data']['fullName']?.toString();
         });
-        debugPrint('✅ Current user profile loaded');
+        debugPrint(' Current user profile loaded');
         debugPrint('   ID: $_currentUserId');
         debugPrint('   Name: $_currentUserName');
       }
     } catch (e) {
-      debugPrint('❌ Error loading user profile: $e');
+      debugPrint(' Error loading user profile: $e');
     }
   }
 
@@ -193,7 +193,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
 
     try {
-      // ✅ Use local database for initial load (Much faster!)
+      //  Use local database for initial load (Much faster!)
       final messages = await AgoraChatService.instance.loadMessagesFromLocal(
         conversationId: widget.doctorId!,
       );
@@ -223,13 +223,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         _scrollToBottom();
       }
 
-      // 🔄 Sync from server in background silently
+      //  Sync from server in background silently
       AgoraChatService.instance
           .fetchHistoryMessages(conversationId: widget.doctorId!)
           .then((remoteMessages) {
             if (mounted && remoteMessages.isNotEmpty) {
               setState(() {
-                // ✅ MERGE instead of replace to preserve real-time messages
+                //  MERGE instead of replace to preserve real-time messages
                 final existingIds = _messages.map((m) => m['_id']).toSet();
                 final newMessages = remoteMessages
                     .where((m) => !existingIds.contains(m.msgId))
@@ -254,7 +254,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
-  // ✅ Multi-select Delete Helper
+  // Multi-select Delete Helper
   void _toggleSelection(String msgId) {
     setState(() {
       if (_selectedMessageIds.contains(msgId)) {
@@ -324,7 +324,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           );
         }
       } catch (e) {
-        debugPrint('❌ Failed to delete messages: $e');
+        debugPrint(' Failed to delete messages: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -360,12 +360,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
           for (var msg in messages) {
             debugPrint(
-              '📩 [PatientChat] Received message SDK: ID=${msg.msgId}, From=${msg.from}, Conv=${msg.conversationId}',
+              '[PatientChat] Received message SDK: ID=${msg.msgId}, From=${msg.from}, Conv=${msg.conversationId}',
             );
 
             if (msg.conversationId == widget.doctorId ||
                 msg.from == widget.doctorId) {
-              debugPrint('   ✅ Match found for this chat');
+              debugPrint(' Match found for this chat');
 
               // Prevent duplicates
               final bool alreadyExists = _messages.any(
@@ -379,7 +379,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
           if (incomingFormatted.isNotEmpty && mounted) {
             setState(() {
-              // ✅ Check for duplicates BEFORE insertion (more efficient)
+              //  Check for duplicates BEFORE insertion (more efficient)
               final existingIds = _messages.map((m) => m['_id']).toSet();
 
               for (var msg in incomingFormatted) {
@@ -389,9 +389,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 }
               }
 
-              // ✅ Only sort if messages might be out of order
-              // Agora usually delivers in order, so this is often unnecessary
-              // but kept for safety with multiple simultaneous messages
+             
               if (incomingFormatted.length > 1) {
                 _messages.sort(
                   (a, b) => DateTime.parse(
@@ -405,16 +403,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
             AgoraChatService.instance.markAllMessagesAsRead(
               widget.doctorId!,
-            ); // ✅ Clear unread badge live
+            ); 
 
-            // ✅ Sync with backend
+          
             ApiService.markChatAsRead(chatId: widget.chatId);
           }
         },
       ),
     );
     debugPrint(
-      '✅ Agora Chat listeners setup for ID: patient_chat_${widget.chatId}',
+      ' Agora Chat listeners setup for ID: patient_chat_${widget.chatId}',
     );
   }
 
@@ -480,22 +478,22 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     try {
       if (widget.doctorId == null) {
-        debugPrint('❌ Send aborted: widget.doctorId is NULL');
+        debugPrint(' Send aborted: widget.doctorId is NULL');
         throw Exception('Recipient ID missing');
       }
 
-      debugPrint('✉️ [Patient] Sending to DoctorID: ${widget.doctorId}');
+      debugPrint('[Patient] Sending to DoctorID: ${widget.doctorId}');
       debugPrint('   - Me (UID): $_currentUserId');
 
       final sentMessage = await AgoraChatService.instance.sendMessage(
         conversationId: widget.doctorId!,
         content: content,
         files: _selectedFiles.isNotEmpty ? _selectedFiles : null,
-        backendChatId: widget.chatId, // ✅ Trigger backend notification
+        backendChatId: widget.chatId, 
       );
 
       debugPrint(
-        '✅ Message returned from SDK: ${sentMessage?.msgId ?? "NULL"}',
+        ' Message returned from SDK: ${sentMessage?.msgId ?? "NULL"}',
       );
 
       if (sentMessage != null && mounted) {
@@ -510,7 +508,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         _scrollToBottom();
       }
     } catch (e) {
-      debugPrint('❌ Error sending message: $e');
+      debugPrint(' Error sending message: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -534,7 +532,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
-  /// ✅ Initiate call
+  /// Initiate call
   Future<void> _initiateCall({required bool isVideo}) async {
     if (widget.doctorId == null) {
       debugPrint('❌ Cannot initiate call: doctorId is null');
@@ -545,15 +543,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
 
     try {
-      debugPrint('📞 Initiating ${isVideo ? 'video' : 'audio'} call...');
-      debugPrint('👤 Current user: $_currentUserId');
-      debugPrint('👤 Doctor: ${widget.doctorId}');
-      debugPrint('💬 Chat ID: ${widget.chatId}');
+      debugPrint(' Initiating ${isVideo ? 'video' : 'audio'} call...');
+      debugPrint(' Current user: $_currentUserId');
+      debugPrint(' Doctor: ${widget.doctorId}');
+      debugPrint(' Chat ID: ${widget.chatId}');
 
-      // ✅ Check socket connection
+      // Check socket connection
       final socketService = SocketService.instance;
       if (!socketService.isConnected) {
-        debugPrint('⚠️ Socket not connected, attempting to connect...');
+        debugPrint(' Socket not connected, attempting to connect...');
         if (_currentUserId != null) {
           await socketService.connect(_currentUserId!);
           await Future.delayed(const Duration(seconds: 1));
@@ -564,9 +562,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         }
       }
 
-      debugPrint('✅ Socket connected, initiating call via API...');
+      debugPrint(' Socket connected, initiating call via API...');
 
-      // ✅ Use API to initiate call
+      //  Use API to initiate call
       final result = await ApiService.initiateCall(
         chatId: widget.chatId,
         receiverId: widget.doctorId!,
@@ -574,12 +572,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       );
 
       if (result['success'] == true && mounted) {
-        debugPrint('📤 Call initiated successfully');
+        debugPrint(' Call initiated successfully');
 
         final String stableChatId =
             result['data']?['chatId']?.toString() ?? widget.chatId;
 
-        // ✅ Navigate to appropriate call screen
+        //  Navigate to appropriate call screen
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -604,7 +602,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         throw Exception(result['message'] ?? 'Failed to initiate call');
       }
     } catch (e) {
-      debugPrint('❌ Error initiating call: $e');
+      debugPrint(' Error initiating call: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -635,7 +633,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         onCancelSelection: _cancelSelection,
         onDeleteSelected: _deleteSelectedMessages,
         onBack: () => Navigator.pop(context),
-        // ✅ Add call icons
+        //  Add call icons
         actions: [
           // Audio call button
           IconButton(
@@ -690,7 +688,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   )
                 : ListView.separated(
                     controller: _scrollController,
-                    reverse: true, // ✅ IMPORTANT: Newest at bottom
+                    reverse: true, //  IMPORTANT: Newest at bottom
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 8,
@@ -831,7 +829,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     AgoraChatService.instance.removeMessageListener(
       'patient_chat_${widget.chatId}',
     );
-    // ✅ Leave chat room
+    //  Leave chat room
     if (_currentUserId != null) {
       SocketService.instance.emit('chat:leave', {
         'chatId': widget.chatId,
@@ -841,7 +839,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     SocketService.instance.off('user:online');
     SocketService.instance.off('user:offline');
 
-    // ✅ Clear active chat
+    //  Clear active chat
     if (NotificationService.currentChatId == widget.chatId) {
       NotificationService.currentChatId = null;
     }

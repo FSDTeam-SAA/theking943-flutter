@@ -39,7 +39,7 @@ class _SeeAllDoctorsScreenState extends State<SeeAllDoctorsScreen> {
         requiresAuth: true,
       );
 
-      debugPrint('📥 Doctors API Response: $result');
+      debugPrint(' Doctors API Response: $result');
 
       if (result['success'] == true) {
         final doctorsData = result['data'] as List? ?? [];
@@ -48,7 +48,7 @@ class _SeeAllDoctorsScreenState extends State<SeeAllDoctorsScreen> {
           return Doctor.fromJson(json);
         }).toList();
 
-        // ✅ If user position is provided, calculate distance and sort
+        // If user position is provided, calculate distance and sort
         if (widget.userPosition != null) {
           loadedDoctors.sort((a, b) {
             if (a.latitude == null || a.longitude == null) return 1;
@@ -71,7 +71,7 @@ class _SeeAllDoctorsScreenState extends State<SeeAllDoctorsScreen> {
           _isLoading = false;
         });
 
-        debugPrint('✅ Loaded ${_doctors.length} doctors');
+        debugPrint(' Loaded ${_doctors.length} doctors');
       } else {
         setState(() {
           _errorMessage = result['message'] ?? 'Failed to load doctors';
@@ -117,7 +117,7 @@ class _SeeAllDoctorsScreenState extends State<SeeAllDoctorsScreen> {
     return '${distance.toStringAsFixed(1)} km';
   }
 
-  /// ✅ Check if doctor has schedule (is available)
+  ///  Check if doctor has schedule (is available)
   bool _isDoctorAvailable(Doctor doctor) {
     if (doctor.weeklySchedule == null || doctor.weeklySchedule!.isEmpty) {
       debugPrint('❌ ${doctor.fullName}: No weeklySchedule');
@@ -131,7 +131,7 @@ class _SeeAllDoctorsScreenState extends State<SeeAllDoctorsScreen> {
       );
 
       if (schedule.isActive && schedule.slots.isNotEmpty) {
-        debugPrint('✅ ${doctor.fullName}: Available on ${schedule.day}');
+        debugPrint(' ${doctor.fullName}: Available on ${schedule.day}');
         return true;
       }
     }
@@ -140,7 +140,7 @@ class _SeeAllDoctorsScreenState extends State<SeeAllDoctorsScreen> {
     return false;
   }
 
-  /// ✅ Get visiting hours from doctor's schedule
+  ///  Get visiting hours from doctor's schedule
   String _getVisitingHours(Doctor doctor) {
     if (doctor.weeklySchedule == null || doctor.weeklySchedule!.isEmpty) {
       return 'No schedule set';
@@ -265,11 +265,11 @@ class _SeeAllDoctorsScreenState extends State<SeeAllDoctorsScreen> {
 
   Widget _buildDoctorCard(Doctor doctor) {
     final bool isAvailable = _isDoctorAvailable(doctor);
-    final bool hasVideoCall = doctor.isVideoCallAvailable; // ✅ Read from model
+    final bool hasVideoCall = doctor.isVideoCallAvailable; 
     final String visitingHours = _getVisitingHours(doctor);
 
     // Debug
-    debugPrint('📋 See All: ${doctor.fullName}');
+    debugPrint(' See All: ${doctor.fullName}');
     debugPrint('   - hasVideoCall: $hasVideoCall');
 
     return GestureDetector(
@@ -384,7 +384,7 @@ class _SeeAllDoctorsScreenState extends State<SeeAllDoctorsScreen> {
                       ),
                       const SizedBox(height: 6),
 
-                      // ✅ Video Consultation Badge
+                      //  Video Consultation Badge
                       if (hasVideoCall)
                         Container(
                           padding: const EdgeInsets.symmetric(

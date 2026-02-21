@@ -27,7 +27,7 @@ class _PatientReelsScreenState extends State<PatientReelsScreen> {
     _loadReels();
     _scrollController.addListener(_onScroll);
 
-    // ✅ Auto refresh every 30 seconds with silent update
+    // Auto refresh every 30 seconds with silent update
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       _loadReels();
     });
@@ -58,7 +58,7 @@ class _PatientReelsScreenState extends State<PatientReelsScreen> {
     }
 
     try {
-      debugPrint('📤 Loading reels...');
+      debugPrint('Loading reels...');
       final response = await ApiService.getAllReels(page: 1, limit: 20);
 
       if (response['success'] == true) {
@@ -74,10 +74,10 @@ class _PatientReelsScreenState extends State<PatientReelsScreen> {
               (pagination['page'] * pagination['limit']) < pagination['total'];
           isLoading = false;
         });
-        debugPrint('✅ Loaded ${reelsList.length} reels');
+        debugPrint(' Loaded ${reelsList.length} reels');
       }
     } catch (e) {
-      debugPrint('❌ Error loading reels: $e');
+      debugPrint('Error loading reels: $e');
       if (reelsList.isEmpty) {
         setState(() {
           hasError = true;
@@ -115,7 +115,7 @@ class _PatientReelsScreenState extends State<PatientReelsScreen> {
         });
       }
     } catch (e) {
-      debugPrint('❌ Error loading more reels: $e');
+      debugPrint(' Error loading more reels: $e');
       setState(() {
         isLoading = false;
       });

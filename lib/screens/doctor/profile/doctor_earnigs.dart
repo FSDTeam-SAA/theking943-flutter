@@ -28,12 +28,12 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
   @override
   void initState() {
     super.initState();
-    // স্ক্রিন লোড হওয়ার সাথে সাথে ডাটা ফেচ করবে
+   
     _fetchEarnings();
   }
 
   Future<void> _fetchEarnings() async {
-    // mounted চেক করা হয়েছে যাতে স্ক্রিন অফ থাকলে স্টেট আপডেট না হয়
+   
     if (!mounted) return;
 
     setState(() {
@@ -46,7 +46,7 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
         view: selectedPeriod,
       );
 
-      // কনসোলে চেক করার জন্য প্রিন্ট (প্রয়োজনে রিমুভ করতে পারেন)
+    
       debugPrint('📥 Raw Response: $response');
 
       if (response['success'] == true && response['data'] != null) {
@@ -77,7 +77,7 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
   }
 
   void _updatePeriod(String period) {
-    if (selectedPeriod == period) return; // একই পিরিয়ড হলে লোড করার দরকার নেই
+    if (selectedPeriod == period) return; 
     setState(() {
       selectedPeriod = period;
     });
@@ -191,7 +191,7 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
               else
                 _buildEarningsContent(),
 
-              const SizedBox(height: 50), // নীচ থেকে একটু স্পেস রাখা
+              const SizedBox(height: 50), 
             ],
           ),
         ),
@@ -200,7 +200,7 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
   }
 
   Widget _buildEarningsContent() {
-    // num টাইপ ব্যবহার করা হয়েছে যাতে int বা double দুইটাই হ্যান্ডেল করা যায়
+    
     final total = (earningsData['totalEarnings'] ?? 0);
     final physicalEarnings = (earningsData['physical']?['earnings'] ?? 0);
     final physicalCount = (earningsData['physical']?['count'] ?? 0);
@@ -376,7 +376,7 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🔥 Icon + Title Row
+          // Icon + Title Row
           Row(
             children: [
               CircleAvatar(
@@ -398,7 +398,7 @@ class _EarningOverviewScreenState extends State<EarningOverviewScreen> {
 
           const SizedBox(height: 14),
 
-          // 💰 Amount with money icon
+          //  Amount with money icon
           Row(
             children: [
               const Icon(Icons.money, size: 18, color: Color(0xFF2D5AF0)),
@@ -437,7 +437,7 @@ class CustomBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // সর্বোচ্চ ভ্যালু বের করা যাতে চার্ট হাইট ঠিক থাকে
+   
     num maxVal = chartData.isEmpty
         ? 1
         : chartData.reduce((a, b) => a > b ? a : b);
@@ -448,7 +448,7 @@ class CustomBarChart extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: List.generate(chartData.length, (index) {
         double barHeight =
-            (chartData[index] / maxVal) * 100; // ১০০ পিক্সেল স্কেলে
+            (chartData[index] / maxVal) * 100; 
         return Column(
           children: [
             Text(

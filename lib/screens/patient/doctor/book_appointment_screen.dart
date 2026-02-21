@@ -11,7 +11,7 @@ import 'package:docmobi/models/dependent_model.dart';
 import 'package:docmobi/models/appointment_model.dart';
 import 'package:docmobi/providers/appointment_provider.dart';
 import 'package:docmobi/providers/dependent_provider.dart';
-import 'package:docmobi/services/doctor_service.dart'; // ✅ Added
+import 'package:docmobi/services/doctor_service.dart'; 
 import 'package:docmobi/utils/api_config.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
@@ -55,11 +55,11 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   List<TimeSlot> availableSlots = [];
 
   final ImagePicker _picker = ImagePicker();
-  Doctor? _fetchedDoctor; // ✅ NEW: Store full doctor details
+  Doctor? _fetchedDoctor; 
 
   Doctor? get doctorObject {
     if (_fetchedDoctor != null) {
-      return _fetchedDoctor; // ✅ Prefer fetched full object
+      return _fetchedDoctor; 
     }
     if (widget.doctor is Doctor) return widget.doctor as Doctor;
     if (widget.doctor is Map<String, dynamic>) {
@@ -111,46 +111,46 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     });
   }
 
-  // ✅ NEW: Orchestrate the initialization sequence
+ 
   Future<void> _initializeRescheduleFlow() async {
-    // 1. Set initial UI state from existing appointment
+   
     _prefillStaticData();
 
-    // 2. Fetch full doctor details (vital for fallback schedule)
+    
     await _fetchFullDoctorDetails();
 
-    // 3. Now that we have doctor details, try to fetch slots
+  
     if (selectedDate != null && mounted) {
       _fetchAvailableSlots(selectedDate!);
     }
   }
 
-  // Split prefill into static data only
+
   void _prefillStaticData() {
     final appt = widget.existingAppointment!;
 
-    // Set appointment type
+ 
     if (appt.appointmentType?.toLowerCase() == 'video') {
       selectedType = "Video Call";
     } else {
       selectedType = "Physical Visit";
     }
 
-    // Set symptoms
+   
     if (appt.symptoms != null && appt.symptoms!.isNotEmpty) {
       _symptomsController.text = appt.symptoms!;
     }
 
-    // Set date
+
     selectedDate = appt.appointmentDate;
 
     debugPrint('   Date set to: $selectedDate');
   }
 
-  // ✅ NEW: Fetch full doctor details for fallback schedule
+ 
   Future<void> _fetchFullDoctorDetails() async {
     try {
-      debugPrint('📥 Fetching full doctor details for: $doctorId');
+      debugPrint(' Fetching full doctor details for: $doctorId');
       final service = DoctorService();
       final response = await service.getDoctorById(doctorId);
 
@@ -159,11 +159,11 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           _fetchedDoctor = Doctor.fromJson(response['data']);
         });
         debugPrint(
-          '✅ Full doctor details fetched. Has Schedule: ${_fetchedDoctor?.weeklySchedule?.isNotEmpty}',
+          ' Full doctor details fetched. Has Schedule: ${_fetchedDoctor?.weeklySchedule?.isNotEmpty}',
         );
       }
     } catch (e) {
-      debugPrint('❌ Failed to fetch full doctor details: $e');
+      debugPrint(' Failed to fetch full doctor details: $e');
     }
   }
 
@@ -212,7 +212,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
         if (unbookedSlots.isEmpty) {
           debugPrint(
-            '⚠️ Backend returned no slots, falling back to Weekly Schedule...',
+            ' Backend returned no slots, falling back to Weekly Schedule...',
           );
           _loadFromWeeklySchedule(date);
         } else {
@@ -318,7 +318,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     }
   }
 
-  // ✅ UPDATED: Handle both create and reschedule
+  //  Handle both create and reschedule
   Future<void> _submitAppointment() async {
     if (doctorId.isEmpty || doctorId.length < 10) {
       final l10n = AppLocalizations.of(context)!;
@@ -351,10 +351,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     }
   }
 
-  // ✅ Refactored: Internal method to create appointment (Returns success status)
+  //  Internal method to create appointment (Returns success status)
   Future<bool> _createAppointmentInternal() async {
     try {
-      // 1. Prepare Request
+      //  Prepare Request
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.appointments}'),
@@ -366,7 +366,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         request.headers['Authorization'] = 'Bearer $token';
       }
 
-      // 2. Prepare Data Payload
+      //  Prepare Data Payload
       String backendType = selectedType == "Physical Visit"
           ? "physical"
           : "video";
@@ -383,7 +383,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         };
       }
 
-      // 3. Add Fields
+      // Add Fields
       final fields = {
         'doctorId': doctorId,
         'appointmentType': backendType,
@@ -396,10 +396,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       request.fields.addAll(fields);
       debugPrint('📤 Sending Appointment Fields: $fields');
 
-      // 4. Compress & Add Medical Documents
+      //  Compress & Add Medical Documents
       if (_medicalDocuments.isNotEmpty) {
         debugPrint(
-          '📸 Compressing ${_medicalDocuments.length} medical documents in parallel...',
+          'Compressing ${_medicalDocuments.length} medical documents in parallel...',
         );
 
         final compressionFutures = _medicalDocuments.map(
@@ -418,9 +418,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         }
       }
 
-      // 5. Compress & Add Payment Screenshot
+      //  Compress & Add Payment Screenshot
       if (selectedType == "Video Call" && _paymentScreenshot != null) {
-        debugPrint('📸 Compressing payment screenshot...');
+        debugPrint(' Compressing payment screenshot...');
         final compressedFile = await _compressImage(_paymentScreenshot!.path);
         request.files.add(
           await http.MultipartFile.fromPath(
@@ -432,14 +432,14 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       }
 
       // 6. Send Request
-      debugPrint('🚀 Sending Multipart Request...');
+      debugPrint(' Sending Multipart Request...');
       final streamedResponse = await request.send().timeout(
         const Duration(seconds: 60),
       );
 
       final response = await http.Response.fromStream(streamedResponse);
-      debugPrint('📥 Response Code: ${response.statusCode}');
-      debugPrint('📥 Response Body: ${response.body}');
+      debugPrint(' Response Code: ${response.statusCode}');
+      debugPrint(' Response Body: ${response.body}');
 
       final jsonResponse = response.body.isNotEmpty
           ? json.decode(response.body)
@@ -465,7 +465,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         return false;
       }
     } catch (e) {
-      debugPrint('❌ Booking Exception: $e');
+      debugPrint(' Booking Exception: $e');
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -493,25 +493,25 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     }
   }
 
-  // ✅ Fixed: Reschedule Logic (Create NEW first, THEN Cancel old)
+  //  Reschedule Logic (Create NEW first, THEN Cancel old)
   Future<void> _handleReschedule() async {
     try {
-      // 1. Create New Appointment First
-      debugPrint('🔄 Attempting to create new appointment for reschedule...');
+      //  Create New Appointment First
+      debugPrint(' Attempting to create new appointment for reschedule...');
       final success = await _createAppointmentInternal();
 
       if (!success) {
         debugPrint(
-          '❌ New appointment creation failed. Aborting cancel of old one.',
+          'New appointment creation failed. Aborting cancel of old one.',
         );
         return; // Stop here. Old appointment remains active.
       }
 
       debugPrint(
-        '✅ New appointment created. Now cancelling old appointment...',
+        'New appointment created. Now cancelling old appointment...',
       );
 
-      // 2. Cancel Old Appointment
+      //  Cancel Old Appointment
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
 
@@ -528,7 +528,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
       if (cancelResponse.statusCode < 200 || cancelResponse.statusCode >= 300) {
         debugPrint(
-          '⚠️ Failed to cancel old appointment: ${cancelResponse.body}',
+          ' Failed to cancel old appointment: ${cancelResponse.body}',
         );
 
         // Show WARNING message to user
@@ -573,7 +573,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      debugPrint('❌ Reschedule Exception: $e');
+      debugPrint(' Reschedule Exception: $e');
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -586,26 +586,26 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     }
   }
 
-  // ✅ NEW: Helper to compress images
+  //  Helper to compress images
   Future<File> _compressImage(String path) async {
     try {
       final String targetPath = '${path}_compressed.jpg';
       final XFile? result = await FlutterImageCompress.compressAndGetFile(
         path,
         targetPath,
-        quality: 88, // ✅ Increased quality
-        minWidth: 2048, // ✅ Increased resolution
+        quality: 88, 
+        minWidth: 2048, 
         minHeight: 2048,
       );
 
       if (result != null) {
         debugPrint(
-          '✅ Compressed: ${(await File(path).length()) / 1024}KB -> ${(await File(result.path).length()) / 1024}KB',
+          'Compressed: ${(await File(path).length()) / 1024}KB -> ${(await File(result.path).length()) / 1024}KB',
         );
         return File(result.path);
       }
     } catch (e) {
-      debugPrint('⚠️ Compression failed: $e');
+      debugPrint(' Compression failed: $e');
     }
     return File(path); // Fallback to original
   }
@@ -637,7 +637,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Column(
           children: [
-            // ✅ Show reschedule info banner
+            // Show reschedule info banner
             if (widget.isReschedule) ...[
               Container(
                 padding: const EdgeInsets.all(16),

@@ -98,7 +98,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       _getAddressFromLatLng(_selectedLocation!);
       _moveCamera(_selectedLocation!);
     } catch (e) {
-      debugPrint('❌ Error getting location: $e');
+      debugPrint(' Error getting location: $e');
       setState(() => _isLoadingLocation = false);
       if (mounted) {
         ScaffoldMessenger.of(
@@ -119,7 +119,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
         _isLoadingAddress = false;
       });
     } catch (e) {
-      debugPrint('❌ Error getting address: $e');
+      debugPrint(' Error getting address: $e');
       setState(() {
         _selectedAddress = 'Address not found';
         _isLoadingAddress = false;

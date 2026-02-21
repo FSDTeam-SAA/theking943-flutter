@@ -17,27 +17,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:docmobi/providers/locale_provider.dart';
 
-// ✅ CRITICAL: This MUST be top-level function
+//  This MUST be top-level function
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 
-  // ✅ FIX: Login check — not logged in হলে call দেখাবো না
+  //   Login check — not logged in হলে call দেখাবো না
   final prefs = await SharedPreferences.getInstance();
   final authToken = prefs.getString('auth_token');
 
   if (authToken == null || authToken.isEmpty) {
     debugPrint(
-        '⚠️ [BACKGROUND] User not logged in — ignoring FCM notification');
+        ' [BACKGROUND] User not logged in — ignoring FCM notification');
     return;
   }
 
   debugPrint('');
   debugPrint('═══════════════════════════════════════════════════════');
-  debugPrint('🌙 [MAIN.DART BACKGROUND] FCM Message Received');
+  debugPrint(' [MAIN.DART BACKGROUND] FCM Message Received');
   debugPrint('═══════════════════════════════════════════════════════');
-  debugPrint('📩 Message ID: ${message.messageId}');
-  debugPrint('📩 Data: ${message.data}');
+  debugPrint(' Message ID: ${message.messageId}');
+  debugPrint(' Data: ${message.data}');
   debugPrint('═══════════════════════════════════════════════════════');
   debugPrint('');
 
@@ -52,14 +52,14 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
           InitializationSettings(android: initAndroid);
       await localNotifications.initialize(initSettings);
       await localNotifications.cancelAll();
-      debugPrint('✅ [BACKGROUND] System notification cancelled');
+      debugPrint(' [BACKGROUND] System notification cancelled');
     } catch (e) {
-      debugPrint('⚠️ [BACKGROUND] Could not cancel system notification: $e');
+      debugPrint(' [BACKGROUND] Could not cancel system notification: $e');
     }
 
     await NotificationService.showIncomingCall(message.data);
   } else if (message.data['type'] == 'cancel_call') {
-    debugPrint('📴 [BACKGROUND] Call cancelled by caller');
+    debugPrint(' [BACKGROUND] Call cancelled by caller');
     try {
       final uuid = message.data['uuid'];
       if (uuid != null && uuid.toString().isNotEmpty) {
@@ -67,9 +67,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       } else {
         await FlutterCallkitIncoming.endAllCalls();
       }
-      debugPrint('✅ [BACKGROUND] CallKit dismissed');
+      debugPrint(' [BACKGROUND] CallKit dismissed');
     } catch (e) {
-      debugPrint('⚠️ [BACKGROUND] Error dismissing CallKit: $e');
+      debugPrint(' [BACKGROUND] Error dismissing CallKit: $e');
     }
   }
 }
@@ -82,20 +82,20 @@ void main() async {
 
   debugPrint('');
   debugPrint('╔═══════════════════════════════════════════════════════╗');
-  debugPrint('║          🚀 DOCMOBI APP STARTING                      ║');
+  debugPrint('║           DOCMOBI APP STARTING                      ║');
   debugPrint('╚═══════════════════════════════════════════════════════╝');
   debugPrint('');
 
   // 1. Initialize Firebase FIRST
   try {
     await Firebase.initializeApp();
-    debugPrint('✅ Firebase initialized');
+    debugPrint('Firebase initialized');
 
     // 2. Register background handler IMMEDIATELY after Firebase init
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    debugPrint('✅ Background message handler registered');
+    debugPrint('Background message handler registered');
   } catch (e) {
-    debugPrint('❌ Firebase Init Error: $e');
+    debugPrint('Firebase Init Error: $e');
   }
 
   // 3. Load saved locale
@@ -105,9 +105,9 @@ void main() async {
   // 4. Load token
   await ApiService.init();
   final isLoggedIn = ApiService.isLoggedIn;
-  debugPrint('🔍 Token status: ${isLoggedIn ? "Logged In" : "Not Logged In"}');
+  debugPrint(' Token status: ${isLoggedIn ? "Logged In" : "Not Logged In"}');
 
-  debugPrint('✅ Critical initialization complete - Starting app');
+  debugPrint('Critical initialization complete - Starting app');
   debugPrint('');
 
   runApp(
@@ -135,7 +135,7 @@ void main() async {
 
   // Deferred initialization
   WidgetsBinding.instance.addPostFrameCallback((_) async {
-    debugPrint('🔄 Starting deferred service initialization...');
+    debugPrint(' Starting deferred service initialization...');
 
     await Future.wait([
       _initNotificationService(),
@@ -143,16 +143,16 @@ void main() async {
       if (isLoggedIn) _initChatAndSocketServices(),
     ]);
 
-    debugPrint('✅ All deferred services initialized');
+    debugPrint(' All deferred services initialized');
   });
 }
 
 Future<void> _initNotificationService() async {
   try {
     await NotificationService.init();
-    debugPrint('✅ Notification Service ready');
+    debugPrint(' Notification Service ready');
   } catch (e) {
-    debugPrint('❌ Notification Service Error: $e');
+    debugPrint(' Notification Service Error: $e');
   }
 }
 
@@ -160,18 +160,18 @@ Future<void> _syncUserSession() async {
   try {
     await ApiService.syncUserSession();
   } catch (e) {
-    debugPrint('⚠️ User session sync failed: $e');
+    debugPrint(' User session sync failed: $e');
   }
 }
 
 Future<void> _initChatAndSocketServices() async {
   if (_chatSocketInitialized) {
-    debugPrint('⏭️ Chat/Socket services already initialized, skipping');
+    debugPrint(' Chat/Socket services already initialized, skipping');
     return;
   }
 
   if (_chatSocketInitializing) {
-    debugPrint('⏳ Chat/Socket services initialization in progress, skipping');
+    debugPrint(' Chat/Socket services initialization in progress, skipping');
     return;
   }
 
@@ -185,24 +185,24 @@ Future<void> _initChatAndSocketServices() async {
       try {
         await AgoraChatService.instance.init();
         await AgoraChatService.instance.login(userId);
-        debugPrint('✅ Agora Chat initialized for user: $userId');
+        debugPrint(' Agora Chat initialized for user: $userId');
       } catch (e) {
-        debugPrint('⚠️ Agora Chat initialization failed: $e');
+        debugPrint(' Agora Chat initialization failed: $e');
       }
 
       try {
         await SocketService.instance.connect(userId);
-        debugPrint('✅ Socket initialized for user: $userId');
+        debugPrint(' Socket initialized for user: $userId');
       } catch (e) {
-        debugPrint('⚠️ Socket initialization failed: $e');
+        debugPrint(' Socket initialization failed: $e');
       }
 
       _chatSocketInitialized = true;
     } else {
-      debugPrint('⚠️ User ID not found - Socket & Agora Chat not connected');
+      debugPrint(' User ID not found - Socket & Agora Chat not connected');
     }
   } catch (e) {
-    debugPrint('❌ Chat/Socket initialization error: $e');
+    debugPrint(' Chat/Socket initialization error: $e');
   } finally {
     _chatSocketInitializing = false;
   }

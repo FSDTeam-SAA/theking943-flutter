@@ -72,7 +72,7 @@ class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
         setState(() {});
       }
     } catch (e) {
-      debugPrint('❌ Error initializing video at index $index: $e');
+      debugPrint(' Error initializing video at index $index: $e');
     }
   }
 
@@ -108,7 +108,7 @@ class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
         });
       }
     } catch (e) {
-      debugPrint('❌ Error liking reel: $e');
+      debugPrint('Error liking reel: $e');
       setState(() {
         _likedReels[reelId] = wasLiked;
         _likeCounts[reelId] = (_likeCounts[reelId] ?? 0) + (wasLiked ? 1 : -1);

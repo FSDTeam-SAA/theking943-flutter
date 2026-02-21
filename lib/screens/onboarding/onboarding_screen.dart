@@ -137,7 +137,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
 
-            const SizedBox(height: 40), // স্ক্রিনের নিচ থেকে দূরত্ব
+            const SizedBox(height: 40),
           ],
         ),
       ),
@@ -154,7 +154,7 @@ class _OnboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // IMAGE SECTION (উপরে বেশি জায়গা দেওয়া হয়েছে)
+        
         Expanded(
           flex: 4,
           child: Padding(
@@ -163,7 +163,7 @@ class _OnboardPage extends StatelessWidget {
           ),
         ),
 
-        // TEXT SECTION (নিচের দিকে পজিশন করা হয়েছে)
+        
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
@@ -194,7 +194,7 @@ class _OnboardPage extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 30), // টেক্সট এবং ডটের মাঝখানের গ্যাপ
+        const SizedBox(height: 30), 
       ],
     );
   }

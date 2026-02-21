@@ -19,7 +19,7 @@ class DoctorProvider with ChangeNotifier {
   static const _cacheTimeKey = 'cached_nearby_doctors_time';
   static const _cacheDurationMinutes = 10; // ১০ মিনিট cache valid থাকবে
 
-  /// ✅ Cache থেকে doctors load করো — instant UI
+  
   Future<void> loadFromCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -35,25 +35,24 @@ class DoctorProvider with ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('⚠️ Error loading doctors cache: $e');
+      debugPrint(' Error loading doctors cache: $e');
     }
   }
 
-  /// ✅ Cache এ save করো
   Future<void> _saveToCache(List<Doctor> doctors) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonList = doctors.map((d) => d.toJson()).toList();
       await prefs.setString(_cacheKey, jsonEncode(jsonList));
       await prefs.setInt(_cacheTimeKey, DateTime.now().millisecondsSinceEpoch);
-      debugPrint('💾 ${doctors.length} doctors cached');
+      debugPrint('${doctors.length} doctors cached');
     } catch (e) {
-      debugPrint('⚠️ Error saving doctors cache: $e');
+      debugPrint(' Error saving doctors cache: $e');
     }
   }
 
   Future<bool> fetchNearbyDoctors({double? lat, double? lng}) async {
-    // ✅ Cache আছে? Loading spinner দেখাবো না
+ 
     if (_nearbyDoctors.isEmpty) {
       _isLoading = true;
       notifyListeners();
@@ -61,7 +60,7 @@ class DoctorProvider with ChangeNotifier {
     _error = null;
 
     try {
-      debugPrint('📡 Fetching doctors from API...');
+      debugPrint('Fetching doctors from API...');
       final response = await _doctorService.getNearbyDoctors(lat: lat, lng: lng);
 
       if (response['success'] == true) {
@@ -78,14 +77,14 @@ class DoctorProvider with ChangeNotifier {
           } else if (mapData.containsKey('doctors')) {
             data = mapData['doctors'];
           } else {
-            debugPrint('⚠️ Unknown data structure: $mapData');
+            debugPrint(' Unknown data structure: $mapData');
           }
         }
 
         _nearbyDoctors = data.map((json) => Doctor.fromJson(json)).toList();
-        debugPrint('✅ Fetched ${_nearbyDoctors.length} doctors');
+        debugPrint(' Fetched ${_nearbyDoctors.length} doctors');
 
-        // ✅ Cache এ save করো
+      
         _saveToCache(_nearbyDoctors);
 
         _isLoading = false;
@@ -99,7 +98,7 @@ class DoctorProvider with ChangeNotifier {
       }
     } catch (e, stackTrace) {
       _error = 'Error: $e';
-      debugPrint('❌ Exception in fetchNearbyDoctors: $e');
+      debugPrint(' Exception in fetchNearbyDoctors: $e');
       debugPrint('   StackTrace: $stackTrace');
       _isLoading = false;
       notifyListeners();

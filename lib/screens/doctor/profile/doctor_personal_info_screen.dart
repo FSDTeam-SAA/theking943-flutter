@@ -87,7 +87,7 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
       _degreeController.text = user.medicalLicenseNumber ?? '';
       _currentImageUrl = user.profileImage;
 
-      // ✅ Load location - check if your User model has latitude/longitude properties
+      //  Load location - check if your User model has latitude/longitude properties
       // Option 1: If user has latitude and longitude properties directly
       _latitude = user.latitude;
       _longitude = user.longitude;
@@ -235,7 +235,7 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
     try {
       final userProvider = context.read<UserProvider>();
 
-      debugPrint('💾 Saving profile with location:');
+      debugPrint(' Saving profile with location:');
       debugPrint('   - Latitude: $_latitude');
       debugPrint('   - Longitude: $_longitude');
       debugPrint('   - Address: ${_addressController.text}');
@@ -247,8 +247,8 @@ class _DoctorPersonalInfoScreenState extends State<DoctorPersonalInfoScreen> {
         bio: _bioController.text.trim(),
         specialty: _specialtyController.text.trim(),
         profileImage: _selectedImage,
-        latitude: _latitude, // ✅ Pass as separate parameters
-        longitude: _longitude, // ✅ Pass as separate parameters
+        latitude: _latitude, 
+        longitude: _longitude, 
       );
 
       setState(() => _isLoading = false);

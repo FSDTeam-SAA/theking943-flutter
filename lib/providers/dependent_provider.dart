@@ -12,14 +12,14 @@ class DependentProvider with ChangeNotifier {
 
   List<DependentModel> get dependents => _dependents;
 
-  // ✅ Get only active dependents
+  //  Get only active dependents
   List<DependentModel> get activeDependents =>
       _dependents.where((dep) => dep.isActive ?? true).toList();
 
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // ✅ FETCH ALL DEPENDENTS
+  //  FETCH ALL DEPENDENTS
   Future<void> fetchDependents() async {
     _isLoading = true;
     _error = null;
@@ -41,8 +41,8 @@ class DependentProvider with ChangeNotifier {
         },
       );
 
-      debugPrint('📥 Fetch Dependents Response: ${response.statusCode}');
-      debugPrint('📥 Response Body: ${response.body}');
+      debugPrint(' Fetch Dependents Response: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -53,7 +53,7 @@ class DependentProvider with ChangeNotifier {
               .map((json) => DependentModel.fromJson(json))
               .toList();
 
-          debugPrint('✅ Loaded ${_dependents.length} dependents');
+          debugPrint(' Loaded ${_dependents.length} dependents');
         } else {
           throw Exception(data['message'] ?? 'Failed to load dependents');
         }
@@ -70,7 +70,7 @@ class DependentProvider with ChangeNotifier {
     }
   }
 
-  // ✅ CREATE DEPENDENT
+  //  CREATE DEPENDENT
   Future<bool> createDependent({
     required String fullName,
     required String relationship,
@@ -98,7 +98,7 @@ class DependentProvider with ChangeNotifier {
         if (notes != null && notes.isNotEmpty) 'notes': notes,
       };
 
-      debugPrint('📤 Creating dependent: $body');
+      debugPrint(' Creating dependent: $body');
 
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.dependents}'),
@@ -109,8 +109,8 @@ class DependentProvider with ChangeNotifier {
         body: json.encode(body),
       );
 
-      debugPrint('📥 Create Response: ${response.statusCode}');
-      debugPrint('📥 Response Body: ${response.body}');
+      debugPrint(' Create Response: ${response.statusCode}');
+      debugPrint(' Response Body: ${response.body}');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -131,14 +131,14 @@ class DependentProvider with ChangeNotifier {
         return false;
       }
     } catch (e) {
-      debugPrint('❌ Error creating dependent: $e');
+      debugPrint(' Error creating dependent: $e');
       _error = e.toString();
       notifyListeners();
       return false;
     }
   }
 
-  // ✅ UPDATE DEPENDENT
+  // UPDATE DEPENDENT
   Future<bool> updateDependent({
     required String dependentId,
     String? fullName,
@@ -168,7 +168,7 @@ class DependentProvider with ChangeNotifier {
       if (notes != null) body['notes'] = notes;
       if (isActive != null) body['isActive'] = isActive;
 
-      debugPrint('📤 Updating dependent $dependentId: $body');
+      debugPrint(' Updating dependent $dependentId: $body');
 
       final response = await http.patch(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.dependents}/$dependentId'),
@@ -179,8 +179,8 @@ class DependentProvider with ChangeNotifier {
         body: json.encode(body),
       );
 
-      debugPrint('📥 Update Response: ${response.statusCode}');
-      debugPrint('📥 Response Body: ${response.body}');
+      debugPrint(' Update Response: ${response.statusCode}');
+      debugPrint(' Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -201,14 +201,14 @@ class DependentProvider with ChangeNotifier {
         return false;
       }
     } catch (e) {
-      debugPrint('❌ Error updating dependent: $e');
+      debugPrint(' Error updating dependent: $e');
       _error = e.toString();
       notifyListeners();
       return false;
     }
   }
 
-  // ✅ DELETE DEPENDENT (with error handling for active appointments)
+  //  DELETE DEPENDENT (with error handling for active appointments)
   Future<bool> deleteDependent(String dependentId) async {
     _error = null;
 
@@ -230,8 +230,8 @@ class DependentProvider with ChangeNotifier {
         },
       );
 
-      debugPrint('📥 Delete Response: ${response.statusCode}');
-      debugPrint('📥 Response Body: ${response.body}');
+      debugPrint(' Delete Response: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -247,7 +247,7 @@ class DependentProvider with ChangeNotifier {
           return false;
         }
       } else {
-        // ✅ Parse error message from backend
+        //  Parse error message from backend
         try {
           final data = json.decode(response.body);
           _error = data['message'] ?? 'Failed to delete dependent';
@@ -258,14 +258,14 @@ class DependentProvider with ChangeNotifier {
         return false;
       }
     } catch (e) {
-      debugPrint('❌ Error deleting dependent: $e');
+      debugPrint(' Error deleting dependent: $e');
       _error = e.toString();
       notifyListeners();
       return false;
     }
   }
 
-  // ✅ GET SINGLE DEPENDENT BY ID
+  //  GET SINGLE DEPENDENT BY ID
   DependentModel? getDependentById(String id) {
     try {
       return _dependents.firstWhere((dep) => dep.id == id);
@@ -274,7 +274,7 @@ class DependentProvider with ChangeNotifier {
     }
   }
 
-  // ✅ CLEAR ERROR
+  //  CLEAR ERROR
   void clearError() {
     _error = null;
     notifyListeners();

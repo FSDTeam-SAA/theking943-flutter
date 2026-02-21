@@ -96,10 +96,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         });
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('✅ Location updated')));
+        ).showSnackBar(const SnackBar(content: Text('Location updated')));
       }
     } catch (e) {
-      debugPrint('❌ Error getting location: $e');
+      debugPrint(' Error getting location: $e');
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -151,10 +151,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         setState(() {
           _selectedImage = File(image.path);
         });
-        debugPrint('📸 Image selected: ${image.path}');
+        debugPrint('Image selected: ${image.path}');
       }
     } catch (e) {
-      debugPrint('❌ Error picking image: $e');
+      debugPrint(' Error picking image: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context)!.errorMsg(e))),
@@ -178,7 +178,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     try {
       final userProvider = context.read<UserProvider>();
 
-      // ✅ FIXED: Use updateUserProfile instead of updateProfile
+      //  Use updateUserProfile instead of updateProfile
       final success = await userProvider.updateUserProfile(
         fullName: _nameController.text.trim(),
         phone: _phoneController.text.trim().isEmpty
@@ -190,7 +190,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         latitude: _currentLat,
         longitude: _currentLng,
         profileImage:
-            _selectedImage, // ✅ Pass File directly, provider will convert
+            _selectedImage, 
       );
 
       if (success) {
@@ -198,7 +198,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                '✅ ${AppLocalizations.of(context)!.profileUpdatedSuccess}',
+                '${AppLocalizations.of(context)!.profileUpdatedSuccess}',
               ),
               backgroundColor: Colors.green,
             ),
@@ -209,7 +209,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           _selectedImage = null;
         });
 
-        // ✅ Refresh the data
+    
         _loadUserData();
       } else {
         if (mounted) {
@@ -225,7 +225,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         }
       }
     } catch (e) {
-      debugPrint('❌ Update error: $e');
+      debugPrint(' Update error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context)!.errorMsg(e))),

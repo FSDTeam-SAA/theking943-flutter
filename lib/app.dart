@@ -38,7 +38,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   String? _userRole;
   bool _launchingIntoCall = false;
 
-  // ✅ FIX: Throttle resume events to prevent excessive data reloads
+  //  Throttle resume events to prevent excessive data reloads
   DateTime? _lastResumeTime;
 
   @override
@@ -56,17 +56,17 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    debugPrint('🔄 App Lifecycle State: $state');
+    debugPrint('App Lifecycle State: $state');
 
     if (state == AppLifecycleState.resumed) {
-      // ✅ FIX: Throttle — ignore rapid resume events within 30 seconds
+      //  Throttle — ignore rapid resume events within 30 seconds
       final now = DateTime.now();
       if (_lastResumeTime != null && now.difference(_lastResumeTime!).inSeconds < 30) {
         debugPrint('⏳ Resume throttled (${now.difference(_lastResumeTime!).inSeconds}s since last)');
         return;
       }
       _lastResumeTime = now;
-      debugPrint('⚡ App resumed - Refreshing...');
+      debugPrint(' App resumed - Refreshing...');
 
       if (_isLoggedIn) {
         NotificationPoller().refreshNotifications();
@@ -92,7 +92,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       if (navigator == null) return;
 
       debugPrint(
-          '📞 Restoring active call: ${callData['callType']} with ${callData['userName']}');
+          'Restoring active call: ${callData['callType']} with ${callData['userName']}');
 
       final callType = callData['callType'] ?? 'audio';
       final chatId = callData['chatId'] ?? '';
@@ -123,28 +123,24 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         ));
       }
     } catch (e) {
-      debugPrint('⚠️ Failed to restore active call: $e');
+      debugPrint(' Failed to restore active call: $e');
       await ActiveCallState.clearActiveCall();
     }
   }
 
   Future<void> _checkLoginStatus() async {
     try {
-      debugPrint('🔍 Checking app login status...');
+      debugPrint(' Checking app login status...');
 
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
       final role = prefs.getString('user_role');
       final userId = prefs.getString('user_id');
 
-      debugPrint('   Token: ${token != null ? "✅" : "❌"}');
-      debugPrint('   Role: ${role ?? "❌"}');
-      debugPrint('   User ID: ${userId ?? "❌"}');
+      
 
       final isLoggedIn = token != null && token.isNotEmpty;
 
-      // ✅ FIX: Cold start CallKit check — app closed অবস্থায় call accept করলে
-      // Home screen দেখানোর আগেই check করি active call আছে কিনা
       if (isLoggedIn) {
         try {
           final activeCalls = await FlutterCallkitIncoming.activeCalls();
@@ -160,19 +156,19 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
                 final callTime = DateTime.parse(data['timestamp']);
                 final diff = DateTime.now().difference(callTime).inMinutes;
                 if (diff <= 2) {
-                  // ✅ Valid active call — skip home screen entirely
+                  //  Valid active call — skip home screen entirely
                   _launchingIntoCall = true;
                   NotificationService.pendingCallData = data;
-                  debugPrint('📞 Valid active call on startup — will skip home screen');
+                  debugPrint(' Valid active call on startup — will skip home screen');
                 } else {
                   await FlutterCallkitIncoming.endAllCalls();
-                  debugPrint('⚠️ Stale call ($diff min old) — cleared');
+                  debugPrint(' Stale call ($diff min old) — cleared');
                 }
               }
             }
           }
         } catch (e) {
-          debugPrint('⚠️ Error checking active calls: $e');
+          debugPrint(' Error checking active calls: $e');
         }
       }
 
@@ -183,15 +179,14 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       });
 
       if (_isLoggedIn) {
-        debugPrint('✅ User logged in as: $_userRole');
+        debugPrint(' User logged in as: $_userRole');
 
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           if (navigatorKey.currentContext != null) {
             NotificationService.navigatorKey = navigatorKey;
             CallManager.instance.initialize(navigatorKey.currentContext!);
 
-            // ✅ FIX: Pending call navigate করো — home screen flash না করে
-            // সরাসরি call screen এ যাবে
+           
             if (NotificationService.consumePendingCallData()) {
               debugPrint('📞 Navigated directly to call screen (cold start)');
               if (mounted) setState(() => _launchingIntoCall = false);
@@ -203,7 +198,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         });
       }
     } catch (e) {
-      debugPrint('❌ Error checking login status: $e');
+      debugPrint(' Error checking login status: $e');
       setState(() {
         _isLoading = false;
         _isLoggedIn = false;
@@ -276,8 +271,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       return const SplashScreen();
     }
 
-    // ✅ FIX: App closed অবস্থায় call accept করলে — সরাসরি dark screen দেখাও
-    // home screen flash করবে না
+
     if (_launchingIntoCall) {
       debugPrint('📞 Showing call connecting screen (no home screen flash)');
       return const Scaffold(
@@ -362,16 +356,15 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
 
   Future<void> _logout() async {
     try {
-      // ✅ FIX: Deactivate FCM token BEFORE clearing credentials
-      // This prevents call notifications reaching this device after logout
+  
       try {
         final fcmToken = await FirebaseMessaging.instance.getToken();
         if (fcmToken != null) {
           await ApiService.unregisterFCMToken(token: fcmToken);
-          debugPrint('✅ FCM token deactivated on server');
+          debugPrint(' FCM token deactivated on server');
         }
       } catch (e) {
-        debugPrint('⚠️ FCM token deactivation failed: $e');
+        debugPrint(' FCM token deactivation failed: $e');
       }
 
       if (mounted) {
@@ -399,10 +392,10 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
           CallManager.instance.dispose();
         }),
       ]).catchError((e) {
-        debugPrint('⚠️ Background logout error: $e');
+        debugPrint(' Background logout error: $e');
       });
     } catch (e) {
-      debugPrint('❌ Logout error: $e');
+      debugPrint(' Logout error: $e');
       if (mounted) {
         setState(() {
           _isLoggedIn = false;

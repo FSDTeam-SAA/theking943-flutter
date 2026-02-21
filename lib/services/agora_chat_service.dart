@@ -26,16 +26,16 @@ class AgoraChatService {
 
     await ChatClient.getInstance.init(options);
 
-    // ✅ Listen for connection events
+    // Listen for connection events
     _addConnectionListener();
 
-    // ✅ CRITICAL: Notify the SDK that the UI is ready to receive callbacks
+    // CRITICAL: Notify the SDK that the UI is ready to receive callbacks
     await ChatClient.getInstance.startCallback();
 
     _isInitialized = true;
-    debugPrint('✅ Agora Chat SDK Initialized');
+    debugPrint('Agora Chat SDK Initialized');
 
-    // 🌐 Add a global listener for debugging
+    // Add a global listener for debugging
     _setupGlobalDebugListener();
   }
 
@@ -44,16 +44,16 @@ class AgoraChatService {
       "GLOBAL_CONNECTION",
       ConnectionEventHandler(
         onConnected: () {
-          debugPrint('🌐 [AGORA] Connected to server');
+          debugPrint(' [AGORA] Connected to server');
         },
         onDisconnected: () {
-          debugPrint('🌐 [AGORA] Disconnected from server');
+          debugPrint(' [AGORA] Disconnected from server');
         },
         onTokenWillExpire: () {
-          debugPrint('🌐 [AGORA] Token will expire soon');
+          debugPrint(' [AGORA] Token will expire soon');
         },
         onTokenDidExpire: () {
-          debugPrint('🌐 [AGORA] Token expired');
+          debugPrint(' [AGORA] Token expired');
         },
       ),
     );

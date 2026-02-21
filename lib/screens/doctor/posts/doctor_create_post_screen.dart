@@ -77,13 +77,13 @@ class _DoctorCreatePostScreenState extends State<DoctorCreatePostScreen> {
     try {
       Map<String, dynamic> result;
 
-      // ✅ REELS UPLOAD
+      //  REELS UPLOAD
       if (_postType == 'reels') {
         if (_selectedMediaList.isEmpty) {
           throw Exception('Please select a video for reels');
         }
 
-        // ✅ Show privacy confirmation for reels
+        //  Show privacy confirmation for reels
         if (!mounted) return;
 
         bool? confirmed = await showDialog<bool>(
@@ -182,7 +182,7 @@ class _DoctorCreatePostScreenState extends State<DoctorCreatePostScreen> {
           );
         }
       }
-      // ✅ NORMAL POST/PHOTO/VIDEO UPLOAD
+      // NORMAL POST/PHOTO/VIDEO UPLOAD
       else {
         List<File>? mediaFiles;
         if (_selectedMediaList.isNotEmpty) {
@@ -306,7 +306,7 @@ class _DoctorCreatePostScreenState extends State<DoctorCreatePostScreen> {
           children: [
             const SizedBox(height: 20),
 
-            // ✅ Dynamic User Info
+            // Dynamic User Info
             Consumer<UserProvider>(
               builder: (context, userProvider, child) {
                 final user = userProvider.user;
@@ -337,7 +337,7 @@ class _DoctorCreatePostScreenState extends State<DoctorCreatePostScreen> {
                           ),
                           const SizedBox(height: 5),
 
-                          // ✅ Visibility Dropdown (Public/Private)
+                          //  Visibility Dropdown (Public/Private)
                           GestureDetector(
                             onTap: () {
                               showModalBottomSheet(

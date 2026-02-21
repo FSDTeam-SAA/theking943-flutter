@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/appointment_model.dart';
 import '../services/appointment_service.dart';
 
-// ✅ Top-level function for isolate
+//  Top-level function for isolate
 List<AppointmentModel> _parseAppointments(dynamic data) {
   if (data is! List) return [];
 
@@ -12,9 +12,9 @@ List<AppointmentModel> _parseAppointments(dynamic data) {
       .map((json) {
         try {
           if (data.indexOf(json) == 0) {
-            debugPrint('\n🔴🔴 RAW JSON START 🔴🔴');
+            debugPrint('\n RAW JSON START ');
             debugPrint(json.toString());
-            debugPrint('🔴🔴 RAW JSON END 🔴🔴\n');
+            debugPrint(' RAW JSON END \n');
           }
           return AppointmentModel.fromJson(json as Map<String, dynamic>);
         } catch (e) {
@@ -43,7 +43,7 @@ class AppointmentProvider with ChangeNotifier {
 
   static const _cacheKey = 'cached_appointments';
   static const _cacheTimeKey = 'cached_appointments_time';
-  static const _cacheDurationMinutes = 5; // ৫ মিনিট cache valid
+  static const _cacheDurationMinutes = 5; 
 
   List<AppointmentModel> get pendingAppointments =>
       _appointments.where((apt) => apt.status.toLowerCase() == 'pending').toList();
@@ -63,7 +63,7 @@ class AppointmentProvider with ChangeNotifier {
   List<AppointmentModel> get cancelledAppointments =>
       _appointments.where((apt) => apt.status.toLowerCase() == 'cancelled').toList();
 
-  /// ✅ Cache থেকে appointments load করো — instant UI
+
   Future<void> loadFromCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -75,30 +75,30 @@ class AppointmentProvider with ChangeNotifier {
       if (json != null && ageMinutes < _cacheDurationMinutes) {
         final List<dynamic> data = jsonDecode(json);
         _appointments = await compute(_parseAppointments, data);
-        debugPrint('💾 Appointments from cache (${_appointments.length} items, ${ageMinutes.toStringAsFixed(1)} min old)');
+        debugPrint(' Appointments from cache (${_appointments.length} items, ${ageMinutes.toStringAsFixed(1)} min old)');
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('⚠️ Error loading appointments cache: $e');
+      debugPrint(' Error loading appointments cache: $e');
     }
   }
 
-  /// ✅ Cache এ save করো
+
   Future<void> _saveToCache(List<AppointmentModel> appointments) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonList = appointments.map((a) => a.toJson()).toList();
       await prefs.setString(_cacheKey, jsonEncode(jsonList));
       await prefs.setInt(_cacheTimeKey, DateTime.now().millisecondsSinceEpoch);
-      debugPrint('💾 ${appointments.length} appointments cached');
+      debugPrint(' ${appointments.length} appointments cached');
     } catch (e) {
-      debugPrint('⚠️ Error saving appointments cache: $e');
+      debugPrint(' Error saving appointments cache: $e');
     }
   }
 
-  /// Fetch appointments
+
   Future<bool> fetchAppointments() async {
-    // ✅ Cache আছে? Loading spinner দেখাবো না
+   
     if (_appointments.isEmpty) {
       _isLoading = true;
       notifyListeners();
@@ -113,7 +113,7 @@ class AppointmentProvider with ChangeNotifier {
 
         if (data != null) {
           _appointments = await compute(_parseAppointments, data);
-          // ✅ Cache এ save করো
+     
           _saveToCache(_appointments);
         } else {
           _appointments = [];
@@ -273,9 +273,9 @@ class AppointmentProvider with ChangeNotifier {
     AppointmentModel appointment,
   ) async {
     try {
-      debugPrint('✅ Appointment confirmed: ${appointment.id}');
+      debugPrint('Appointment confirmed: ${appointment.id}');
     } catch (e) {
-      debugPrint('❌ Error sending confirmation: $e');
+      debugPrint('Error sending confirmation: $e');
     }
   }
 

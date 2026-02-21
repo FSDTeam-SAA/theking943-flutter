@@ -11,22 +11,22 @@ class AuthService {
   static String? _cachedToken;
   static String? _cachedRole;
 
-  /// ✅ Initialize - Load token from SharedPreferences
+  /// Initialize - Load token from SharedPreferences
   static Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       _cachedToken = prefs.getString('auth_token');
       _cachedRole = prefs.getString('user_role');
 
-      debugPrint('✅ AuthService initialized');
+      debugPrint(' AuthService initialized');
       debugPrint('   Token: ${_cachedToken != null ? "Found" : "Not found"}');
       debugPrint('   Role: $_cachedRole');
     } catch (e) {
-      debugPrint('❌ Error initializing AuthService: $e');
+      debugPrint(' Error initializing AuthService: $e');
     }
   }
 
-  /// ✅ Get token (from memory cache first)
+  ///  Get token (from memory cache first)
   Future<String?> getToken() async {
     if (_cachedToken != null) {
       return _cachedToken;
@@ -37,36 +37,36 @@ class AuthService {
       _cachedToken = prefs.getString('auth_token');
       return _cachedToken;
     } catch (e) {
-      debugPrint('❌ Error getting token: $e');
+      debugPrint('Error getting token: $e');
       return null;
     }
   }
 
-  /// ✅ Save token
+  /// Save token
   Future<void> saveToken(String token) async {
     try {
       _cachedToken = token;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', token);
-      debugPrint('✅ Token saved: ${token.substring(0, 20)}...');
+      debugPrint('Token saved: ${token.substring(0, 20)}...');
     } catch (e) {
-      debugPrint('❌ Error saving token: $e');
+      debugPrint(' Error saving token: $e');
     }
   }
 
-  /// ✅ Save user role
+  /// Save user role
   Future<void> saveUserRole(String role) async {
     try {
       _cachedRole = role;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_role', role);
-      debugPrint('✅ User role saved: $role');
+      debugPrint(' User role saved: $role');
     } catch (e) {
-      debugPrint('❌ Error saving role: $e');
+      debugPrint(' Error saving role: $e');
     }
   }
 
-  /// ✅ Get headers
+  ///  Get headers
   Future<Map<String, String>> _getHeaders() async {
     final token = await getToken();
 
@@ -83,14 +83,14 @@ class AuthService {
     return headers;
   }
 
-  /// ✅ LOGIN
+  ///  LOGIN
   Future<Map<String, dynamic>> login({
     required String email,
     required String password,
   }) async {
     try {
-      debugPrint('📤 POST: $baseUrl${ApiConfig.login}');
-      debugPrint('📦 Email: $email');
+      debugPrint('POST: $baseUrl${ApiConfig.login}');
+      debugPrint(' Email: $email');
 
       final response = await http
           .post(
@@ -103,8 +103,8 @@ class AuthService {
           )
           .timeout(const Duration(seconds: 15));
 
-      debugPrint('📥 Status: ${response.statusCode}');
-      debugPrint('📥 Response: ${response.body}');
+      debugPrint('Status: ${response.statusCode}');
+      debugPrint(' Response: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
@@ -128,7 +128,7 @@ class AuthService {
             await saveUserRole(userRole.toString().toLowerCase());
           }
 
-          debugPrint('✅ Login successful - Token and role saved');
+          debugPrint(' Login successful - Token and role saved');
         }
 
         return {
@@ -149,7 +149,7 @@ class AuthService {
     }
   }
 
-  /// ✅ REGISTER - Updated to match your backend
+  /// REGISTER - Updated to match your backend
   Future<Map<String, dynamic>> register({
     required String name,
     required String email,
@@ -163,7 +163,7 @@ class AuthService {
     try {
       debugPrint('📤 POST: $baseUrl${ApiConfig.register}');
 
-      // ✅ Build request body matching your backend
+      // Build request body matching your backend
       final Map<String, dynamic> body = {
         'fullName': name, // Your backend expects 'fullName'
         'email': email,
@@ -172,7 +172,7 @@ class AuthService {
         'role': userType.toLowerCase(), // 'doctor' or 'patient'
       };
 
-      // ✅ Add doctor-specific fields if registering as doctor
+      // Add doctor-specific fields if registering as doctor
       if (userType.toLowerCase() == 'doctor') {
         if (medicalLicenseNumber != null && medicalLicenseNumber.isNotEmpty) {
           body['medicalLicenseNumber'] = medicalLicenseNumber;
@@ -185,7 +185,7 @@ class AuthService {
         }
       }
 
-      debugPrint('📦 Body: $body');
+      debugPrint('Body: $body');
 
       final response = await http
           .post(
@@ -198,13 +198,13 @@ class AuthService {
           )
           .timeout(const Duration(seconds: 15));
 
-      debugPrint('📥 Status: ${response.statusCode}');
-      debugPrint('📥 Response: ${response.body}');
+      debugPrint(' Status: ${response.statusCode}');
+      debugPrint('Response: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
 
-        // ✅ Some APIs return token on registration
+        // ome APIs return token on registration
         final token =
             data['data']?['token'] ??
             data['token'] ??
@@ -213,7 +213,7 @@ class AuthService {
         if (token != null) {
           await saveToken(token);
           await saveUserRole(userType.toLowerCase());
-          debugPrint('✅ Registration successful - Token saved');
+          debugPrint(' Registration successful - Token saved');
         }
 
         return {
@@ -235,7 +235,7 @@ class AuthService {
     }
   }
 
-  /// ✅ LOGOUT
+
   Future<Map<String, dynamic>> logout() async {
     try {
       final headers = await _getHeaders();
@@ -244,7 +244,7 @@ class AuthService {
           .post(Uri.parse('$baseUrl${ApiConfig.logout}'), headers: headers)
           .timeout(const Duration(seconds: 2));
     } catch (e) {
-      debugPrint('⚠️ Logout request failed: $e');
+      debugPrint(' Logout request failed: $e');
     }
 
     try {
@@ -255,22 +255,22 @@ class AuthService {
       await prefs.remove('auth_token');
       await prefs.remove('user_role');
 
-      debugPrint('✅ Logout successful - Token cleared');
+      debugPrint(' Logout successful - Token cleared');
 
       return {'success': true, 'message': 'Logged out successfully'};
     } catch (e) {
-      debugPrint('❌ Error clearing token: $e');
+      debugPrint(' Error clearing token: $e');
       return {'success': false, 'message': 'Error logging out'};
     }
   }
 
-  /// ✅ CHECK IF LOGGED IN
+  /// CHECK IF LOGGED IN
   Future<bool> isLoggedIn() async {
     final token = await getToken();
     return token != null && token.isNotEmpty;
   }
 
-  /// ✅ GET USER ROLE
+  /// GET USER ROLE
   Future<String?> getUserRole() async {
     if (_cachedRole != null) {
       return _cachedRole;
@@ -286,7 +286,7 @@ class AuthService {
     }
   }
 
-  /// ✅ VERIFY TOKEN
+  /// VERIFY TOKEN
   Future<Map<String, dynamic>> verifyToken() async {
     try {
       final headers = await _getHeaders();
@@ -317,20 +317,18 @@ class AuthService {
         };
       }
     } catch (e) {
-      debugPrint('❌ Token verification error: $e');
+      debugPrint(' Token verification error: $e');
       return {'success': false, 'message': 'Could not verify token'};
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // 🔑 FORGOT PASSWORD METHODS
-  // ═══════════════════════════════════════════════════════════════
 
-  /// ✅ Forgot Password (Send OTP)
+
+  /// Forgot Password (Send OTP)
   Future<Map<String, dynamic>> forgotPassword(String email) async {
     try {
-      debugPrint('📤 POST: $baseUrl${ApiConfig.forgotPassword}');
-      debugPrint('📦 Email: $email');
+      debugPrint(' POST: $baseUrl${ApiConfig.forgotPassword}');
+      debugPrint(' Email: $email');
 
       final response = await http
           .post(
@@ -343,8 +341,8 @@ class AuthService {
           )
           .timeout(const Duration(seconds: 20));
 
-      debugPrint('📥 Status: ${response.statusCode}');
-      debugPrint('📥 Response: ${response.body}');
+      debugPrint('Status: ${response.statusCode}');
+      debugPrint('Response: ${response.body}');
 
       final data = json.decode(response.body);
 
@@ -366,15 +364,9 @@ class AuthService {
     }
   }
 
-  /// ✅ Verify OTP (Might not be needed separately if Reset Password includes OTP, but good to have)
+  /// Verify OTP (Might not be needed separately if Reset Password includes OTP, but good to have)
   Future<Map<String, dynamic>> verifyOTP(String email, String otp) async {
-    // Note: Some flows verify OTP first, then allow reset. Others do it in one go.
-    // Based on user request "verify otp -> reset password", we might need an endpoint for this
-    // OR we just assume client side validation for now until reset.
-    // However, the common flow is usually separate or combined.
-    // Let's assume we might need it, or we can use it to validate before moving to next screen.
-    // If the backend has a specific verify-otp endpoint, use it.
-    // User mentioned: "forget password-> put email-> put otp(get the otp from main send through backend(server)->verify otp-> reset password"
+ 
 
     try {
       debugPrint('📤 POST: $baseUrl${ApiConfig.verifyOTP}');
@@ -390,8 +382,8 @@ class AuthService {
           )
           .timeout(const Duration(seconds: 20));
 
-      debugPrint('📥 Status: ${response.statusCode}');
-      debugPrint('📥 Response: ${response.body}');
+      debugPrint(' Status: ${response.statusCode}');
+      debugPrint(' Response: ${response.body}');
 
       final data = json.decode(response.body);
 
@@ -406,19 +398,19 @@ class AuthService {
       // But user request specifically said "verify otp".
       // I'll leave this implemented assuming there is an endpoint or we can skip if not.
       // For now let's try to hit it.
-      debugPrint('❌ Verify OTP error: $e');
+      debugPrint(' Verify OTP error: $e');
       return {'success': false, 'message': 'Connection error: ${e.toString()}'};
     }
   }
 
-  /// ✅ Reset Password
+  ///  Reset Password
   Future<Map<String, dynamic>> resetPassword({
     required String email,
     required String otp,
     required String newPassword,
   }) async {
     try {
-      debugPrint('📤 POST: $baseUrl${ApiConfig.resetPassword}');
+      debugPrint(' POST: $baseUrl${ApiConfig.resetPassword}');
 
       final response = await http
           .post(
@@ -436,8 +428,8 @@ class AuthService {
           )
           .timeout(const Duration(seconds: 20));
 
-      debugPrint('📥 Status: ${response.statusCode}');
-      debugPrint('📥 Response: ${response.body}');
+      debugPrint(' Status: ${response.statusCode}');
+      debugPrint(' Response: ${response.body}');
 
       final data = json.decode(response.body);
 
@@ -453,7 +445,7 @@ class AuthService {
         };
       }
     } catch (e) {
-      debugPrint('❌ Reset password error: $e');
+      debugPrint(' Reset password error: $e');
       return {'success': false, 'message': 'Connection error: ${e.toString()}'};
     }
   }

@@ -47,7 +47,7 @@ class MarkerFactory {
       icon = _markerCache['static_doctor_icon']!;
     } else {
       try {
-        // ✅ Resize icon to 50px width (Adjusted from 100 to 50)
+        //  Resize icon to 50px width (Adjusted from 100 to 50)
         final Uint8List markerIcon = await _getBytesFromAsset(
           'assets/icons/doclocation.png',
           50,
@@ -56,7 +56,7 @@ class MarkerFactory {
         // Cache it
         _markerCache['static_doctor_icon'] = icon;
       } catch (e) {
-        debugPrint('❌ Error loading static doctor icon: $e');
+        debugPrint(' Error loading static doctor icon: $e');
         icon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
       }
     }
@@ -74,7 +74,7 @@ class MarkerFactory {
     );
   }
 
-  // ✅ Helper to resize asset image
+  // Helper to resize asset image
   Future<Uint8List> _getBytesFromAsset(String path, int width) async {
     ByteData data = await rootBundle.load(path);
     ui.Codec codec = await ui.instantiateImageCodec(

@@ -26,12 +26,12 @@ class _PatientMainNavigationState extends ConsumerState<PatientMainNavigation> {
     super.initState();
     // Initialize CallManager when dashboard loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      debugPrint('🏥 Patient Dashboard Loaded - Initializing CallManager');
+      debugPrint(' Patient Dashboard Loaded - Initializing CallManager');
       CallManager.instance.initialize(context);
     });
   }
 
-  // ✅ Use a lazy-loading approach for screens
+  // Use a lazy-loading approach for screens
   final List<Widget?> _initializedScreens = List.filled(5, null);
 
   Widget _getScreen(int index) {

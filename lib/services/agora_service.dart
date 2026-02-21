@@ -25,15 +25,15 @@ class AgoraService {
   /// The engine is a native singleton — releasing and recreating it
   /// in quick succession causes AgoraRtcException(-17).
   Future<void> initialize() async {
-    // ✅ If engine is already initialized and healthy, reuse it
+    //  If engine is already initialized and healthy, reuse it
     if (_isInitialized && _engine != null) {
-      debugPrint("✅ Agora Engine already initialized — reusing");
+      debugPrint("Agora Engine already initialized — reusing");
       return;
     }
 
     // Clean up bad state (engine exists but not initialized)
     if (_engine != null) {
-      debugPrint("⚠️ Engine in bad state — force releasing before re-init");
+      debugPrint(" Engine in bad state — force releasing before re-init");
       try { await _engine!.release(); } catch (_) {}
       _engine = null;
       // Add delay to let native singleton fully release
@@ -81,31 +81,31 @@ class AgoraService {
         RtcEngineEventHandler(
           onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
             debugPrint(
-              "✅ Local user ${connection.localUid} joined channel: ${connection.channelId}",
+              " Local user ${connection.localUid} joined channel: ${connection.channelId}",
             );
           },
           onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
-            debugPrint("👋 Remote user $remoteUid joined");
+            debugPrint(" Remote user $remoteUid joined");
             onUserJoined?.call(remoteUid, elapsed);
           },
           onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
-            debugPrint("🏃 Remote user $remoteUid left channel: $reason");
+            debugPrint(" Remote user $remoteUid left channel: $reason");
             onUserOffline?.call(remoteUid, reason);
           },
           onLeaveChannel: (RtcConnection connection, RtcStats stats) {
-            debugPrint("👋 Left channel");
+            debugPrint("Left channel");
             onLeaveChannel?.call(stats);
           },
           onUserMuteAudio: (RtcConnection connection, int remoteUid, bool muted) {
-            debugPrint("🔇 Remote user $remoteUid audio muted: $muted");
+            debugPrint(" Remote user $remoteUid audio muted: $muted");
             onUserMuteAudio?.call(remoteUid, muted);
           },
           onUserMuteVideo: (RtcConnection connection, int remoteUid, bool muted) {
-            debugPrint("📷 Remote user $remoteUid video muted: $muted");
+            debugPrint(" Remote user $remoteUid video muted: $muted");
             onUserMuteVideo?.call(remoteUid, muted);
           },
           onConnectionStateChanged: (RtcConnection connection, ConnectionStateType state, ConnectionChangedReasonType reason) {
-            debugPrint("📶 Connection state changed: $state, reason: $reason");
+            debugPrint(" Connection state changed: $state, reason: $reason");
             onConnectionStateChanged?.call(state, reason);
           },
         ),
@@ -116,9 +116,9 @@ class AgoraService {
       await _engine!.startPreview();
 
       _isInitialized = true;
-      debugPrint("✅ Agora Engine Initialized Successfully");
+      debugPrint(" Agora Engine Initialized Successfully");
     } catch (e) {
-      debugPrint("❌ Error initializing Agora: $e");
+      debugPrint(" Error initializing Agora: $e");
       _engine = null;
       _isInitialized = false;
       rethrow;
@@ -134,10 +134,10 @@ class AgoraService {
     if (!_isInitialized) await initialize();
 
     try {
-      // ✅ Always leave any existing channel first to prevent error -17
+      //  Always leave any existing channel first to prevent error -17
       try {
         await _engine!.leaveChannel();
-        debugPrint("🔄 Left previous channel before joining new one");
+        debugPrint(" Left previous channel before joining new one");
       } catch (_) {} // Ignore — might not be in a channel
 
       if (isVideo) {
@@ -154,14 +154,14 @@ class AgoraService {
           clientRoleType: ClientRoleType.clientRoleBroadcaster,
         ),
       );
-      debugPrint("⏳ Joining channel: $channelName as uid: $uid");
+      debugPrint(" Joining channel: $channelName as uid: $uid");
     } catch (e) {
-      debugPrint("❌ Error joining channel: $e");
+      debugPrint("Error joining channel: $e");
       rethrow;
     }
   }
 
-  /// ✅ Join Channel with User Account (String UID support for MongoDB)
+  /// Join Channel with User Account (String UID support for MongoDB)
   Future<void> joinChannelWithUserAccount({
     required String channelName,
     required String userAccount,
@@ -171,10 +171,10 @@ class AgoraService {
     if (!_isInitialized) await initialize();
 
     try {
-      // ✅ Always leave any existing channel first to prevent error -17
+      // Always leave any existing channel first to prevent error -17
       try {
         await _engine!.leaveChannel();
-        debugPrint("🔄 Left previous channel before joining new one");
+        debugPrint(" Left previous channel before joining new one");
       } catch (_) {} // Ignore — might not be in a channel
 
       if (isVideo) {
@@ -191,9 +191,9 @@ class AgoraService {
           clientRoleType: ClientRoleType.clientRoleBroadcaster,
         ),
       );
-      debugPrint("⏳ Joining channel with User Account: $userAccount in $channelName");
+      debugPrint(" Joining channel with User Account: $userAccount in $channelName");
     } catch (e) {
-      debugPrint("❌ Error joining channel with user account: $e");
+      debugPrint(" Error joining channel with user account: $e");
       rethrow;
     }
   }
@@ -202,17 +202,14 @@ class AgoraService {
     await _engine?.setEnableSpeakerphone(enabled);
   }
 
-  /// ✅ Leave channel WITHOUT releasing the engine.
-  /// The engine is a native singleton — releasing it causes issues
-  /// when creating a new one for the next call.
   Future<void> leaveChannel() async {
     try {
       if (_engine != null) {
         await _engine!.leaveChannel();
-        debugPrint("✅ Left Agora channel (engine kept alive for reuse)");
+        debugPrint(" Left Agora channel (engine kept alive for reuse)");
       }
     } catch (e) {
-      debugPrint("⚠️ Error leaving channel (may not have been in one): $e");
+      debugPrint(" Error leaving channel (may not have been in one): $e");
       // If leaving fails badly, force reinit on next call
       if (e.toString().contains('release') || e.toString().contains('destroy')) {
         try { await _engine?.release(); } catch (_) {}

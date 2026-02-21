@@ -101,7 +101,7 @@ class _PostCardState extends State<PostCard> {
         }
       }
     } catch (e) {
-      debugPrint('❌ Error toggling like: $e');
+      debugPrint(' Error toggling like: $e');
     } finally {
       setState(() {
         _isLiking = false;
@@ -216,7 +216,7 @@ class _PostCardState extends State<PostCard> {
         }
       }
     } catch (e) {
-      debugPrint('❌ Error deleting post: $e');
+      debugPrint(' Error deleting post: $e');
     }
   }
 
@@ -682,7 +682,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         });
       }
     } catch (e) {
-      debugPrint('❌ Error loading comments: $e');
+      debugPrint(' Error loading comments: $e');
       setState(() {
         _isLoading = false;
       });
@@ -709,7 +709,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         await _loadComments();
       }
     } catch (e) {
-      debugPrint('❌ Error submitting comment: $e');
+      debugPrint(' Error submitting comment: $e');
     } finally {
       setState(() {
         _isSubmitting = false;

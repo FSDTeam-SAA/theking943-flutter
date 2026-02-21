@@ -21,8 +21,8 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
   List<dynamic> _chats = [];
   bool _isLoading = true;
   String? _currentUserId;
-  final Set<String> _selectedConversationIds = {}; // ✅ For multi-select delete
-  bool _isSelectionMode = false; // ✅ Selection mode toggle
+  final Set<String> _selectedConversationIds = {}; // For multi-select delete
+  bool _isSelectionMode = false; //  Selection mode toggle
 
   @override
   void initState() {
@@ -49,7 +49,7 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
     }
   }
 
-  // ✅ Setup Agora listener for real-time updates
+  // Setup Agora listener for real-time updates
   void _setupAgoraListener() {
     AgoraChatService.instance.addMessageListener(
       'patient_chat_list_refresher',
@@ -62,7 +62,7 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
     );
   }
 
-  // ✅ Silent reload (no loading indicator)
+  //  Silent reload (no loading indicator)
   Future<void> _loadChatsQuietly() async {
     await _loadChats(quiet: true);
   }
@@ -77,12 +77,12 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
       final isLoggedIn = await ChatClient.getInstance.isLoginBefore();
       if (!isLoggedIn && _currentUserId != null) {
         debugPrint(
-          '🔄 ListScreen: Not logged in. logging in $_currentUserId...',
+          ' ListScreen: Not logged in. logging in $_currentUserId...',
         );
         await AgoraChatService.instance.login(_currentUserId!);
       }
     } catch (e) {
-      debugPrint('❌ ListScreen: Agora Auth Check Failed: $e');
+      debugPrint(' ListScreen: Agora Auth Check Failed: $e');
     }
   }
 
@@ -104,9 +104,9 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
       List<Map<String, dynamic>> tempChats = [];
 
       for (var conv in conversations) {
-        if (conv.id.isEmpty) continue; // ✅ 'id' instead of 'conversationId'
+        if (conv.id.isEmpty) continue; 
 
-        final lastMsg = await conv.latestMessage(); // ✅ await the method
+        final lastMsg = await conv.latestMessage(); 
         if (lastMsg == null) continue;
 
         tempChats.add({
@@ -119,8 +119,7 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
       // Sort by time descending
       tempChats.sort((a, b) => (b['time'] as int).compareTo(a['time'] as int));
 
-      // 3. Resolve user details from API in PARALLEL
-      // ✅ Get l10n before async operations to avoid context usage across async gap
+
       if (!mounted) return;
       final l10n = AppLocalizations.of(context);
       final List<Map<String, dynamic>> formattedChats = await Future.wait(
@@ -165,7 +164,7 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
                 content = l10n?.messageLabel ?? '[Message]';
               }
 
-              // ✅ FIXED: Get unread count from backend instead of Agora
+              // Get unread count from backend instead of Agora
               int unreadCount = 0;
               if (backendChatId != null) {
                 try {
@@ -180,7 +179,7 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
                     unreadCount = messages.where((msg) => msg['isRead'] == false).length;
                   }
                 } catch (e) {
-                  debugPrint('⚠️ Could not fetch unread count for $backendChatId: $e');
+                  debugPrint(' Could not fetch unread count for $backendChatId: $e');
                   // Fallback to Agora count
                   unreadCount = await conv.unreadCount();
                 }
@@ -198,7 +197,7 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
                     lastMsg.serverTime,
                   ).toIso8601String(),
                 },
-                'unreadCount': unreadCount, // ✅ Now from backend
+                'unreadCount': unreadCount, 
                 'updatedAt': DateTime.fromMillisecondsSinceEpoch(
                   lastMsg.serverTime,
                 ).toIso8601String(),
@@ -221,7 +220,7 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
               ).toIso8601String(),
             };
           } catch (e) {
-            debugPrint('⚠️ Could not resolve chat/user $conversationId: $e');
+            debugPrint(' Could not resolve chat/user $conversationId: $e');
             // Fallback return for error
             return {
               '_id': conversationId,
@@ -243,10 +242,10 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
           _chats = formattedChats;
           _isLoading = false;
         });
-        debugPrint('✅ Loaded ${_chats.length} conversations from Agora');
+        debugPrint(' Loaded ${_chats.length} conversations from Agora');
       }
     } catch (e) {
-      debugPrint('❌ Error loading chats: $e');
+      debugPrint(' Error loading chats: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -255,7 +254,7 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
     }
   }
 
-  // ✅ Multi-select Delete Helper
+  //  Multi-select Delete Helper
   void _toggleSelection(String convId) {
     setState(() {
       if (_selectedConversationIds.contains(convId)) {
@@ -325,7 +324,7 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
           _loadChats(); // Reload list
         }
       } catch (e) {
-        debugPrint('❌ Failed to delete conversations: $e');
+        debugPrint(' Failed to delete conversations: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -436,7 +435,7 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
   Widget _buildChatItem(Map<String, dynamic> chat) {
     final participants = chat['participants'] as List? ?? [];
 
-    // ✅ Robust search for doctor participant to avoid TypeError
+    //  Robust search for doctor participant to avoid TypeError
     Map<String, dynamic>? doctor;
     for (var p in participants) {
       if (p is Map && p['role'] == 'doctor') {
@@ -459,7 +458,7 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
               AppLocalizations.of(context)!.startConversation)
         : AppLocalizations.of(context)!.startConversation;
 
-    // ✅ Get unread count
+    //  Get unread count
     final int unreadCount = chat['unreadCount'] ?? 0;
 
     final DateTime? updatedAt = chat['updatedAt'] != null
@@ -483,10 +482,10 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
           final String actualUserId =
               chat['actualUserId']?.toString() ?? backendId;
 
-          debugPrint('🔵 [PATIENT] Opening chat: $backendId (User: $actualUserId)');
+          debugPrint(' [PATIENT] Opening chat: $backendId (User: $actualUserId)');
           debugPrint('   • Current unread count: $unreadCount');
 
-          // ✅ Mark as read immediately (optimistic UI update)
+          //  Mark as read immediately (optimistic UI update)
           if (unreadCount > 0) {
             setState(() {
               chat['unreadCount'] = 0;
@@ -501,9 +500,9 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
               // Agora SDK - MUST use UserID
               await AgoraChatService.instance.markAllMessagesAsRead(actualUserId);
               agoraSuccess = true;
-              debugPrint('✅ Marked conversation $actualUserId as read in Agora');
+              debugPrint(' Marked conversation $actualUserId as read in Agora');
             } catch (e) {
-              debugPrint('❌ Failed to mark as read in Agora: $e');
+              debugPrint(' Failed to mark as read in Agora: $e');
             }
 
             try {
@@ -511,12 +510,12 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
               final result = await ApiService.markChatAsRead(chatId: backendId);
               backendSuccess = result['success'] == true;
               if (backendSuccess) {
-                debugPrint('✅ Marked conversation $backendId as read in backend');
+                debugPrint(' Marked conversation $backendId as read in backend');
               } else {
-                debugPrint('⚠️ Backend mark as read failed: ${result['message']}');
+                debugPrint(' Backend mark as read failed: ${result['message']}');
               }
             } catch (e) {
-              debugPrint('❌ Failed to mark as read in backend: $e');
+              debugPrint('Failed to mark as read in backend: $e');
             }
 
             // Show error feedback if both failed
@@ -546,7 +545,7 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
             ),
           ).then((_) {
             debugPrint('   • Returned from chat screen, refreshing list...');
-            // ✅ Reload chats when returning to update unread counts
+            //  Reload chats when returning to update unread counts
             if (mounted) _loadChatsQuietly();
           });
         },
@@ -639,7 +638,7 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
                       ],
                     ),
                     const SizedBox(height: 6),
-                    // ✅ Added unread count display
+                    //  Added unread count display
                     Row(
                       children: [
                         Expanded(
@@ -658,7 +657,7 @@ class _PatientMessagesListScreenState extends State<PatientMessagesListScreen> {
                             ),
                           ),
                         ),
-                        // ✅ Unread badge
+                        //  Unread badge
                         if (unreadCount > 0)
                           Container(
                             margin: const EdgeInsets.only(left: 8),

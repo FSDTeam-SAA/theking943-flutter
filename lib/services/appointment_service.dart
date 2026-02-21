@@ -7,7 +7,7 @@ class AppointmentService {
   /// Get current user's appointments (patient or doctor)
   Future<Map<String, dynamic>> getMyAppointments() async {
     try {
-      debugPrint('📤 Fetching my appointments...');
+      debugPrint(' Fetching my appointments...');
 
       final response = await ApiService.get(
         ApiConfig.appointments,
@@ -16,7 +16,7 @@ class AppointmentService {
 
       if (response['success'] == true) {
         debugPrint(
-          '✅ Appointments fetched: ${response['data']?.length ?? 0} items',
+          ' Appointments fetched: ${response['data']?.length ?? 0} items',
         );
       } else {
         debugPrint('❌ Failed to fetch appointments: ${response['message']}');
@@ -24,7 +24,7 @@ class AppointmentService {
 
       return response;
     } catch (e) {
-      debugPrint('❌ Get My Appointments Error: $e');
+      debugPrint(' Get My Appointments Error: $e');
       return {'success': false, 'message': 'Failed to fetch appointments: $e'};
     }
   }
@@ -38,7 +38,7 @@ class AppointmentService {
       );
       return response;
     } catch (e) {
-      debugPrint('❌ Get Appointment Error: $e');
+      debugPrint(' Get Appointment Error: $e');
       return {'success': false, 'message': 'Failed to fetch appointment: $e'};
     }
   }
@@ -46,10 +46,10 @@ class AppointmentService {
   /// Create new appointment
   Future<Map<String, dynamic>> createAppointment({
     required String doctorId,
-    required String appointmentDate, // "2026-01-05"
-    required String appointmentTime, // "10:30"
+    required String appointmentDate, 
+    required String appointmentTime, 
     String? symptoms,
-    String? appointmentType, // "physical" or "video"
+    String? appointmentType, 
   }) async {
     try {
       final body = {
@@ -60,7 +60,7 @@ class AppointmentService {
         if (symptoms != null && symptoms.isNotEmpty) 'symptoms': symptoms,
       };
 
-      debugPrint('📤 Creating appointment with body: $body');
+      debugPrint(' Creating appointment with body: $body');
 
       final response = await ApiService.post(
         ApiConfig.appointments,
@@ -69,14 +69,14 @@ class AppointmentService {
       );
 
       if (response['success'] == true) {
-        debugPrint('✅ Appointment created successfully');
+        debugPrint(' Appointment created successfully');
       } else {
-        debugPrint('❌ Failed to create appointment: ${response['message']}');
+        debugPrint(' Failed to create appointment: ${response['message']}');
       }
 
       return response;
     } catch (e) {
-      debugPrint('❌ Create Appointment Error: $e');
+      debugPrint(' Create Appointment Error: $e');
       return {'success': false, 'message': 'Failed to create appointment: $e'};
     }
   }
@@ -95,8 +95,8 @@ class AppointmentService {
         if (price != null) 'price': price,
       };
 
-      debugPrint('📤 Updating appointment status to: $status');
-      debugPrint('📦 Body: $body');
+      debugPrint(' Updating appointment status to: $status');
+      debugPrint(' Body: $body');
 
       final response = await ApiService.patch(
         '${ApiConfig.appointments}/$appointmentId/status',
@@ -105,14 +105,14 @@ class AppointmentService {
       );
 
       if (response['success'] == true) {
-        debugPrint('✅ Status updated successfully');
+        debugPrint(' Status updated successfully');
       } else {
-        debugPrint('❌ Failed to update status: ${response['message']}');
+        debugPrint(' Failed to update status: ${response['message']}');
       }
 
       return response;
     } catch (e) {
-      debugPrint('❌ Update Status Error: $e');
+      debugPrint('Update Status Error: $e');
       return {'success': false, 'message': 'Failed to update status: $e'};
     }
   }
@@ -126,7 +126,7 @@ class AppointmentService {
       );
       return response;
     } catch (e) {
-      debugPrint('❌ Get Upcoming Appointments Error: $e');
+      debugPrint(' Get Upcoming Appointments Error: $e');
       return {
         'success': false,
         'message': 'Failed to fetch upcoming appointments: $e',
@@ -143,7 +143,7 @@ class AppointmentService {
       );
       return response;
     } catch (e) {
-      debugPrint('❌ Get Past Appointments Error: $e');
+      debugPrint(' Get Past Appointments Error: $e');
       return {
         'success': false,
         'message': 'Failed to fetch past appointments: $e',
@@ -169,8 +169,8 @@ class AppointmentService {
         if (notes != null && notes.isNotEmpty) 'notes': notes,
       };
 
-      debugPrint('📤 Completing appointment $appointmentId');
-      debugPrint('📦 Body: $body');
+      debugPrint(' Completing appointment $appointmentId');
+      debugPrint('Body: $body');
 
       final response = await ApiService.patch(
         '${ApiConfig.appointments}/$appointmentId/status',
@@ -179,14 +179,14 @@ class AppointmentService {
       );
 
       if (response['success'] == true) {
-        debugPrint('✅ Appointment completed successfully');
+        debugPrint(' Appointment completed successfully');
       } else {
-        debugPrint('❌ Failed to complete appointment: ${response['message']}');
+        debugPrint(' Failed to complete appointment: ${response['message']}');
       }
 
       return response;
     } catch (e) {
-      debugPrint('❌ Complete Appointment Error: $e');
+      debugPrint(' Complete Appointment Error: $e');
       return {
         'success': false,
         'message': 'Failed to complete appointment: $e',
@@ -197,7 +197,7 @@ class AppointmentService {
   /// Accept appointment (for doctor)
   Future<Map<String, dynamic>> acceptAppointment(String appointmentId) async {
     try {
-      debugPrint('📤 Accepting appointment: $appointmentId');
+      debugPrint(' Accepting appointment: $appointmentId');
 
       final response = await ApiService.patch(
         '${ApiConfig.appointments}/$appointmentId/status',
@@ -206,14 +206,14 @@ class AppointmentService {
       );
 
       if (response['success'] == true) {
-        debugPrint('✅ Appointment accepted successfully');
+        debugPrint(' Appointment accepted successfully');
       } else {
-        debugPrint('❌ Failed to accept appointment: ${response['message']}');
+        debugPrint(' Failed to accept appointment: ${response['message']}');
       }
 
       return response;
     } catch (e) {
-      debugPrint('❌ Accept Appointment Error: $e');
+      debugPrint('Accept Appointment Error: $e');
       return {'success': false, 'message': 'Failed to accept appointment: $e'};
     }
   }
@@ -221,7 +221,7 @@ class AppointmentService {
   /// Cancel appointment (for doctor/admin)
   Future<Map<String, dynamic>> cancelAppointment(String appointmentId) async {
     try {
-      debugPrint('📤 Cancelling appointment: $appointmentId');
+      debugPrint('Cancelling appointment: $appointmentId');
 
       final response = await ApiService.patch(
         '${ApiConfig.appointments}/$appointmentId/status',
@@ -230,14 +230,14 @@ class AppointmentService {
       );
 
       if (response['success'] == true) {
-        debugPrint('✅ Appointment cancelled successfully');
+        debugPrint(' Appointment cancelled successfully');
       } else {
-        debugPrint('❌ Failed to cancel appointment: ${response['message']}');
+        debugPrint(' Failed to cancel appointment: ${response['message']}');
       }
 
       return response;
     } catch (e) {
-      debugPrint('❌ Cancel Appointment Error: $e');
+      debugPrint(' Cancel Appointment Error: $e');
       return {'success': false, 'message': 'Failed to cancel appointment: $e'};
     }
   }
@@ -248,7 +248,7 @@ class AppointmentService {
     required String date,
   }) async {
     try {
-      debugPrint('📤 Fetching available slots for doctor: $doctorId on $date');
+      debugPrint('Fetching available slots for doctor: $doctorId on $date');
 
       final response = await ApiService.post(
         '${ApiConfig.appointments}/available',
@@ -258,14 +258,14 @@ class AppointmentService {
 
       if (response['success'] == true) {
         final slots = response['data']?['slots'] ?? [];
-        debugPrint('✅ Found ${slots.length} available slots');
+        debugPrint('Found ${slots.length} available slots');
       } else {
-        debugPrint('❌ Failed to fetch slots: ${response['message']}');
+        debugPrint(' Failed to fetch slots: ${response['message']}');
       }
 
       return response;
     } catch (e) {
-      debugPrint('❌ Get Available Slots Error: $e');
+      debugPrint('Get Available Slots Error: $e');
       return {
         'success': false,
         'message': 'Failed to fetch available slots: $e',

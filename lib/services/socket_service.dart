@@ -30,13 +30,13 @@ class SocketService {
     // If already connecting, wait
     // If already connecting, don't start a new connection, just return the current state
     if (_isConnecting) {
-      debugPrint('⏳ Socket connection in progress, skipping redundant request');
+      debugPrint(' Socket connection in progress, skipping redundant request');
       return false;
     }
 
     // If already connected with same user
     if (_socket != null && _socket!.connected && _currentUserId == userId) {
-      debugPrint('✅ Socket already connected');
+      debugPrint(' Socket already connected');
       // Re-emit join room just in case
       _socket!.emit('joinUserRoom', userId);
       return true;
@@ -44,7 +44,7 @@ class SocketService {
 
     // If connected with different user, disconnect first
     if (_socket != null && _socket!.connected && _currentUserId != userId) {
-      debugPrint('⚠️ Disconnecting previous socket connection');
+      debugPrint(' Disconnecting previous socket connection');
       disconnect();
     }
 
@@ -55,7 +55,7 @@ class SocketService {
 
     debugPrint('');
     debugPrint('╔══════════════════════════════════════════╗');
-    debugPrint('║        🔌 CONNECTING SOCKET              ║');
+    debugPrint('║         CONNECTING SOCKET              ║');
     debugPrint('╚══════════════════════════════════════════╝');
     debugPrint('   • User ID : $userId');
     debugPrint('   • Server  : $serverUrl');
@@ -88,7 +88,7 @@ class SocketService {
     return await completer.future.timeout(
       const Duration(seconds: 10), // Shorter timeout for initial connect
       onTimeout: () {
-        debugPrint('⏱️ Socket connection timeout');
+        debugPrint('⏱Socket connection timeout');
         _isConnecting = false;
         return false;
       },
@@ -98,15 +98,15 @@ class SocketService {
   void _setupListeners(String userId, Completer<bool> completer) {
     _socket!.onConnect((_) {
       debugPrint('');
-      debugPrint('✅ SOCKET CONNECTED');
+      debugPrint(' SOCKET CONNECTED');
       debugPrint('   • Socket ID: ${_socket!.id}');
       debugPrint('   • User ID  : $userId');
 
       _socket!.emit('joinUserRoom', userId);
-      debugPrint('📡 Emitted: joinUserRoom with userId: $userId');
+      debugPrint(' Emitted: joinUserRoom with userId: $userId');
 
       Future.delayed(const Duration(milliseconds: 800), () {
-        debugPrint('✅ Socket ready');
+        debugPrint(' Socket ready');
         _connectionController.add(true);
         if (!completer.isCompleted) {
           completer.complete(true);
@@ -116,13 +116,13 @@ class SocketService {
     });
 
     _socket!.onDisconnect((reason) {
-      debugPrint('❌ Socket disconnected: $reason');
+      debugPrint(' Socket disconnected: $reason');
       _isConnecting = false;
       _connectionController.add(false);
     });
 
     _socket!.onConnectError((error) {
-      debugPrint('❌ Socket connect error: $error');
+      debugPrint(' Socket connect error: $error');
       if (!completer.isCompleted) {
         completer.complete(false);
         _isConnecting = false;
@@ -130,51 +130,51 @@ class SocketService {
     });
 
     _socket!.onError((error) {
-      debugPrint('❌ Socket error: $error');
+      debugPrint(' Socket error: $error');
     });
 
     _socket!.onReconnect((attempt) {
-      debugPrint('🔄 Socket reconnected (attempt $attempt)');
+      debugPrint(' Socket reconnected (attempt $attempt)');
       if (_currentUserId != null) {
         _socket!.emit('joinUserRoom', _currentUserId);
-        debugPrint('📡 Re-joined room after reconnect');
+        debugPrint(' Re-joined room after reconnect');
         _reconnectController.add(null);
       }
     });
 
     _socket!.onReconnectAttempt((attempt) {
-      debugPrint('🔄 Socket reconnection attempt: $attempt');
+      debugPrint(' Socket reconnection attempt: $attempt');
     });
 
     _socket!.onReconnectError((error) {
-      debugPrint('❌ Socket reconnection error: $error');
+      debugPrint('Socket reconnection error: $error');
     });
 
     _socket!.onReconnectFailed((_) {
-      debugPrint('❌ Socket reconnection failed definitively');
+      debugPrint(' Socket reconnection failed definitively');
     });
 
     _socket!.onPing((_) {
-      // debugPrint('💓 Socket ping sent');
+      // debugPrint(' Socket ping sent');
     });
 
     _socket!.onPong((_) {
-      // debugPrint('💓 Socket pong received');
+      // debugPrint(' Socket pong received');
     });
 
     _socket!.on('socket:connected', (data) {
-      debugPrint('✅ Backend confirmed connection: $data');
+      debugPrint('Backend confirmed connection: $data');
     });
   }
 
   Future<bool> emit(String event, dynamic data) async {
     if (_socket == null || !_socket!.connected) {
       debugPrint(
-        '⚠️ Socket not connected, attempting non-blocking reconnect...',
+        ' Socket not connected, attempting non-blocking reconnect...',
       );
       if (_currentUserId != null) {
         // Use a much shorter timeout if we are trying to emit
-        ensureConnected(); // Background attempt
+        ensureConnected(); 
 
         // Wait a small amount but don't hang for 20s
         int retry = 0;
@@ -185,28 +185,28 @@ class SocketService {
 
         if (_socket == null || !_socket!.connected) {
           debugPrint(
-            '❌ Socket still not connected after quick retry, skipping emit',
+            ' Socket still not connected after quick retry, skipping emit',
           );
           return false;
         }
       } else {
-        debugPrint('❌ No user ID for reconnection');
+        debugPrint(' No user ID for reconnection');
         return false;
       }
     }
 
     debugPrint('');
-    debugPrint('📤 Emitting event: $event');
+    debugPrint(' Emitting event: $event');
     debugPrint('   Data: $data');
     debugPrint('   Socket ID: ${_socket!.id}');
     debugPrint('');
 
     try {
       _socket!.emit(event, data);
-      debugPrint('✅ Event emitted successfully');
+      debugPrint(' Event emitted successfully');
       return true;
     } catch (e) {
-      debugPrint('❌ Error emitting event: $e');
+      debugPrint(' Error emitting event: $e');
       return false;
     }
   }
@@ -214,20 +214,20 @@ class SocketService {
   void on(String event, Function(dynamic) callback) {
     if (_socket != null) {
       _socket!.on(event, callback);
-      debugPrint('👂 Listening to: $event');
+      debugPrint(' Listening to: $event');
     }
   }
 
   void off(String event) {
     if (_socket != null) {
       _socket!.off(event);
-      debugPrint('🔇 Stopped listening to: $event');
+      debugPrint(' Stopped listening to: $event');
     }
   }
 
   void disconnect() {
     if (_socket != null) {
-      debugPrint('🔌 Disconnecting socket');
+      debugPrint(' Disconnecting socket');
 
       if (_currentUserId != null && _socket!.connected) {
         _socket!.emit('user:offline', {'userId': _currentUserId});
@@ -241,7 +241,7 @@ class SocketService {
       _currentUserId = null;
       _isConnecting = false;
 
-      debugPrint('✅ Socket disconnected and disposed');
+      debugPrint(' Socket disconnected and disposed');
     }
   }
 

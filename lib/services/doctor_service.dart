@@ -12,7 +12,7 @@ class DoctorService {
     try {
       String endpoint = ApiConfig.doctors;
 
-      // ✅ Use new optimized endpoint if location is available
+      // Use new optimized endpoint if location is available
       if (lat != null && lng != null) {
         endpoint =
             '${ApiConfig.nearbyDoctors}?lat=$lat&lng=$lng&radiusKm=$radiusKm';
@@ -21,7 +21,7 @@ class DoctorService {
       final response = await ApiService.get(endpoint, requiresAuth: true);
       return response;
     } catch (e) {
-      debugPrint('❌ Get Nearby Doctors Error: $e');
+      debugPrint(' Get Nearby Doctors Error: $e');
       return {'success': false, 'message': 'Failed to fetch doctors: $e'};
     }
   }
@@ -34,7 +34,7 @@ class DoctorService {
       );
       return response;
     } catch (e) {
-      debugPrint('❌ Get Doctor By ID Error: $e');
+      debugPrint(' Get Doctor By ID Error: $e');
       return {'success': false, 'message': 'Failed to fetch doctor: $e'};
     }
   }
@@ -47,7 +47,7 @@ class DoctorService {
       );
       return response;
     } catch (e) {
-      debugPrint('❌ Search Doctors Error: $e');
+      debugPrint(' Search Doctors Error: $e');
       return {'success': false, 'message': 'Failed to search doctors: $e'};
     }
   }

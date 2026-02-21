@@ -80,7 +80,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
               final scaffoldMessenger = ScaffoldMessenger.of(context);
               final userProvider = context.read<UserProvider>();
 
-              // ✅ 1. Show Date Range Picker
+           
               final pickedRange = await showDateRangePicker(
                 context: context,
                 firstDate: DateTime(2020),
@@ -103,7 +103,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
 
               if (pickedRange == null) return; // User cancelled
 
-              // ✅ 2. Filter Appointments
+              //  Filter Appointments
               final filteredAppointments = allAppointments.where((apt) {
                 final aptDate = DateTime(
                   apt.appointmentDate.year,
@@ -127,13 +127,11 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                 return;
               }
 
-              // ✅ 3. Export
-              // Capture context values before async operations
               String doctorName = 'Doctor';
               try {
                 doctorName = userProvider.user?.fullName ?? 'Doctor';
               } catch (e) {
-                debugPrint('⚠️ Error getting doctor name for export: $e');
+                debugPrint(' Error getting doctor name for export: $e');
               }
 
               await PdfService.generateAppointmentListPdf(
@@ -163,7 +161,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Tab Buttons - FIX OVERFLOW
+         
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 15),
                 child: SingleChildScrollView(
@@ -354,7 +352,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                       ],
                     ),
 
-                    // ✅ FIXED: Changed isDependent to type == 'dependent' and displayText to bookingLabel
+                    //  Changed isDependent to type == 'dependent' and displayText to bookingLabel
                     if (appointment.bookedFor != null &&
                         appointment.bookedFor!.type == 'dependent') ...[
                       const SizedBox(height: 6),
@@ -426,7 +424,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
             ),
           ),
 
-          // ✅ NEW: See Details Button
+          //  See Details Button
           const SizedBox(height: 12),
           GestureDetector(
             onTap: () => _showAppointmentDetails(appointment),
@@ -532,7 +530,6 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                       ),
                     ),
 
-                    // ✅ FIXED: Changed isDependent to type == 'dependent' and displayText to bookingLabel
                     if (appointment.bookedFor != null &&
                         appointment.bookedFor!.type == 'dependent') ...[
                       const SizedBox(height: 4),
@@ -600,7 +597,6 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
             ],
           ),
 
-          // ✅ NEW: See Details Button
           const SizedBox(height: 12),
           GestureDetector(
             onTap: () => _showAppointmentDetails(appointment),
@@ -715,7 +711,6 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                   ],
                 ),
 
-                // ✅ FIXED: Changed isDependent to type == 'dependent' and displayText to bookingLabel
                 if (appointment.bookedFor != null &&
                     appointment.bookedFor!.type == 'dependent') ...[
                   const SizedBox(height: 4),
@@ -785,14 +780,14 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
     );
   }
 
-  // ✅ NEW: Show Appointment Details Bottom Sheet
+
   void _showAppointmentDetails(AppointmentModel appointment) {
     final l10n = AppLocalizations.of(context)!;
-    // ✅ Debug logs
-    debugPrint('🔍 Showing details for appointment: ${appointment.id}');
-    debugPrint('📋 Appointment Type: ${appointment.appointmentType}');
-    debugPrint('📄 Medical Documents: ${appointment.medicalDocuments}');
-    debugPrint('💳 Payment Screenshot: ${appointment.paymentScreenshot}');
+   
+    debugPrint(' Showing details for appointment: ${appointment.id}');
+    debugPrint('Appointment Type: ${appointment.appointmentType}');
+    debugPrint('Medical Documents: ${appointment.medicalDocuments}');
+    debugPrint('Payment Screenshot: ${appointment.paymentScreenshot}');
 
     showModalBottomSheet(
       context: context,
@@ -929,7 +924,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                                 ),
                                 const SizedBox(height: 10),
                                 ...appointment.medicalDocuments!.map((doc) {
-                                  // ✅ FIXED: Extract clean filename from URL
+                                  //Extract clean filename from URL
                                   String displayName = doc.split('/').last;
                                   if (displayName.contains('{public_id:')) {
                                     final match = RegExp(
@@ -977,7 +972,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                                             size: 20,
                                           ),
                                           onPressed: () {
-                                            // ✅ FIXED: Pass the original doc URL
+                                            // Pass the original doc URL
                                             _viewDocument(doc);
                                           },
                                         ),
@@ -1109,19 +1104,19 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
     );
 
     try {
-      // ✅ FIXED: Clean and fix URL format
+      // Clean and fix URL format
       String cleanUrl = url.trim();
 
-      debugPrint('📥 Original URL: $cleanUrl'); // Debug
+      debugPrint(' Original URL: $cleanUrl'); 
 
-      // ✅ NEW: Extract Cloudinary URL if it exists
+      //  Extract Cloudinary URL if it exists
       if (cleanUrl.contains('https://res.cloudinary.com')) {
         final cloudinaryMatch = RegExp(
           r'https://res\.cloudinary\.com[^\s,}]+',
         ).firstMatch(cleanUrl);
         if (cloudinaryMatch != null) {
           cleanUrl = cloudinaryMatch.group(0)!;
-          debugPrint('☁️ Found Cloudinary URL: $cleanUrl');
+          debugPrint(' Found Cloudinary URL: $cleanUrl');
         }
       }
       // If URL starts with {public_id:, extract the path
@@ -1132,7 +1127,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
           String publicId = match.group(1)!.trim();
           // Build proper server URL
           cleanUrl = '${ApiConfig.baseUrl}/uploads/$publicId';
-          debugPrint('📁 Built server URL: $cleanUrl');
+          debugPrint(' Built server URL: $cleanUrl');
         }
       }
       // If URL doesn't start with http, add base URL
@@ -1148,7 +1143,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
       // URL decode if needed
       cleanUrl = Uri.decodeFull(cleanUrl);
 
-      debugPrint('🔗 Final URL: $cleanUrl'); // Debug log
+      debugPrint(' Final URL: $cleanUrl'); // Debug log
 
       // Check if it's an image or PDF
       final isImage =

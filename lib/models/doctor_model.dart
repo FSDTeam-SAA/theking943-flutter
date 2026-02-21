@@ -15,12 +15,10 @@ class Doctor {
   final bool isAvailable;
   final String distance;
 
-  // ✅ Location fields
   final double? latitude;
   final double? longitude;
   final String? address;
 
-  // ✅ Dynamic fields from backend
   final String? bio;
   final bool isVideoCallAvailable;
   final String? visitingHoursText;
@@ -46,11 +44,11 @@ class Doctor {
     this.bio,
     this.isVideoCallAvailable = false,
     this.visitingHoursText,
-    this.degrees = const [], // ✅ Initialize
+    this.degrees = const [], 
   });
 
   factory Doctor.fromJson(Map<String, dynamic> json) {
-    // ✅ Safely extract image URL from avatar object
+ 
     String imageUrl = '';
     final avatar = json['avatar'];
 
@@ -64,7 +62,7 @@ class Doctor {
       imageUrl = 'assets/images/doctor_booking.png';
     }
 
-    // ✅ Safely get rating from ratingSummary
+ 
     double ratingValue = 0.0;
     final ratingSummary = json['ratingSummary'];
     if (ratingSummary != null && ratingSummary is Map<String, dynamic>) {
@@ -73,7 +71,7 @@ class Doctor {
       ratingValue = (json['rating']).toDouble();
     }
 
-    // ✅ Safely get reviews count
+
     int reviewsCount = 0;
     if (ratingSummary != null && ratingSummary is Map<String, dynamic>) {
       reviewsCount = ratingSummary['totalReviews'] ?? 0;
@@ -81,11 +79,10 @@ class Doctor {
       reviewsCount = json['reviews'];
     }
 
-    // ✅ Parse location (lat/lng from backend)
     double? lat;
     double? lng;
 
-    // Check if location is a Map object
+
     if (json['location'] != null && json['location'] is Map) {
       final locationMap = json['location'] as Map<String, dynamic>;
       lat = locationMap['lat'] != null
@@ -113,12 +110,10 @@ class Doctor {
         }
       } catch (_) {}
     }
-
-    // ❌ REMOVED FALLBACK: Do not generate random locations.
-    // Only show doctors with valid real locations.
+.
     if (lat == null || lng == null) {
       debugPrint(
-        '⚠️ ${json['fullName']}: No valid location found. Skipping map coordinates.',
+        ' ${json['fullName']}: No valid location found. Skipping map coordinates.',
       );
     }
 
@@ -148,12 +143,11 @@ class Doctor {
       isAvailable: json['isAvailable'] ?? true,
       distance: json['distance']?.toString() ?? 'N/A',
 
-      // ✅ Location fields (guaranteed to have values now)
       latitude: lat,
       longitude: lng,
       address: json['address'],
 
-      // ✅ Dynamic fields
+  
       bio: json['bio'],
       isVideoCallAvailable: json['isVideoCallAvailable'] ?? false,
       visitingHoursText: json['visitingHoursText'],
@@ -184,13 +178,13 @@ class Doctor {
       'isAvailable': isAvailable,
       'distance': distance,
 
-      // ✅ Location as both formats
+      //  Location as both formats
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       if (latitude != null && longitude != null)
         'location': {'lat': latitude.toString(), 'lng': longitude.toString()},
 
-      // ✅ Dynamic fields
+      // Dynamic fields
       if (bio != null) 'bio': bio,
       'isVideoCallAvailable': isVideoCallAvailable,
       if (visitingHoursText != null) 'visitingHoursText': visitingHoursText,

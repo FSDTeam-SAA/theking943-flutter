@@ -18,61 +18,61 @@ import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// ✅ Top-level background notification action handler
+//  Top-level background notification action handler
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse notificationResponse) {
-  debugPrint('🌙 [BACKGROUND ACTION] Action: ${notificationResponse.actionId}');
+  debugPrint(' [BACKGROUND ACTION] Action: ${notificationResponse.actionId}');
 
   if (notificationResponse.actionId == 'DECLINE_CALL') {
-    debugPrint('❌ Call declined in background');
+    debugPrint(' Call declined in background');
   }
 }
 
-// ✅ Top-level background handler
+// Top-level background handler
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
-    // ✅ FIX 1: Login check — not logged in হলে call দেখাবো না
+    //  FIX 1: Login check — not logged in হলে call দেখাবো না
     await Firebase.initializeApp();
     final prefs = await SharedPreferences.getInstance();
     final authToken = prefs.getString('auth_token');
 
     if (authToken == null || authToken.isEmpty) {
-      debugPrint('⚠️ [BACKGROUND] User not logged in — ignoring notification');
+      debugPrint(' [BACKGROUND] User not logged in — ignoring notification');
       return;
     }
 
     final data = message.data;
-    debugPrint('🌙 [BACKGROUND HANDLER] Raw Data: $data');
+    debugPrint(' [BACKGROUND HANDLER] Raw Data: $data');
 
     // 🚀 CRITICAL: Handle incoming calls IMMEDIATELY
     if (data['type'] == 'incoming_call') {
-      debugPrint('📞 [BACKGROUND] Incoming call detected!');
+      debugPrint(' [BACKGROUND] Incoming call detected!');
       try {
         await NotificationService._showCallKitIncoming(data);
-        debugPrint('✅ [BACKGROUND] CallKit displayed successfully');
+        debugPrint('[BACKGROUND] CallKit displayed successfully');
       } catch (e) {
-        debugPrint('❌ [BACKGROUND] CRITICAL Error showing CallKit: $e');
+        debugPrint(' [BACKGROUND] CRITICAL Error showing CallKit: $e');
       }
       return;
     } else if (data['type'] == 'cancel_call') {
-      debugPrint('📴 [BACKGROUND] Call cancelled by caller.');
+      debugPrint('[BACKGROUND] Call cancelled by caller.');
       try {
         final uuid = data['uuid'];
         if (uuid != null && uuid.toString().isNotEmpty) {
           await FlutterCallkitIncoming.endCall(uuid.toString());
-          debugPrint('✅ [BACKGROUND] Ended specific call: $uuid');
+          debugPrint(' [BACKGROUND] Ended specific call: $uuid');
         } else {
           await FlutterCallkitIncoming.endAllCalls();
-          debugPrint('✅ [BACKGROUND] Ended all calls (no UUID)');
+          debugPrint(' [BACKGROUND] Ended all calls (no UUID)');
         }
       } catch (e) {
-        debugPrint('❌ [BACKGROUND] Error ending calls: $e');
+        debugPrint('[BACKGROUND] Error ending calls: $e');
       }
       return;
     }
   } catch (e) {
-    debugPrint('❌ [BACKGROUND] Early parsing error: $e');
+    debugPrint('[BACKGROUND] Early parsing error: $e');
     return;
   }
 
@@ -137,9 +137,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       details,
       payload: jsonEncode(data),
     );
-    debugPrint('✅ [BACKGROUND] Local notification displayed successfully');
+    debugPrint(' [BACKGROUND] Local notification displayed successfully');
   } catch (e) {
-    debugPrint('❌ [BACKGROUND] Failed to show notification: $e');
+    debugPrint('[BACKGROUND] Failed to show notification: $e');
   }
 }
 
@@ -152,32 +152,30 @@ class NotificationService {
   static String? currentChatId;
   static String? pendingPayload;
 
-  /// ✅ Stores accepted call data when app cold-starts from CallKit
   static Map<String, dynamic>? pendingCallData;
 
-  // ✅ FIX 2: Agora token pre-fetch cache — timeout fix এর জন্য
+
   static String? _cachedAgoraToken;
   static String? _cachedChannelName;
 
-  /// ✅ Call screen এ এই method দিয়ে cached token নেবে
   static String? consumeCachedAgoraToken() {
     final token = _cachedAgoraToken;
     _cachedAgoraToken = null;
     _cachedChannelName = null;
     debugPrint(
         token != null
-            ? '✅ Consumed pre-fetched Agora token'
-            : '⚠️ No cached Agora token found');
+            ? ' Consumed pre-fetched Agora token'
+            : 'No cached Agora token found');
     return token;
   }
 
   /// Initialize Firebase and Local Notifications
   static Future<void> init() async {
-    debugPrint('🔔 [NOTIFICATION SERVICE] Starting initialization...');
+    debugPrint('[NOTIFICATION SERVICE] Starting initialization...');
 
     // 0. Register Background Handler FIRST
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    debugPrint('✅ Background message handler registered');
+    debugPrint(' Background message handler registered');
 
     // 1. Request Permissions
     try {
@@ -189,18 +187,18 @@ class NotificationService {
       );
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        debugPrint('✅ User granted notification permission');
+        debugPrint(' User granted notification permission');
       } else if (settings.authorizationStatus ==
           AuthorizationStatus.provisional) {
-        debugPrint('⚠️ User granted provisional notification permission');
+        debugPrint(' User granted provisional notification permission');
       } else {
-        debugPrint('❌ User denied notification permission');
+        debugPrint(' User denied notification permission');
       }
     } catch (e) {
-      debugPrint('❌ Error requesting notification permissions: $e');
+      debugPrint(' Error requesting notification permissions: $e');
     }
 
-    // ✅ Request additional Android permissions for CallKit
+    // Request additional Android permissions for CallKit
     if (Platform.isAndroid) {
       try {
         await FlutterCallkitIncoming.requestNotificationPermission({
@@ -209,37 +207,37 @@ class NotificationService {
           "postNotificationMessageRequired":
               "Please allow notifications for incoming calls to work properly"
         });
-        debugPrint('✅ Android CallKit permissions requested');
+        debugPrint(' Android CallKit permissions requested');
       } catch (e) {
-        debugPrint('⚠️ Error requesting CallKit permissions: $e');
+        debugPrint(' Error requesting CallKit permissions: $e');
       }
     }
 
-    // ✅ Listen for CallKit events
+    // Listen for CallKit events
     FlutterCallkitIncoming.onEvent.listen((CallEvent? event) {
       if (event == null) return;
 
-      debugPrint('📞 [CallKit Event] ${event.event}');
+      debugPrint(' [CallKit Event] ${event.event}');
 
       switch (event.event) {
         case Event.actionCallAccept:
-          debugPrint('✅ [CallKit] Call Accepted');
+          debugPrint(' [CallKit] Call Accepted');
           _handleCallKitAction(event.body, accept: true);
           break;
         case Event.actionCallDecline:
-          debugPrint('❌ [CallKit] Call Declined');
+          debugPrint(' [CallKit] Call Declined');
           _handleCallKitAction(event.body, accept: false);
           break;
         case Event.actionCallEnded:
-          debugPrint('📴 [CallKit] Call Ended');
+          debugPrint(' [CallKit] Call Ended');
           _handleCallKitAction(event.body, accept: false);
           break;
         case Event.actionCallTimeout:
-          debugPrint('⏱️ [CallKit] Call Timeout');
+          debugPrint('[CallKit] Call Timeout');
           _handleCallKitAction(event.body, accept: false);
           break;
         default:
-          debugPrint('📞 [CallKit] Other Event: ${event.event}');
+          debugPrint('[CallKit] Other Event: ${event.event}');
           break;
       }
     });
@@ -264,7 +262,7 @@ class NotificationService {
     await _localNotifications.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (details) {
-        debugPrint('🔔 Notification clicked: ${details.payload}');
+        debugPrint('Notification clicked: ${details.payload}');
 
         if (details.payload != null) {
           handleNotificationClick(details.payload!);
@@ -272,7 +270,7 @@ class NotificationService {
       },
       onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
-    debugPrint('✅ Local notifications initialized');
+    debugPrint('Local notifications initialized');
 
     // 3. Create Android notification channels
     try {
@@ -303,9 +301,9 @@ class NotificationService {
       await androidPlugin?.createNotificationChannel(callChannel);
 
       debugPrint(
-          '✅ Android notification channels created (chat + incoming_call)');
+          'Android notification channels created (chat + incoming_call)');
     } catch (e) {
-      debugPrint('❌ Error creating Android notification channels: $e');
+      debugPrint(' Error creating Android notification channels: $e');
     }
 
     // 4. iOS Foreground Notification Presentation
@@ -315,22 +313,22 @@ class NotificationService {
         badge: true,
         sound: true,
       );
-      debugPrint('✅ iOS foreground notification options set');
+      debugPrint('iOS foreground notification options set');
     } catch (e) {
-      debugPrint('❌ Error setting iOS foreground options: $e');
+      debugPrint(' Error setting iOS foreground options: $e');
     }
 
     // 5. Foreground Listeners
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      debugPrint('📩 [FOREGROUND] FCM Message received');
+      debugPrint('[FOREGROUND] FCM Message received');
       debugPrint('   - Type: ${message.data['type']}');
 
       if (message.data['type'] == 'incoming_call') {
-        debugPrint('📞 [FOREGROUND] Showing CallKit for incoming call');
+        debugPrint(' [FOREGROUND] Showing CallKit for incoming call');
         await _localNotifications.cancelAll();
         await _showCallKitIncoming(message.data);
       } else if (message.data['type'] == 'cancel_call') {
-        debugPrint('📴 [FOREGROUND] Call cancelled by caller.');
+        debugPrint(' [FOREGROUND] Call cancelled by caller.');
         final uuid = message.data['uuid'];
         if (uuid != null && uuid.toString().isNotEmpty) {
           await FlutterCallkitIncoming.endCall(uuid.toString());
@@ -344,7 +342,7 @@ class NotificationService {
 
     // 6. Background/Terminated Click Listeners
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      debugPrint('🔔 [BACKGROUND CLICK] App opened from notification');
+      debugPrint(' [BACKGROUND CLICK] App opened from notification');
       handleNotificationClick(message.data);
     });
 
@@ -354,12 +352,12 @@ class NotificationService {
     // 8. Token Refresh Listener
     _fcm.onTokenRefresh.listen((token) => _saveToken(token));
 
-    debugPrint('✅ [NOTIFICATION SERVICE] Initialization complete');
+    debugPrint('[NOTIFICATION SERVICE] Initialization complete');
   }
 
   static Future<void> checkInitialMessage() async {
     try {
-      debugPrint('🔍 Checking initial message (Terminated State Check)...');
+      debugPrint(' Checking initial message (Terminated State Check)...');
 
       // 1. Check for Local Notification Launch
       final NotificationAppLaunchDetails? notificationAppLaunchDetails =
@@ -369,7 +367,7 @@ class NotificationService {
         final payload =
             notificationAppLaunchDetails!.notificationResponse?.payload;
 
-        debugPrint('🏁 [TERMINATED CLICK] App launched from LOCAL Notification');
+        debugPrint(' [TERMINATED CLICK] App launched from LOCAL Notification');
         debugPrint('   - Payload: $payload');
 
         if (payload != null) {
@@ -381,10 +379,10 @@ class NotificationService {
       // 2. Fallback: Check for FCM Initial Message
       RemoteMessage? initialMessage = await _fcm.getInitialMessage();
       if (initialMessage != null) {
-        debugPrint('🏁 [TERMINATED CLICK] App launched from FCM Notification');
+        debugPrint('[TERMINATED CLICK] App launched from FCM Notification');
         handleNotificationClick(initialMessage.data);
       } else {
-        debugPrint('ℹ️ No initial message found (Normal Launch)');
+        debugPrint('No initial message found (Normal Launch)');
       }
 
       // 3. Check for Active Calls (CallKit) - Handle cold start from Call Accept
@@ -392,7 +390,7 @@ class NotificationService {
         final activeCalls = await FlutterCallkitIncoming.activeCalls();
         if (activeCalls is List && activeCalls.isNotEmpty) {
           debugPrint(
-              '📞 [STARTUP] Found active call(s): ${activeCalls.length}');
+              '[STARTUP] Found active call(s): ${activeCalls.length}');
           final firstCall = activeCalls.first;
           final extra = firstCall['extra'];
 
@@ -404,29 +402,29 @@ class NotificationService {
               data = jsonDecode(jsonEncode(extra));
             }
 
-            // ✅ TIMESTAMP CHECK: Prevent Ghost Calls
+            // TIMESTAMP CHECK: Prevent Ghost Calls
             if (data['timestamp'] != null) {
               final callTime = DateTime.parse(data['timestamp']);
               final diff = DateTime.now().difference(callTime).inMinutes;
 
               if (diff > 2) {
                 debugPrint(
-                    '⚠️ [STARTUP] Found STALE call (Age: $diff min) - Clearing it.');
+                    ' [STARTUP] Found STALE call (Age: $diff min) - Clearing it.');
                 await FlutterCallkitIncoming.endAllCalls();
                 return;
               }
             }
 
             debugPrint(
-                '✅ [STARTUP] Found VALID active call - Navigating to call screen');
+                '[STARTUP] Found VALID active call - Navigating to call screen');
             _handleCallKitAction({'extra': data}, accept: true);
           }
         }
       } catch (e) {
-        debugPrint('⚠️ Error checking active calls: $e');
+        debugPrint(' Error checking active calls: $e');
       }
     } catch (e) {
-      debugPrint('⚠️ Error checking initial message: $e');
+      debugPrint(' Error checking initial message: $e');
     }
   }
 
@@ -435,7 +433,7 @@ class NotificationService {
     try {
       final fcmToken = token ?? await _fcm.getToken();
       if (fcmToken != null) {
-        debugPrint('🔑 FCM Token: $fcmToken');
+        debugPrint(' FCM Token: $fcmToken');
 
         if (ApiService.isLoggedIn) {
           final platform = Platform.isAndroid ? 'android' : 'ios';
@@ -443,11 +441,11 @@ class NotificationService {
             token: fcmToken,
             platform: platform,
           );
-          debugPrint('✅ FCM Token registered with backend');
+          debugPrint(' FCM Token registered with backend');
         }
       }
     } catch (e) {
-      debugPrint('❌ Error saving FCM token: $e');
+      debugPrint(' Error saving FCM token: $e');
     }
   }
 
@@ -456,7 +454,7 @@ class NotificationService {
     final msgChatId = message.data['chatId']?.toString();
 
     if (msgChatId != null && msgChatId == currentChatId) {
-      debugPrint('🔕 Suppressing notification for active chat: $msgChatId');
+      debugPrint(' Suppressing notification for active chat: $msgChatId');
       return;
     }
 
@@ -492,9 +490,9 @@ class NotificationService {
         details,
         payload: jsonEncode(message.data),
       );
-      debugPrint('✅ Local notification shown successfully');
+      debugPrint(' Local notification shown successfully');
     } catch (e) {
-      debugPrint('❌ Error showing local notification: $e');
+      debugPrint(' Error showing local notification: $e');
     }
   }
 
@@ -526,10 +524,10 @@ class NotificationService {
   /// Handle navigation when notification is clicked
   static void handleNotificationClick(dynamic payload) async {
     debugPrint(
-        '🚀 Handling notification click. Payload type: ${payload.runtimeType}');
+        'Handling notification click. Payload type: ${payload.runtimeType}');
 
     if (navigatorKey?.currentState == null) {
-      debugPrint('⚠️ Navigator not ready. Storing payload as pending.');
+      debugPrint(' Navigator not ready. Storing payload as pending.');
       if (payload is String) {
         pendingPayload = payload;
       } else if (payload is Map) {
@@ -547,11 +545,11 @@ class NotificationService {
         data = jsonDecode(payload);
       }
 
-      debugPrint('📍 Parsing navigation data: $data');
+      debugPrint(' Parsing navigation data: $data');
 
       // Handle incoming call notifications
       if (data['type'] == 'incoming_call') {
-        debugPrint('📞 Navigating to incoming call screen');
+        debugPrint('Navigating to incoming call screen');
 
         navigatorKey!.currentState?.push(
           MaterialPageRoute(
@@ -580,7 +578,7 @@ class NotificationService {
           final prefs = await SharedPreferences.getInstance();
           final userRole = prefs.getString('user_role')?.toLowerCase();
 
-          debugPrint('📍 Navigating to chat: $chatId for role: $userRole');
+          debugPrint(' Navigating to chat: $chatId for role: $userRole');
 
           if (userRole == 'doctor') {
             navigatorKey!.currentState?.push(
@@ -609,24 +607,24 @@ class NotificationService {
         }
       }
     } catch (e) {
-      debugPrint('❌ Error handling notification click: $e');
+      debugPrint(' Error handling notification click: $e');
     }
   }
 
   /// Consume any pending payload once navigator is ready
   static void consumePendingPayload() {
     if (pendingPayload != null) {
-      debugPrint('🚀 Consuming pending notification payload...');
+      debugPrint(' Consuming pending notification payload...');
       handleNotificationClick(pendingPayload);
       pendingPayload = null;
     }
   }
 
-  /// ✅ Consume pending call data and navigate directly to call screen
+  ///  Consume pending call data and navigate directly to call screen
   static bool consumePendingCallData() {
     if (pendingCallData != null && navigatorKey?.currentState != null) {
       debugPrint(
-          '📞 Consuming pending call data — navigating directly to call screen');
+          ' Consuming pending call data — navigating directly to call screen');
       final data = pendingCallData!;
       pendingCallData = null;
       _handleCallKitAction({'extra': data}, accept: true);
@@ -635,29 +633,27 @@ class NotificationService {
     return false;
   }
 
-  // ========================================
-  // ✅ CALLKIT IMPLEMENTATION
-  // ========================================
 
-  /// ✅ Public Helper for Background Handler in main.dart
+
+  ///  Public Helper for Background Handler in main.dart
   static Future<void> showIncomingCall(Map<String, dynamic> data) async {
     await _showCallKitIncoming(data);
   }
 
-  /// ✅ Show CallKit Incoming UI
+  ///  Show CallKit Incoming UI
   static Future<void> _showCallKitIncoming(
       Map<String, dynamic> data) async {
-    // ✅ FIX 1: Login check — not logged in হলে call দেখাবো না
+    //  Login check — not logged in হলে call দেখাবো না
     try {
       final prefs = await SharedPreferences.getInstance();
       final authToken = prefs.getString('auth_token');
       if (authToken == null || authToken.isEmpty) {
         debugPrint(
-            '⚠️ [CallKit] User not logged in — skipping incoming call UI');
+            ' [CallKit] User not logged in — skipping incoming call UI');
         return;
       }
     } catch (e) {
-      debugPrint('⚠️ [CallKit] Could not check auth status: $e');
+      debugPrint(' [CallKit] Could not check auth status: $e');
       // Auth check fail হলে call দেখাবো না — safety first
       return;
     }
@@ -671,7 +667,7 @@ class NotificationService {
       final bool isVideo =
           data['isVideo'] == 'true' || data['isVideo'] == true;
 
-      debugPrint('📞 [CallKit] Preparing to show call screen');
+      debugPrint(' [CallKit] Preparing to show call screen');
       debugPrint('   - Caller: $callerName');
       debugPrint('   - Video: $isVideo');
       debugPrint('   - Chat ID: ${data['chatId']}');
@@ -682,7 +678,7 @@ class NotificationService {
         nameCaller: callerName,
         appName: 'Docmobi',
         avatar: callerAvatar,
-        handle: 'Docmobi Call', // ✅ FIX: Instead of showing UUID, show a clean subtitle
+        handle: 'Docmobi Call', 
         type: isVideo ? 1 : 0,
         textAccept: 'Accept',
         textDecline: 'Decline',
@@ -696,9 +692,9 @@ class NotificationService {
         extra: data,
         headers: <String, dynamic>{'platform': 'flutter'},
         android: AndroidParams(
-          isCustomNotification: false, // ✅ FIX: false = native Android full-screen call UI with reliable Answer/Decline buttons
+          isCustomNotification: false, 
           isShowLogo: false,
-          isShowFullLockedScreen: true, // ✅ FIX: Show full-screen UI when screen is locked
+          isShowFullLockedScreen: true, 
           ringtonePath: 'system_ringtone_default',
           backgroundColor: '#0955fa',
           backgroundUrl: callerAvatar.isNotEmpty ? callerAvatar : '',
@@ -725,15 +721,13 @@ class NotificationService {
       );
 
       await FlutterCallkitIncoming.showCallkitIncoming(params);
-      debugPrint('✅ [CallKit] Call screen displayed with UUID: $uuid');
+      debugPrint(' [CallKit] Call screen displayed with UUID: $uuid');
     } catch (e) {
-      debugPrint('❌ Error showing CallKit incoming: $e');
+      debugPrint(' Error showing CallKit incoming: $e');
     }
   }
 
-  // ========================================
-  // REST API Methods
-  // ========================================
+ 
 
   static Future<List<NotificationModel>> getNotifications() async {
     final response = await ApiService.get(ApiConfig.notifications);
@@ -779,9 +773,9 @@ class NotificationService {
   static Future<void> clearBadge() async {
     try {
       await _localNotifications.cancelAll();
-      debugPrint('🔔 Badge cleared');
+      debugPrint(' Badge cleared');
     } catch (e) {
-      debugPrint('⚠️ Error clearing badge: $e');
+      debugPrint(' Error clearing badge: $e');
     }
   }
 
@@ -789,28 +783,28 @@ class NotificationService {
     await _localNotifications.cancelAll();
   }
 
-  /// ✅ Handle CallKit Action (Accept/Decline)
+  /// Handle CallKit Action (Accept/Decline)
   static void _handleCallKitAction(Map<String, dynamic> data,
       {required bool accept}) async {
     try {
-      // ✅ Ensure API Service is initialized for Cold Start
+      //  Ensure API Service is initialized for Cold Start
       if (!ApiService.isLoggedIn) {
         debugPrint(
-            '⚠️ ApiService not initialized in handleCallKitAction - initializing now...');
+            ' ApiService not initialized in handleCallKitAction - initializing now...');
         await ApiService.init();
       }
 
-      // ✅ FIX 1: Login check before doing anything
+      //  FIX 1: Login check before doing anything
       final prefs = await SharedPreferences.getInstance();
       final authToken = prefs.getString('auth_token');
       if (authToken == null || authToken.isEmpty) {
-        debugPrint('⚠️ [CallKit Action] User not logged in — ignoring action');
+        debugPrint('[CallKit Action] User not logged in — ignoring action');
         // End the CallKit call UI since user is not logged in
         await FlutterCallkitIncoming.endAllCalls();
         return;
       }
 
-      // 🔄 Normalize data: Extract from 'extra' if needed
+      //  Normalize data: Extract from 'extra' if needed
       Map<String, dynamic> finalData = Map.from(data);
       if (finalData['chatId'] == null && finalData['extra'] != null) {
         if (finalData['extra'] is Map) {
@@ -819,7 +813,7 @@ class NotificationService {
           try {
             finalData.addAll(jsonDecode(finalData['extra']));
           } catch (e) {
-            debugPrint('⚠️ Failed to parse extra data string: $e');
+            debugPrint('Failed to parse extra data string: $e');
           }
         }
       }
@@ -831,45 +825,45 @@ class NotificationService {
       final isVideo =
           finalData['isVideo'] == 'true' || finalData['isVideo'] == true;
 
-      debugPrint('📞 [CallKit Action] ${accept ? 'ACCEPT' : 'DECLINE'}');
+      debugPrint(' [CallKit Action] ${accept ? 'ACCEPT' : 'DECLINE'}');
       debugPrint('   - Chat ID: $chatId');
       debugPrint('   - Caller ID: $callerId');
 
       if (accept) {
         debugPrint(
-            '✅ Call accepted from CallKit, navigating directly to call screen...');
+            'Call accepted from CallKit, navigating directly to call screen...');
 
         if (chatId != null && callerId != null) {
-          // ✅ FIX: Agora token pre-fetch with retry — prevent 'Securing connection...' hang
+          //  FIX: Agora token pre-fetch with retry — prevent 'Securing connection...' hang
           for (int retry = 0; retry < 2; retry++) {
             try {
               final channelName = 'call_$chatId';
-              debugPrint('🔄 Pre-fetching Agora token (attempt ${retry + 1}): $channelName');
+              debugPrint('Pre-fetching Agora token (attempt ${retry + 1}): $channelName');
               final tokenResponse = await ApiService.get('/call/token?channelName=$channelName')
                   .timeout(const Duration(seconds: 8));
               final fetchedToken = tokenResponse['data']?['token'];
               if (fetchedToken != null) {
                 _cachedAgoraToken = fetchedToken;
                 _cachedChannelName = channelName;
-                debugPrint('✅ Agora token pre-fetched and cached!');
+                debugPrint(' Agora token pre-fetched and cached!');
                 break; // Success — no more retries
               }
             } catch (e) {
-              debugPrint('⚠️ Token pre-fetch attempt ${retry + 1} failed: $e');
+              debugPrint(' Token pre-fetch attempt ${retry + 1} failed: $e');
               if (retry == 0) await Future.delayed(const Duration(milliseconds: 500));
             }
           }
 
-          // 🚀 1. Send via REST API (most reliable path for cold start)
+          //  1. Send via REST API (most reliable path for cold start)
           ApiService.acceptCall({
             'chatId': chatId,
             'fromUserId': callerId,
           })
-              .then((_) => debugPrint('✅ API: Call accepted signal sent'))
+              .then((_) => debugPrint(' API: Call accepted signal sent'))
               .catchError(
-                  (e) => debugPrint('❌ API: Call accept failed: $e'));
+                  (e) => debugPrint('API: Call accept failed: $e'));
 
-          // 🚀 2. Socket emit — PROPERLY AWAIT connection first
+          //  2. Socket emit — PROPERLY AWAIT connection first
           try {
             final connected = await SocketService.instance.ensureConnected()
                 .timeout(const Duration(seconds: 5), onTimeout: () => false);
@@ -878,12 +872,12 @@ class NotificationService {
                 'chatId': chatId,
                 'fromUserId': callerId,
               });
-              debugPrint('✅ SOCKET: call:accept event sent');
+              debugPrint('SOCKET: call:accept event sent');
             } else {
-              debugPrint('⚠️ Socket not connected — relying on API accept path');
+              debugPrint('Socket not connected — relying on API accept path');
             }
           } catch (e) {
-            debugPrint('⚠️ Socket connection failed: $e — relying on API accept path');
+            debugPrint('Socket connection failed: $e — relying on API accept path');
           }
         }
 
@@ -919,21 +913,21 @@ class NotificationService {
           }
         } else {
           debugPrint(
-              '⚠️ Navigator not ready, storing pending CALL data for direct navigation');
+              ' Navigator not ready, storing pending CALL data for direct navigation');
           pendingCallData = finalData;
         }
       } else {
-        // ✅ Decline call
-        debugPrint('❌ Call declined, sending rejection to caller...');
+        // Decline call
+        debugPrint(' Call declined, sending rejection to caller...');
 
         if (chatId != null && callerId != null) {
           SocketService.instance.emit('call:reject', {
             'chatId': chatId,
             'toUserId': callerId,
           });
-          debugPrint('✅ Call rejection sent successfully');
+          debugPrint('Call rejection sent successfully');
         } else {
-          debugPrint('⚠️ Cannot reject call: Missing chatId or callerId');
+          debugPrint('Cannot reject call: Missing chatId or callerId');
         }
 
         if (finalData['id'] != null) {
@@ -941,7 +935,7 @@ class NotificationService {
         }
       }
     } catch (e) {
-      debugPrint('❌ Error handling CallKit action: $e');
+      debugPrint(' Error handling CallKit action: $e');
     }
   }
 }

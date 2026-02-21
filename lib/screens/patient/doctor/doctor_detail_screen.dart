@@ -24,7 +24,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchDoctorDetails(); // ✅ Fetch full details (image fix)
+    _fetchDoctorDetails(); 
     _loadDoctorReviews();
   }
 
@@ -38,26 +38,26 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
         setState(() {
           _fetchedDoctor = Doctor.fromJson(response['data']);
         });
-        debugPrint('✅ Full doctor details fetched: ${_fetchedDoctor?.image}');
+        debugPrint(' Full doctor details fetched: ${_fetchedDoctor?.image}');
       }
     } catch (e) {
-      debugPrint('❌ Failed to fetch doctor details: $e');
+      debugPrint(' Failed to fetch doctor details: $e');
     }
   }
 
-  /// ✅ Load doctor reviews from backend
+  
   Future<void> _loadDoctorReviews() async {
     // setState(() => _loadingReviews = true);
 
     try {
-      debugPrint('📥 Loading reviews for doctor: ${widget.doctor.id}');
+      debugPrint(' Loading reviews for doctor: ${widget.doctor.id}');
 
       final response = await ApiService.get(
-        '/api/v1/doctor-review/doctor/${widget.doctor.id}', // ✅ Fixed: removed 's'
+        '/api/v1/doctor-review/doctor/${widget.doctor.id}', 
         requiresAuth: false,
       );
 
-      debugPrint('📥 Reviews API Response: $response');
+      debugPrint(' Reviews API Response: $response');
 
       if (response['success'] == true && response['data'] != null) {
         final data = response['data'];
@@ -69,13 +69,13 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
           // _loadingReviews = false;
         });
 
-        debugPrint('✅ Loaded ${_reviews.length} reviews, avg: $_avgRating');
+        debugPrint(' Loaded ${_reviews.length} reviews, avg: $_avgRating');
       } else {
-        debugPrint('❌ Reviews fetch failed: ${response['message']}');
+        debugPrint(' Reviews fetch failed: ${response['message']}');
         // setState(() => _loadingReviews = false);
       }
     } catch (e) {
-      debugPrint('❌ Error loading reviews: $e');
+      debugPrint(' Error loading reviews: $e');
       // setState(() => _loadingReviews = false);
     }
   }
@@ -84,9 +84,9 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final bool hasVideoCall =
-        widget.doctor.isVideoCallAvailable; // ✅ Read from model
+        widget.doctor.isVideoCallAvailable; 
 
-    debugPrint('📄 Details Screen: ${widget.doctor.fullName}');
+    debugPrint(' Details Screen: ${widget.doctor.fullName}');
     debugPrint('   - isVideoCallAvailable: $hasVideoCall');
 
     return Scaffold(
@@ -136,7 +136,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                           ),
                           const SizedBox(height: 8),
 
-                          // ✅ Video Call Badge (Cleaner Design)
+                          //  Video Call Badge (Cleaner Design)
                           if (hasVideoCall)
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -458,13 +458,13 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
         return;
       }
 
-      debugPrint('🔍 Creating/Getting chat with doctor ID: $doctorId');
+      debugPrint(' Creating/Getting chat with doctor ID: $doctorId');
 
       final result = await ApiService.createOrGetChat(userId: doctorId);
 
       if (mounted) navigator.pop();
 
-      debugPrint('📥 Chat result: $result');
+      debugPrint(' Chat result: $result');
 
       if (result['success'] == true) {
         final chatData = result['data'];
@@ -482,7 +482,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
           return;
         }
 
-        debugPrint('✅ Chat ID: $chatId');
+        debugPrint(' Chat ID: $chatId');
 
         final participants = chatData['participants'] as List?;
         String? doctorAvatar;
@@ -532,7 +532,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
     } catch (e) {
       if (mounted) {
         navigator.pop();
-        debugPrint('❌ Error opening chat: $e');
+        debugPrint(' Error opening chat: $e');
         scaffoldMessenger.showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );

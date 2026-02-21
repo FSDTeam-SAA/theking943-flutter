@@ -38,7 +38,7 @@ class NotificationPoller {
   Future<void> initialize() async {
     try {
       if (kDebugMode) {
-        debugPrint('🔔 Initializing local notifications...');
+        debugPrint(' Initializing local notifications...');
       }
 
       const AndroidInitializationSettings androidSettings =
@@ -70,9 +70,9 @@ class NotificationPoller {
       final bool? initialized = await initializationFuture;
 
       if (initialized == true) {
-        debugPrint('✅ Notifications initialized successfully');
+        debugPrint(' Notifications initialized successfully');
       } else {
-        debugPrint('⚠️ Notifications initialization returned null or false');
+        debugPrint('Notifications initialization returned null or false');
       }
 
       // Request notification permissions for Android 13+
@@ -81,7 +81,7 @@ class NotificationPoller {
       // Load persistent local data
       await _loadPersistentData();
     } catch (e) {
-      debugPrint('❌ Error initializing notifications: $e');
+      debugPrint('Error initializing notifications: $e');
       // Don't rethrow - allow app to continue without notifications
     }
   }

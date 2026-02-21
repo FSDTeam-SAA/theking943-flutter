@@ -8,21 +8,20 @@ class DoctorScheduleService {
     required List<Map<String, dynamic>> weeklySchedule,
     required Map<String, dynamic> fees,
     required bool isVideoCallAvailable,
-    bool isAvailable = true, // ✅ New optional parameter
+    bool isAvailable = true, 
   }) async {
     try {
-      // ✅ Data is already formatted correctly from screen
-      // Screen sends: { day: 'monday', isActive: true, slots: [{ start: '10:00', end: '10:30' }] }
+
 
       final body = {
         'weeklySchedule': weeklySchedule,
         'fees': fees,
-        'isVideoCallAvailable': isVideoCallAvailable, // ✅ Primary key
-        'isVideoAvailable': isVideoCallAvailable, // ✅ Redundant key 1
-        'isAvailable': isAvailable, // ✅ Redundant key 2
+        'isVideoCallAvailable': isVideoCallAvailable, 
+        'isVideoAvailable': isVideoCallAvailable, 
+        'isAvailable': isAvailable, 
       };
 
-      debugPrint('📤 Sending to backend:');
+      debugPrint(' Sending to backend:');
       debugPrint('   - weeklySchedule: ${weeklySchedule.length} days');
       debugPrint('   - fees: $fees');
       debugPrint('   - isVideoCallAvailable: $isVideoCallAvailable');
@@ -36,7 +35,7 @@ class DoctorScheduleService {
 
       return response;
     } catch (e) {
-      debugPrint('❌ Save Schedule Error: $e');
+      debugPrint(' Save Schedule Error: $e');
       return {'success': false, 'message': 'Failed to save schedule: $e'};
     }
   }
@@ -51,7 +50,7 @@ class DoctorScheduleService {
 
       return response;
     } catch (e) {
-      debugPrint('❌ Get Schedule Error: $e');
+      debugPrint(' Get Schedule Error: $e');
       return {'success': false, 'message': 'Failed to fetch schedule: $e'};
     }
   }

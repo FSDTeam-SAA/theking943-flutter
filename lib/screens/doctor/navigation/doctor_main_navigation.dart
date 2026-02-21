@@ -24,7 +24,7 @@ class _DoctorMainNavigationState extends ConsumerState<DoctorMainNavigation> {
   @override
   void initState() {
     super.initState();
-    // ✅ Initialize CallManager when dashboard loads
+    //  Initialize CallManager when dashboard loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       debugPrint('👨‍⚕️ Doctor Dashboard Loaded - Initializing CallManager');
       CallManager.instance.initialize(context);
@@ -39,7 +39,7 @@ class _DoctorMainNavigationState extends ConsumerState<DoctorMainNavigation> {
     DoctorProfileScreen(),
   ];
 
-  // ✅ Public method to navigate to specific tab
+  //  Public method to navigate to specific tab
   void navigateToTab(int index) {
     if (index >= 0 && index < _screens.length) {
       setState(() {

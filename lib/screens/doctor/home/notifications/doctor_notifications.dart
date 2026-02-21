@@ -337,8 +337,7 @@ class _DoctorNotificationScreenState
   }
 
   String _personalizeMessage(NotificationModel notification) {
-    // Here we can further personalize the message if needed.
-    // For now, we'll return the original message.
+  
     return notification.message;
   }
 

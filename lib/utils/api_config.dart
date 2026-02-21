@@ -2,9 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 class ApiConfig {
-  // ═══════════════════════════════════════════════════════════════
-  // 🌐 SERVER URLS
-  // ═══════════════════════════════════════════════════════════════
+
 
   /// Production URL (Render) - ALWAYS works
   // static const String prodUrl = 'https://thekingbackend.onrender.com';
@@ -19,19 +17,11 @@ class ApiConfig {
   /// Example: 'http://192.168.0.105:5005'
   static const String localNetworkUrl = 'http://192.168.0.XXX:5005';
 
-  // ═══════════════════════════════════════════════════════════════
-  // 🎯 ENVIRONMENT SELECTOR - CHANGE THIS TO SWITCH
-  // ═══════════════════════════════════════════════════════════════
 
-  /// Set your development mode here:
-  /// - DevMode.production  -> Always use Render (recommended)
-  /// - DevMode.localhost   -> Use local backend (auto-detects platform)
-  /// - DevMode.network     -> Use local network IP (for physical devices)
+
   static const DevMode _currentMode = DevMode.production;
 
-  // ═══════════════════════════════════════════════════════════════
-  // 📡 MAIN API URL (Auto-Selected)
-  // ═══════════════════════════════════════════════════════════════
+
 
   /// Get base URL based on environment and platform
   static String get baseUrl {
@@ -195,23 +185,23 @@ class ApiConfig {
   static void debugPrintConfig() {
     debugPrint('');
     debugPrint('╔═══════════════════════════════════════════════════════╗');
-    debugPrint('║              📡 API CONFIGURATION                     ║');
+    debugPrint('║               API CONFIGURATION                     ║');
     debugPrint('╚═══════════════════════════════════════════════════════╝');
     debugPrint('');
-    debugPrint('🎯 Current Settings:');
+    debugPrint(' Current Settings:');
     debugPrint('   • Platform: ${Platform.operatingSystem}');
     debugPrint('   • Mode: ${_currentMode.name.toUpperCase()}');
     debugPrint('   • Base URL: $baseUrl');
     debugPrint('   • Socket URL: $socketUrl');
-    debugPrint('   • Production: ${isProduction ? "YES ✅" : "NO ❌"}');
+    debugPrint('   • Production: ${isProduction ? "YES " : "NO "}');
     debugPrint('');
-    debugPrint('💡 Available URLs:');
+    debugPrint(' Available URLs:');
     debugPrint('   • Render (Prod): $prodUrl');
     debugPrint('   • Localhost: $localhostUrl');
     debugPrint('   • Android Emulator: $androidEmulatorUrl');
     debugPrint('   • Local Network: $localNetworkUrl');
     debugPrint('');
-    debugPrint('📝 To change environment:');
+    debugPrint('To change environment:');
     debugPrint('   Edit DevMode._currentMode in api_config.dart');
     debugPrint('   Options: production, localhost, network');
     debugPrint('');
@@ -229,14 +219,10 @@ class ApiConfig {
       baseUrl.contains('192.168');
 }
 
-/// Development environment options
+
 enum DevMode {
-  /// Use Render - works everywhere (RECOMMENDED)
+
   production,
-
-  /// Use localhost - auto-switches to 10.0.2.2 for Android Emulator
   localhost,
-
-  /// Use local network IP - for physical devices on same WiFi
   network,
 }

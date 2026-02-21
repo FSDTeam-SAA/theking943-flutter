@@ -60,7 +60,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                             Icons.arrow_back,
                             color: Color(0xFF1A1A1A),
                           ),
-                          // onPressed: _handleBackPress,
+                       
                           onPressed: () {
                             Navigator.pushAndRemoveUntil(
                               context,
@@ -409,7 +409,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
               ),
             ),
 
-            // ✅ Actions for upcoming appointments
+            //  Actions for upcoming appointments
             if (!isCompleted && !isCancelled) ...[
               const SizedBox(height: 15),
               Row(
@@ -440,7 +440,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
               ),
             ],
 
-            // ✅ NEW: Review button for completed appointments
+            //  Review button for completed appointments
             if (isCompleted) ...[
               const SizedBox(height: 15),
               InkWell(
@@ -590,8 +590,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
     });
   }
 
-  /// ✅ Show review dialog for completed appointments
-  // ✅ FIXED: Review loading & editing
+
   void _showReviewDialog(
     BuildContext context,
     AppointmentModel appointment,
@@ -600,7 +599,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
     int selectedRating = 0;
     bool isLoadingExisting = true;
 
-    // ✅ Fetch existing review if any
+   
     try {
       final existingReview = await ApiService.get('/api/v1/doctor-review/me');
 
@@ -619,11 +618,11 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
 
         if (thisReview != null) {
           selectedRating = thisReview['rating'] ?? 0;
-          debugPrint('✅ Found existing review with rating: $selectedRating');
+          debugPrint(' Found existing review with rating: $selectedRating');
         }
       }
     } catch (e) {
-      debugPrint('⚠️ No existing review found: $e');
+      debugPrint('No existing review found: $e');
     } finally {
       isLoadingExisting = false;
     }
@@ -660,7 +659,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ✅ Star Rating with existing review support
+                  //  Star Rating with existing review support
                   isLoadingExisting
                       ? const CircularProgressIndicator()
                       : Row(
@@ -712,10 +711,10 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                         child: ElevatedButton(
                           onPressed: selectedRating > 0
                               ? () async {
-                                  // ✅ Close dialog immediately
+                                  //  Close dialog immediately
                                   Navigator.pop(dialogContext);
 
-                                  // ✅ Then submit review
+                                  // Then submit review
                                   await _submitReview(
                                     context,
                                     appointment,
@@ -750,14 +749,14 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
     );
   }
 
-  /// ✅ FIXED: Submit review with proper dialog handling
+  // FIXED: Submit review with proper dialog handling
   Future<void> _submitReview(
     BuildContext context,
     AppointmentModel appointment,
     int rating,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    // ✅ Show loading overlay
+    // Show loading overlay
     final overlay = OverlayEntry(
       builder: (context) => Container(
         color: Colors.black54,
@@ -770,7 +769,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
     Overlay.of(context).insert(overlay);
 
     try {
-      debugPrint('📤 Submitting review:');
+      debugPrint(' Submitting review:');
       debugPrint('   - Doctor ID: ${appointment.doctorId}');
       debugPrint('   - Appointment ID: ${appointment.id}');
       debugPrint('   - Rating: $rating');
@@ -785,12 +784,12 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
             onTimeout: () => throw Exception('Request timeout'),
           );
 
-      debugPrint('📥 Review Response: $response');
+      debugPrint('Review Response: $response');
 
-      // ✅ Remove overlay
+      // Remove overlay
       overlay.remove();
 
-      // ✅ Show result
+      // Show result
       if (context.mounted) {
         if (response['success'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -816,9 +815,9 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
         }
       }
     } catch (e) {
-      debugPrint('❌ Review submission error: $e');
+      debugPrint(' Review submission error: $e');
 
-      // ✅ Remove overlay on error
+      //  Remove overlay on error
       overlay.remove();
 
       if (context.mounted) {

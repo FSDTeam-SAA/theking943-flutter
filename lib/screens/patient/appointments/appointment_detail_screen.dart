@@ -160,7 +160,7 @@ class AppointmentDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // ✅ NEW: Action Buttons - Direct Cancel & Reschedule
+            //  NEW: Action Buttons - Direct Cancel & Reschedule
             if (appointment.status.toLowerCase() == 'pending' ||
                 appointment.status.toLowerCase() == 'accepted') ...[
               _buildButton(
@@ -284,7 +284,7 @@ class AppointmentDetailScreen extends StatelessWidget {
     }
   }
 
-  // ✅ NEW: Direct Cancel Handler
+  //  Direct Cancel Handler
   void _handleCancel(BuildContext context) async {
     // Show loading dialog
     showDialog(
@@ -365,7 +365,7 @@ class AppointmentDetailScreen extends StatelessWidget {
     }
   }
 
-  // ✅ NEW: Reschedule Handler
+  //  Reschedule Handler
   void _handleReschedule(BuildContext context) {
     Navigator.push(
       context,

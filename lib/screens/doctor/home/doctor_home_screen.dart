@@ -73,13 +73,12 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
     }
   }
 
-  // ✅ ENHANCED: Search debounce with minimum 1 character
+  
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
 
     final query = _searchController.text.trim();
 
-    // Clear results if query is empty
     if (query.isEmpty) {
       setState(() {
         _searchSuggestions.clear();
@@ -100,7 +99,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
     });
   }
 
-  // ✅ ENHANCED: Perform search with better error handling
+  
   Future<void> _performSearch(String query) async {
     if (query.isEmpty) return;
 
@@ -168,7 +167,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
       return;
     }
 
-     // ✅ আগে cache load করো
+
   final userProvider = legacy_provider.Provider.of<UserProvider>(
     context, listen: false,
   );
@@ -218,7 +217,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
         listen: false,
       ).fetchUserProfile();
     } catch (e) {
-      debugPrint('⚠️ Error loading user data: $e');
+      debugPrint(' Error loading user data: $e');
     }
   }
 
@@ -359,7 +358,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
     );
   }
 
-  // ✅ ENHANCED: Handle suggestion tap with different actions
+  //  ENHANCED: Handle suggestion tap with different actions
   void _onSuggestionTap(Map<String, dynamic> suggestion) {
     final type = suggestion['type'];
     final data = suggestion['data'];
@@ -376,8 +375,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
       _searchController.text = specialtyName;
       _performSearch(specialtyName);
     } else if (type == 'post') {
-      // Scroll to this post in search results (already visible)
-      // Or you can open a post detail screen if you have one
+     
     }
   }
 
@@ -513,7 +511,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                           ],
                         ),
 
-                        // ✅ ENHANCED: Search bar with better UX
+                        // ENHANCED: Search bar with better UX
                         if (_isSearching) ...[
                           const SizedBox(height: 15),
                           Container(
@@ -768,7 +766,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
 
   Widget _buildContent() {
     final l10n = AppLocalizations.of(context)!;
-    // ✅ Show search results when searching
+  
     if (_isSearching) {
       if (_isSearchLoading && _searchController.text.isNotEmpty) {
         return Center(
@@ -1125,7 +1123,7 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
   }
 }
 
-// ✅ ENHANCED: Doctor Info Bottom Sheet
+
 class DoctorInfoBottomSheet extends StatelessWidget {
   final Map<String, dynamic> doctor;
 

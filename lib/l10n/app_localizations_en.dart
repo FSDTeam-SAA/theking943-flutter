@@ -644,7 +644,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notif_reel_commented_body => 'Someone commented on your reel.';
 
   @override
-  String get reviewSubmitted => 'Review submitted successfully! ⭐';
+  String get reviewSubmitted => 'Review submitted successfully! ';
 
   @override
   String get failedSubmitReview => 'Failed to submit review';
@@ -809,7 +809,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get completeSession => 'Complete Session';
 
   @override
-  String get sessionCompleted => 'Session completed successfully! ✅';
+  String get sessionCompleted => 'Session completed successfully!';
 
   @override
   String get failedCompleteSession => 'Failed to complete session';

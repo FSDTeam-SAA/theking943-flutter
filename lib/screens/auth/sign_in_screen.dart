@@ -48,7 +48,7 @@ class _SignInScreenState extends State<SignInScreen> {
     setState(() => _isLoading = true);
 
     try {
-      debugPrint('🔄 Starting login process...');
+      debugPrint(' Starting login process...');
 
       final result = await ApiService.login(
         email: _emailController.text.trim(),
@@ -56,7 +56,7 @@ class _SignInScreenState extends State<SignInScreen> {
       );
 
       if (!mounted) return;
-      debugPrint('📥 Login result: ${result['success']}');
+      debugPrint('Login result: ${result['success']}');
 
       if (result['success'] == true) {
         final userData = result['data'];
@@ -75,26 +75,26 @@ class _SignInScreenState extends State<SignInScreen> {
           await prefs.setString('user_id', userId);
 
           await SocketService.instance.connect(userId);
-          debugPrint('✅ Socket connected after login');
+          debugPrint('Socket connected after login');
 
           try {
             await AgoraChatService.instance.init();
             await AgoraChatService.instance.login(userId);
-            debugPrint('✅ Agora Chat initialized after login');
+            debugPrint('Agora Chat initialized after login');
           } catch (e) {
-            debugPrint('❌ Agora Chat init error: $e');
+            debugPrint(' Agora Chat init error: $e');
           }
 
-          // ✅ FCM Initialization after login
+      
           try {
             await NotificationService.init();
-            debugPrint('✅ FCM Token registered after login');
+            debugPrint('FCM Token registered after login');
           } catch (e) {
-            debugPrint('❌ FCM registration error: $e');
+            debugPrint('FCM registration error: $e');
           }
         }
 
-        debugPrint('✅ Login successful - Role: $userRole');
+        debugPrint('Login successful - Role: $userRole');
 
         if (userRole == widget.userType.toLowerCase()) {
           if (!mounted) return;
@@ -124,7 +124,7 @@ class _SignInScreenState extends State<SignInScreen> {
           }
         } else {
           debugPrint(
-            '⚠️ Role mismatch: Expected ${widget.userType}, Got $userRole',
+            'Role mismatch: Expected ${widget.userType}, Got $userRole',
           );
           if (mounted) setState(() => _isLoading = false);
           await ApiService.clearToken();
@@ -137,7 +137,7 @@ class _SignInScreenState extends State<SignInScreen> {
           }
         }
       } else {
-        debugPrint('❌ Login failed: ${result['message']}');
+        debugPrint('Login failed: ${result['message']}');
         if (mounted) setState(() => _isLoading = false);
         if (mounted) {
           final l10n = AppLocalizations.of(context)!;
@@ -145,7 +145,7 @@ class _SignInScreenState extends State<SignInScreen> {
         }
       }
     } catch (e) {
-      debugPrint('❌ Login error: $e');
+      debugPrint('Login error: $e');
       if (mounted) setState(() => _isLoading = false);
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;

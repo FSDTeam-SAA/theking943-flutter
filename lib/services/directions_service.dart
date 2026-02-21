@@ -4,7 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 
 class DirectionsService {
-  // ✅ Client এর API Key
+  //  Client এর API Key
   static const String _apiKey = 'AIzaSyDwpV4RKu-t9aThomHv7SPcbY0uAj80dek';
 
   /// Get directions between two points
@@ -20,7 +20,7 @@ class DirectionsService {
           'mode=driving&'
           'key=$_apiKey';
 
-      debugPrint('🗺️ Fetching directions from Google Maps API...');
+      debugPrint(' Fetching directions from Google Maps API...');
 
       final response = await http.get(Uri.parse(url));
 
@@ -40,15 +40,15 @@ class DirectionsService {
             'steps': route['legs'][0]['steps'],
           };
         } else {
-          debugPrint('❌ Directions API Status: ${data['status']}');
+          debugPrint(' Directions API Status: ${data['status']}');
           return null;
         }
       } else {
-        debugPrint('❌ HTTP Error: ${response.statusCode}');
+        debugPrint(' HTTP Error: ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      debugPrint('❌ Error fetching directions: $e');
+      debugPrint(' Error fetching directions: $e');
       return null;
     }
   }

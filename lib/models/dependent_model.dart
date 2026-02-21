@@ -56,7 +56,7 @@ class DependentModel {
     };
   }
 
-  // ✅ Calculate age from DOB
+
   String? get age {
     if (dob == null) return null;
 
@@ -76,7 +76,7 @@ class DependentModel {
     return years == 1 ? '1 year' : '$years years';
   }
 
-  // ✅ Display name with relationship
+
   String get displayName {
     if (relationship != null && relationship!.isNotEmpty) {
       return '$fullName ($relationship)';
@@ -84,7 +84,6 @@ class DependentModel {
     return fullName;
   }
 
-  // ✅ Copy with method
   DependentModel copyWith({
     String? id,
     String? fullName,

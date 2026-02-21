@@ -863,7 +863,7 @@
   "@notif_reel_commented_body": {
     "description": "Notification body when reel is commented"
   },
-  "reviewSubmitted": "Review submitted successfully! ⭐",
+  "reviewSubmitted": "Review submitted successfully! ",
   "@reviewSubmitted": {
     "description": "Success snackbar after review submission"
   },
@@ -1093,7 +1093,7 @@
   "@completeSession": {
     "description": "Title for session completion screen"
   },
-  "sessionCompleted": "Session completed successfully! ✅",
+  "sessionCompleted": "Session completed successfully!",
   "@sessionCompleted": {
     "description": "Success message after completing session"
   },
@@ -1175,8 +1175,8 @@
   },
   "addTextOrMedia": "Please add some text or media to post",
   "reelPrivacy": "Reel Privacy",
-  "reelVisibleDoctorsOnly": "🔒 This reel will be visible to doctors only.",
-  "reelVisibleEveryone": "🌍 This reel will be visible to everyone (doctors and patients).",
+  "reelVisibleDoctorsOnly": "This reel will be visible to doctors only.",
+  "reelVisibleEveryone": "This reel will be visible to everyone (doctors and patients).",
   "currentPrivacy": "Current privacy: {privacy}",
   "privateDoctorsOnly": "Private (Doctors Only)",
   "publicEveryone": "Public (Everyone)",

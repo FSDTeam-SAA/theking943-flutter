@@ -14,7 +14,7 @@ class ActiveCallState {
     String? userAvatar,
     required String otherUserId,
     required bool isInitiator,
-    required String callType, // 'audio' or 'video'
+    required String callType, 
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -28,9 +28,9 @@ class ActiveCallState {
         'startTime': DateTime.now().toIso8601String(),
       };
       await prefs.setString(_key, jsonEncode(data));
-      debugPrint('💾 Active call state saved: $callType with $userName');
+      debugPrint('Active call state saved: $callType with $userName');
     } catch (e) {
-      debugPrint('⚠️ Failed to save active call state: $e');
+      debugPrint(' Failed to save active call state: $e');
     }
   }
 
@@ -41,7 +41,7 @@ class ActiveCallState {
       await prefs.remove(_key);
       debugPrint('🧹 Active call state cleared');
     } catch (e) {
-      debugPrint('⚠️ Failed to clear active call state: $e');
+      debugPrint('Failed to clear active call state: $e');
     }
   }
 
@@ -60,7 +60,7 @@ class ActiveCallState {
         final startTime = DateTime.parse(data['startTime']);
         final age = DateTime.now().difference(startTime).inMinutes;
         if (age > 5) {
-          debugPrint('⚠️ Active call state is stale ($age min old) — clearing');
+          debugPrint(' Active call state is stale ($age min old) — clearing');
           await clearActiveCall();
           return null;
         }
@@ -68,7 +68,7 @@ class ActiveCallState {
 
       return data;
     } catch (e) {
-      debugPrint('⚠️ Failed to get active call state: $e');
+      debugPrint('Failed to get active call state: $e');
       return null;
     }
   }

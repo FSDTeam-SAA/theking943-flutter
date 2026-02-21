@@ -807,7 +807,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get completeSession => 'إتمام الجلسة';
 
   @override
-  String get sessionCompleted => 'تم إتمام الجلسة بنجاح! ✅';
+  String get sessionCompleted => 'تم إتمام الجلسة بنجاح! ';
 
   @override
   String get failedCompleteSession => 'فشل في إتمام الجلسة';
