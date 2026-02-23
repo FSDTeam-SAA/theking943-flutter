@@ -434,6 +434,8 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                                 children: [
                                   Text(
                                     user?.fullName ?? 'Doctor',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold,
@@ -443,6 +445,8 @@ class _DoctorHomeScreenState extends ConsumerState<DoctorHomeScreen> {
                                   const SizedBox(height: 2),
                                   Text(
                                     user?.specialty ?? 'General Physician',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                       fontSize: 14,
                                       color: Colors.grey,

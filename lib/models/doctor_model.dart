@@ -110,7 +110,7 @@ class Doctor {
         }
       } catch (_) {}
     }
-.
+
     if (lat == null || lng == null) {
       debugPrint(
         ' ${json['fullName']}: No valid location found. Skipping map coordinates.',

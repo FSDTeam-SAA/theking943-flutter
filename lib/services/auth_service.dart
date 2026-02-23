@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:docmobi/utils/api_config.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:docmobi/services/api_service.dart';
 
 class AuthService {
   // Use ApiConfig for base URL
@@ -238,6 +240,17 @@ class AuthService {
 
   Future<Map<String, dynamic>> logout() async {
     try {
+      // Unregister FCM Token before logging out
+      try {
+        final fcmToken = await FirebaseMessaging.instance.getToken();
+        if (fcmToken != null) {
+          await ApiService.unregisterFCMToken(token: fcmToken);
+          debugPrint(' FCM Token unregistered during logout');
+        }
+      } catch (e) {
+        debugPrint(' Failed to unregister FCM Token: $e');
+      }
+
       final headers = await _getHeaders();
 
       await http

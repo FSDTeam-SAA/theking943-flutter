@@ -1297,7 +1297,7 @@ abstract class AppLocalizations {
   /// Success snackbar after review submission
   ///
   /// In en, this message translates to:
-  /// **'Review submitted successfully! ⭐'**
+  /// **'Review submitted successfully! '**
   String get reviewSubmitted;
 
   /// Error snackbar after review failure
@@ -1615,7 +1615,7 @@ abstract class AppLocalizations {
   /// Success message after completing session
   ///
   /// In en, this message translates to:
-  /// **'Session completed successfully! ✅'**
+  /// **'Session completed successfully!'**
   String get sessionCompleted;
 
   /// Error message when session completion fails
@@ -1747,13 +1747,13 @@ abstract class AppLocalizations {
   /// No description provided for @reelVisibleDoctorsOnly.
   ///
   /// In en, this message translates to:
-  /// **'🔒 This reel will be visible to doctors only.'**
+  /// **'This reel will be visible to doctors only.'**
   String get reelVisibleDoctorsOnly;
 
   /// No description provided for @reelVisibleEveryone.
   ///
   /// In en, this message translates to:
-  /// **'🌍 This reel will be visible to everyone (doctors and patients).'**
+  /// **'This reel will be visible to everyone (doctors and patients).'**
   String get reelVisibleEveryone;
 
   /// No description provided for @currentPrivacy.

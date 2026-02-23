@@ -784,9 +784,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                                   ),
                                 ),
                               ),
-                              Expanded(
-                                child: Container(), // Dummy for space
-                              ),
+                              const SizedBox(width: 8),
                               // Search Icon
                               GestureDetector(
                                 onTap: () => Navigator.push(

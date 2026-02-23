@@ -878,11 +878,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reelVisibleDoctorsOnly =>
-      '🔒 This reel will be visible to doctors only.';
+      'This reel will be visible to doctors only.';
 
   @override
   String get reelVisibleEveryone =>
-      '🌍 This reel will be visible to everyone (doctors and patients).';
+      'This reel will be visible to everyone (doctors and patients).';
 
   @override
   String currentPrivacy(Object privacy) {

@@ -637,12 +637,13 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
                     selectedRating > 0
                         ? l10n.updateReview
                         : l10n.rateExperience,
@@ -662,9 +663,11 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                   //  Star Rating with existing review support
                   isLoadingExisting
                       ? const CircularProgressIndicator()
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(5, (index) {
+                      : FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(5, (index) {
                             return GestureDetector(
                               onTap: () {
                                 setDialogState(() {
@@ -688,6 +691,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                             );
                           }),
                         ),
+                      ),
 
                   const SizedBox(height: 32),
 
@@ -742,6 +746,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                   ),
                 ],
               ),
+            ),
             ),
           );
         },
