@@ -3057,6 +3057,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Appointment booked successfully!'**
   String get bookingSuccess;
+
+  /// Profile menu item for Delete Account
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Your account'**
+  String get deleteAccount;
 }
 
 class _AppLocalizationsDelegate

@@ -1592,4 +1592,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get bookingSuccess => 'تم حجز الموعد بنجاح!';
+
+  @override
+  String get deleteAccount => 'حذف حسابك';
 }

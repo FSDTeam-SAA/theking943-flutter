@@ -503,5 +503,9 @@
   "emailUs": "راسلنا عبر البريد الإلكتروني",
   "callUs": "اتصل بنا",
   "emailSubject": "طلب المساعدة والدعم",
-  "bookingSuccess": "تم حجز الموعد بنجاح!"
+  "bookingSuccess": "تم حجز الموعد بنجاح!",
+  "deleteAccount": "حذف حسابك",
+  "@deleteAccount": {
+    "description": "عنصر قائمة الملف الشخصي لحذف الحساب"
+  }
 }

@@ -1614,4 +1614,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bookingSuccess => 'Appointment booked successfully!';
+
+  @override
+  String get deleteAccount => 'Delete Your account';
 }

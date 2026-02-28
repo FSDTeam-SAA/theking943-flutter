@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:docmobi/utils/api_config.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:docmobi/services/api_service.dart';
+import 'package:docmobi/services/notification_poller.dart';
 
 class AuthService {
   // Use ApiConfig for base URL
@@ -240,39 +241,55 @@ class AuthService {
 
   Future<Map<String, dynamic>> logout() async {
     try {
-      // Unregister FCM Token before logging out
+      debugPrint('Initiating logout cleanup...');
+      
+      // 1. Stop background polling
+      try {
+        NotificationPoller().stopPolling();
+        await NotificationPoller().clearAllData();
+        debugPrint(' ✅ Notification polling stopped and data cleared');
+      } catch (e) {
+        debugPrint(' ⚠️ Error clearing notification poller: $e');
+      }
+
+      // 2. Unregister FCM Token before logging out
       try {
         final fcmToken = await FirebaseMessaging.instance.getToken();
         if (fcmToken != null) {
           await ApiService.unregisterFCMToken(token: fcmToken);
-          debugPrint(' FCM Token unregistered during logout');
+          debugPrint(' ✅ FCM Token unregistered during logout');
         }
       } catch (e) {
-        debugPrint(' Failed to unregister FCM Token: $e');
+        debugPrint(' ⚠️ Failed to unregister FCM Token: $e');
       }
 
+      // 3. Notify backend
       final headers = await _getHeaders();
+      try {
+        await http
+            .post(Uri.parse('$baseUrl${ApiConfig.logout}'), headers: headers)
+            .timeout(const Duration(seconds: 3));
+        debugPrint(' ✅ Backend logout called');
+      } catch (e) {
+        debugPrint(' ⚠️ Backend logout request failed: $e');
+      }
 
-      await http
-          .post(Uri.parse('$baseUrl${ApiConfig.logout}'), headers: headers)
-          .timeout(const Duration(seconds: 2));
-    } catch (e) {
-      debugPrint(' Logout request failed: $e');
-    }
-
-    try {
+      // 4. Clear local storage last
       _cachedToken = null;
       _cachedRole = null;
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('auth_token');
       await prefs.remove('user_role');
+      await prefs.remove('user_id');
+      await prefs.remove('user_full_name');
+      await prefs.remove('user_avatar');
 
-      debugPrint(' Logout successful - Token cleared');
+      debugPrint(' ✅ Logout successful - Local data cleared');
 
       return {'success': true, 'message': 'Logged out successfully'};
     } catch (e) {
-      debugPrint(' Error clearing token: $e');
+      debugPrint(' ❌ Error during logout: $e');
       return {'success': false, 'message': 'Error logging out'};
     }
   }
@@ -459,6 +476,39 @@ class AuthService {
       }
     } catch (e) {
       debugPrint(' Reset password error: $e');
+      return {'success': false, 'message': 'Connection error: ${e.toString()}'};
+    }
+  }
+
+  /// ✅ Delete Account
+  Future<Map<String, dynamic>> deleteAccount() async {
+    try {
+      final headers = await _getHeaders();
+      debugPrint('🗑️ DELETE: $baseUrl${ApiConfig.deleteAccount}');
+
+      final response = await http
+          .delete(
+            Uri.parse('$baseUrl${ApiConfig.deleteAccount}'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 15));
+
+      debugPrint(' Status: ${response.statusCode}');
+      debugPrint(' Response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        // After successful deletion on backend, clear local data
+        await logout();
+        return {'success': true, 'message': 'Account deleted successfully'};
+      } else {
+        final data = json.decode(response.body);
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Failed to delete account',
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ Delete account error: $e');
       return {'success': false, 'message': 'Connection error: ${e.toString()}'};
     }
   }

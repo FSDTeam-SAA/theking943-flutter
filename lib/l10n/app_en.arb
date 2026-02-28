@@ -1403,6 +1403,10 @@
   "bookingSuccess": "Appointment booked successfully!",
   "@bookingSuccess": {
     "description": "Success message for booking"
+  },
+  "deleteAccount": "Delete Your account",
+  "@deleteAccount": {
+    "description": "Profile menu item for Delete Account"
   }
 }
 

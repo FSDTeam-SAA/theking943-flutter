@@ -1649,4 +1649,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get bookingSuccess => 'Rendez-vous pris avec succès !';
+
+  @override
+  String get deleteAccount => 'Supprimer votre compte';
 }

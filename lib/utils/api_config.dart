@@ -60,6 +60,7 @@ class ApiConfig {
   static const String updateProfile = '/api/v1/user/profile';
   static const String getUserById = '/api/v1/user';
   static const String deleteUser = '/api/v1/user';
+  static const String deleteAccount = '/api/v1/user/delete-account';
 
   // Appointment Endpoints
   static const String appointments = '/api/v1/appointment';

@@ -938,5 +938,9 @@
   "emailUs": "Envoyez-nous un e-mail",
   "callUs": "Appelez-nous",
   "emailSubject": "Demande d'aide et de support",
-  "bookingSuccess": "Rendez-vous pris avec succès !"
+  "bookingSuccess": "Rendez-vous pris avec succès !",
+  "deleteAccount": "Supprimer votre compte",
+  "@deleteAccount": {
+    "description": "Menu de profil Supprimer votre compte"
+  }
 }

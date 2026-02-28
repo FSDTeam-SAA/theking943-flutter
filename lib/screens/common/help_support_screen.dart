@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:docmobi/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:docmobi/services/auth_service.dart';
+import 'package:docmobi/services/api_service.dart';
+import 'package:docmobi/app.dart';
+import 'package:provider/provider.dart';
+import 'package:docmobi/providers/user_provider.dart';
 
 class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
@@ -87,11 +92,125 @@ class HelpSupportScreen extends StatelessWidget {
               color: Colors.green,
               onTap: () => _launchPhone('0558585400'),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
+            Center(
+              child: TextButton.icon(
+                onPressed: () => _showDeleteConfirmation(context, l10n),
+                icon: const Icon(Icons.delete_forever, color: Colors.red),
+                label: Text(
+                  l10n.deleteAccount,
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: const BorderSide(color: Colors.red),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
           ],
         ),
       ),
     );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, AppLocalizations l10n) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title:
+            Text(l10n.deleteAccount, style: const TextStyle(color: Colors.red)),
+        content: const Text(
+          'Are you sure you want to delete your account? This action is permanent and all your data will be wiped.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _performDelete(context);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performDelete(BuildContext context) async {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (context) => const Center(
+          child: CircularProgressIndicator(color: Color(0xFF1664CD))),
+    );
+
+    try {
+      debugPrint('Starting account deletion process...');
+      final result = await AuthService().deleteAccount();
+
+      // Ensure we clear all tokens and local user state
+      await ApiService.clearToken();
+
+      try {
+        // Clear UserProvider state
+        Provider.of<UserProvider>(context, listen: false).clearUser();
+      } catch (e) {
+        debugPrint('Error clearing UserProvider: $e');
+      }
+
+      // Pop loading dialog
+      navigator.pop();
+
+      if (result['success']) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text(result['message'] ?? 'Account deleted')),
+        );
+
+        debugPrint('Redirecting to splash screen...');
+        // Force redirect using global navigator key to restart the app flow
+        navigatorKey.currentState?.pushNamedAndRemoveUntil(
+          '/splash',
+          (route) => false,
+        );
+      } else {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Failed to delete account'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Critical error during account deletion: $e');
+      // Attempt to pop the dialog if still there
+      try {
+        navigator.pop();
+      } catch (_) {}
+
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Text('An unexpected error occurred. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Widget _buildFaqItem(
