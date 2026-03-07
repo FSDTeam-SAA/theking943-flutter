@@ -36,7 +36,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Camera access is required for video calls with doctors and recording medical content.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>We need access to local network for API communication during development</string>
+	<string>We need access to the local network to connect and stream video sessions smoothly.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>We need your location to show nearby doctors and provide location-based services.</string>
 	<key>NSLocationAlwaysUsageDescription</key>

@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.docmobi</string>
+	<string>com.docmobi.app</string>
 	<key>PROJECT_ID</key>
 	<string>docmobi-7a0c7</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:754436212878:ios:c7022ec32d8d0c841de1df</string>
+	<string>1:754436212878:ios:66ba71d78690c5211de1df</string>
 </dict>
 </plist>
