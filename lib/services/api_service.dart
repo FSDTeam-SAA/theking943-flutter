@@ -742,17 +742,30 @@ class ApiService {
     );
   }
 
-  /// Register FCM Token
+  /// Register Device Tokens (Hybrid Approach)
+  static Future<Map<String, dynamic>> registerDeviceTokens({
+    String? fcmToken,
+    String? voipToken,
+    required String platform,
+  }) async {
+    return await post('/api/v1/user/fcm-token', {
+      'fcmToken': fcmToken,
+      'voipToken': voipToken,
+      'platform': platform.toLowerCase(),
+    }, requiresAuth: true);
+  }
+
+  /// Deprecated: keeping for compatibility during transition
   static Future<Map<String, dynamic>> registerFCMToken({
     required String token,
     required String platform,
     String tokenType = 'standard',
   }) async {
-    return await post('/api/v1/user/fcm-token', {
-      'token': token,
-      'platform': platform,
-      'tokenType': tokenType,
-    }, requiresAuth: true);
+    return await registerDeviceTokens(
+      fcmToken: tokenType == 'standard' ? token : null,
+      voipToken: tokenType == 'voip' ? token : null,
+      platform: platform,
+    );
   }
 
   ///  Unregister FCM Token (on logout — prevents calls to logged-out devices)

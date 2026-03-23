@@ -347,22 +347,19 @@ class NotificationService {
       handleNotificationClick(message.data);
     });
 
-    // 7. Get Initial Token
-    await _saveToken();
+    // 7. Initial Token Registration (Hybrid)
+    await registerUserDevice();
 
     // 8. Token Refresh Listener
-    _fcm.onTokenRefresh.listen((token) => _saveToken(token));
+    _fcm.onTokenRefresh.listen((token) => registerUserDevice());
 
     // 9. VoIP Token Listener (iOS only)
     if (Platform.isIOS) {
       const MethodChannel voipChannel = MethodChannel('com.docmobi.app/voip');
       voipChannel.setMethodCallHandler((call) async {
         if (call.method == 'onVoIPTokenUpdate') {
-          final String? voipToken = call.arguments as String?;
-          if (voipToken != null) {
-            debugPrint('📞 [VoIP] Received VoIP token from native: $voipToken');
-            await _saveVoIPToken(voipToken);
-          }
+          debugPrint('📞 [VoIP] Native VoIP token update signaled');
+          await registerUserDevice();
         }
       });
       debugPrint(' VoIP token listener registered');
@@ -371,22 +368,46 @@ class NotificationService {
     debugPrint('[NOTIFICATION SERVICE] Initialization complete');
   }
 
-  /// Save VoIP Token to Backend
-  static Future<void> _saveVoIPToken(String token) async {
+  /// Register User Device (Hybrid Approach: FCM + VoIP)
+  static Future<void> registerUserDevice() async {
     try {
-      if (ApiService.isLoggedIn) {
-        await ApiService.registerFCMToken(
-          token: token,
-          platform: 'ios',
-          tokenType: 'voip',
-        );
-        debugPrint(' VoIP Token registered with backend');
+      if (!ApiService.isLoggedIn) {
+        debugPrint(' [NOTIF] User not logged in — skipping device registration');
+        return;
+      }
+
+      debugPrint(' [NOTIF] Synchronizing device tokens...');
+
+      // 1. Get FCM Token
+      String? fcmToken = await _fcm.getToken();
+      
+      // 2. Get VoIP Token (iOS only)
+      String? voipToken;
+      if (Platform.isIOS) {
+        try {
+          voipToken = await FlutterCallkitIncoming.getDevicePushTokenVoIP();
+          debugPrint(' [NOTIF] VoIP Token retrieved: ${voipToken != null ? "Success" : "Empty"}');
+        } catch (e) {
+          debugPrint(' [NOTIF] Error fetching VoIP token: $e');
+        }
+      }
+
+      final platform = Platform.isAndroid ? 'android' : 'ios';
+
+      // 3. Register with Backend
+      final result = await ApiService.registerDeviceTokens(
+        fcmToken: fcmToken,
+        voipToken: voipToken,
+        platform: platform,
+      );
+
+      if (result['success'] == true) {
+        debugPrint(' ✅ Device tokens registered successfully ($platform)');
       } else {
-        debugPrint(' User not logged in - storing VoIP token for later');
-        // Optional: Save to SharedPreferences if needed
+        debugPrint(' ❌ Device registration failed: ${result['message']}');
       }
     } catch (e) {
-      debugPrint(' Error saving VoIP token: $e');
+      debugPrint(' ❌ Error in registerUserDevice: $e');
     }
   }
 
@@ -460,27 +481,6 @@ class NotificationService {
       }
     } catch (e) {
       debugPrint(' Error checking initial message: $e');
-    }
-  }
-
-  /// Get and save FCM Token to Backend
-  static Future<void> _saveToken([String? token]) async {
-    try {
-      final fcmToken = token ?? await _fcm.getToken();
-      if (fcmToken != null) {
-        debugPrint(' FCM Token: $fcmToken');
-
-        if (ApiService.isLoggedIn) {
-          final platform = Platform.isAndroid ? 'android' : 'ios';
-          await ApiService.registerFCMToken(
-            token: fcmToken,
-            platform: platform,
-          );
-          debugPrint(' FCM Token registered with backend');
-        }
-      }
-    } catch (e) {
-      debugPrint(' Error saving FCM token: $e');
     }
   }
 
