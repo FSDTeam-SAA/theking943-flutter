@@ -61,7 +61,6 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-
       _currentUserId = prefs.getString('user_id');
 
       if (_currentUserId != null && _currentUserId!.isNotEmpty) {
@@ -153,7 +152,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
       if (_currentUserId != null) {
         if (!SocketService.instance.isConnected) {
-          debugPrint(' Socket disconnected in VideoCallScreen - Reconnecting...');
+          debugPrint(
+            ' Socket disconnected in VideoCallScreen - Reconnecting...',
+          );
           await SocketService.instance.connect(_currentUserId!);
         } else {
           SocketService.instance.socket?.emit('joinUserRoom', _currentUserId!);
@@ -194,23 +195,26 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     try {
       setState(() => _callStatus = 'Securing connection...');
 
-   
       String? token = NotificationService.consumeCachedAgoraToken();
 
       if (token != null) {
         debugPrint(' Using pre-fetched Agora token — no API delay!');
       } else {
- 
         debugPrint(' No cached token, fetching from API...');
         for (int attempt = 0; attempt < 2; attempt++) {
           try {
-            final result = await ApiService.getAgoraToken(channelName: widget.chatId)
-                .timeout(const Duration(seconds: 8));
-            token = (result['success'] == true) ? result['data']['token'] : null;
+            final result = await ApiService.getAgoraToken(
+              channelName: widget.chatId,
+            ).timeout(const Duration(seconds: 8));
+            token = (result['success'] == true)
+                ? result['data']['token']
+                : null;
             if (token != null) break;
           } catch (e) {
             debugPrint(' Token fetch attempt ${attempt + 1} failed: $e');
-            if (attempt == 0) await Future.delayed(const Duration(milliseconds: 500));
+            if (attempt == 0) {
+              await Future.delayed(const Duration(milliseconds: 500));
+            }
           }
         }
       }
@@ -254,7 +258,6 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     socket.off('call:ended');
     socket.off('call:rejected');
 
-
     void handleCallAccepted(dynamic data) async {
       debugPrint('Received call accepted event');
       if (data['chatId'] == widget.chatId && !_channelJoined) {
@@ -267,7 +270,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     }
 
     socket.on('call:accepted', handleCallAccepted);
-    socket.on('call:accept', handleCallAccepted); 
+    socket.on('call:accept', handleCallAccepted);
 
     socket.on('call:ended', (data) {
       if (data['chatId'] == widget.chatId) {
@@ -283,9 +286,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     });
 
     socket.on('call:switch_request', (data) {
-      if (data['chatId'] == widget.chatId && mounted) {
-     
-      }
+      if (data['chatId'] == widget.chatId && mounted) {}
     });
   }
 
@@ -296,10 +297,14 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       if (mounted) {
         setState(() {
           _callDurationSeconds++;
-          final minutes =
-              (_callDurationSeconds ~/ 60).toString().padLeft(2, '0');
-          final seconds =
-              (_callDurationSeconds % 60).toString().padLeft(2, '0');
+          final minutes = (_callDurationSeconds ~/ 60).toString().padLeft(
+            2,
+            '0',
+          );
+          final seconds = (_callDurationSeconds % 60).toString().padLeft(
+            2,
+            '0',
+          );
           _callDuration = '$minutes:$seconds';
         });
       } else {
@@ -346,11 +351,20 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
     await FlutterCallkitIncoming.endAllCalls();
 
-    SocketService.instance.emit('call:end', {
-      'chatId': widget.chatId,
-      'toUserId': widget.otherUserId,
-      'fromUserId': _currentUserId,
-    });
+    try {
+      // ✅ Properly trigger backend API so it sends Call Cancellation push to offline receiver
+      await ApiService.endCall(
+        chatId: widget.chatId,
+        toUserId: widget.otherUserId,
+      );
+    } catch (e) {
+      debugPrint(' API endCall error, falling back to socket: $e');
+      SocketService.instance.emit('call:end', {
+        'chatId': widget.chatId,
+        'toUserId': widget.otherUserId,
+        'fromUserId': _currentUserId,
+      });
+    }
 
     await _agoraService.leaveChannel();
 
@@ -429,7 +443,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     children: [
                       CircleAvatar(
                         radius: 60,
-                        backgroundImage: widget.userAvatar != null &&
+                        backgroundImage:
+                            widget.userAvatar != null &&
                                 widget.userAvatar!.isNotEmpty
                             ? NetworkImage(widget.userAvatar!)
                             : const AssetImage('assets/images/doctor1.png')
@@ -513,7 +528,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     children: [
                       CircleAvatar(
                         radius: 16,
-                        backgroundImage: widget.userAvatar != null &&
+                        backgroundImage:
+                            widget.userAvatar != null &&
                                 widget.userAvatar!.isNotEmpty
                             ? NetworkImage(widget.userAvatar!)
                             : const AssetImage('assets/images/doctor1.png')
@@ -565,9 +581,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                         color: _isMuted ? Colors.red : Colors.white,
                       ),
                       _buildControlButton(
-                        icon: _isVideoOff
-                            ? Icons.videocam_off
-                            : Icons.videocam,
+                        icon: _isVideoOff ? Icons.videocam_off : Icons.videocam,
                         label: _isVideoOff ? 'Cam Off' : 'Cam On',
                         onPressed: _toggleVideo,
                         color: _isVideoOff ? Colors.red : Colors.white,
@@ -620,8 +634,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        Text(label,
-            style: const TextStyle(color: Colors.white, fontSize: 12)),
+        Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
       ],
     );
   }

@@ -40,6 +40,10 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDwpV4RKu-t9aThomHv7SPcbY0uAj80dek"/>
+
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="docmobi_chat_notifications_v3" />
         
         <activity
             android:name=".MainActivity"
@@ -79,14 +83,6 @@
             android:excludeFromRecents="true"
             android:theme="@style/Theme.AppCompat.NoActionBar"
             android:launchMode="singleInstance" />
-        
-        <service
-            android:name="com.google.firebase.messaging.FirebaseMessagingService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
         
         <meta-data
             android:name="flutterEmbedding"

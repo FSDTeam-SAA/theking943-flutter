@@ -31,7 +31,7 @@ void notificationTapBackground(NotificationResponse notificationResponse) {
 
 // Top-level background handler
 @pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
     //  FIX 1: Login check — not logged in হলে call দেখাবো না
     await Firebase.initializeApp();
@@ -103,7 +103,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   final String? body = message.notification?.body;
 
   final String notificationTitle = title ?? data['userName'] ?? 'New Message';
-  final String notificationBody = body ??
+  final String notificationBody =
+      body ??
       (data['type'] == 'image'
           ? '[Image]'
           : data['content'] ?? data['body'] ?? 'You have a new message');
@@ -155,19 +156,45 @@ class NotificationService {
 
   static Map<String, dynamic>? pendingCallData;
 
-
   static String? _cachedAgoraToken;
-  static String? _cachedChannelName;
+  static String? _cachedVoipToken;
+  static final Map<String, DateTime> _recentIncomingCallKeys = {};
 
   static String? consumeCachedAgoraToken() {
     final token = _cachedAgoraToken;
     _cachedAgoraToken = null;
-    _cachedChannelName = null;
     debugPrint(
-        token != null
-            ? ' Consumed pre-fetched Agora token'
-            : 'No cached Agora token found');
+      token != null
+          ? ' Consumed pre-fetched Agora token'
+          : 'No cached Agora token found',
+    );
     return token;
+  }
+
+  static String _callDedupKey(Map<String, dynamic> data) {
+    final uuid =
+        data['uuid']?.toString() ??
+        data['id']?.toString() ??
+        '${data['chatId']}_${data['callerId']}_${data['callerName']}';
+    return uuid;
+  }
+
+  static bool _shouldSuppressIncomingCall(Map<String, dynamic> data) {
+    final key = _callDedupKey(data);
+    final now = DateTime.now();
+
+    _recentIncomingCallKeys.removeWhere(
+      (_, timestamp) => now.difference(timestamp).inMinutes >= 2,
+    );
+
+    final seenAt = _recentIncomingCallKeys[key];
+    if (seenAt != null && now.difference(seenAt).inSeconds < 45) {
+      debugPrint(' [CallKit] Duplicate incoming call suppressed: $key');
+      return true;
+    }
+
+    _recentIncomingCallKeys[key] = now;
+    return false;
   }
 
   /// Initialize Firebase and Local Notifications
@@ -175,7 +202,7 @@ class NotificationService {
     debugPrint('[NOTIFICATION SERVICE] Starting initialization...');
 
     // 0. Register Background Handler FIRST
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     debugPrint(' Background message handler registered');
 
     // 1. Request Permissions
@@ -206,7 +233,7 @@ class NotificationService {
           "rationaleMessagePermission":
               "Notification permission is required to show incoming calls",
           "postNotificationMessageRequired":
-              "Please allow notifications for incoming calls to work properly"
+              "Please allow notifications for incoming calls to work properly",
         });
         debugPrint(' Android CallKit permissions requested');
       } catch (e) {
@@ -297,12 +324,14 @@ class NotificationService {
 
       final androidPlugin = _localNotifications
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       await androidPlugin?.createNotificationChannel(chatChannel);
       await androidPlugin?.createNotificationChannel(callChannel);
 
       debugPrint(
-          'Android notification channels created (chat + incoming_call)');
+        'Android notification channels created (chat + incoming_call)',
+      );
     } catch (e) {
       debugPrint(' Error creating Android notification channels: $e');
     }
@@ -358,7 +387,10 @@ class NotificationService {
       const MethodChannel voipChannel = MethodChannel('com.docmobi.app/voip');
       voipChannel.setMethodCallHandler((call) async {
         if (call.method == 'onVoIPTokenUpdate') {
-          debugPrint('📞 [VoIP] Native VoIP token update signaled');
+          _cachedVoipToken = call.arguments?.toString();
+          debugPrint(
+            '📞 [VoIP] Native VoIP token update signaled: ${_cachedVoipToken != null && _cachedVoipToken!.isNotEmpty ? "token received" : "token cleared"}',
+          );
           await registerUserDevice();
         }
       });
@@ -372,23 +404,35 @@ class NotificationService {
   static Future<void> registerUserDevice() async {
     try {
       if (!ApiService.isLoggedIn) {
-        debugPrint(' [NOTIF] User not logged in — skipping device registration');
+        debugPrint(
+          ' [NOTIF] User not logged in — skipping device registration',
+        );
         return;
       }
 
       debugPrint(' [NOTIF] Synchronizing device tokens...');
 
       // 1. Get FCM Token
-      String? fcmToken = await _fcm.getToken();
-      
+      String? fcmToken;
+      try {
+        fcmToken = await _fcm.getToken().timeout(const Duration(seconds: 10));
+        debugPrint(' [NOTIF] FCM Token retrieved: \${fcmToken != null ? \"Success\" : \"Empty\"}');
+      } catch (e) {
+        debugPrint(' [NOTIF] ❌ Error fetching FCM token: $e');
+      }
+
       // 2. Get VoIP Token (iOS only)
       String? voipToken;
       if (Platform.isIOS) {
         try {
-          voipToken = await FlutterCallkitIncoming.getDevicePushTokenVoIP();
-          debugPrint(' [NOTIF] VoIP Token retrieved: ${voipToken != null ? "Success" : "Empty"}');
+          voipToken =
+              _cachedVoipToken ??
+              await FlutterCallkitIncoming.getDevicePushTokenVoIP().timeout(const Duration(seconds: 10));
+          debugPrint(
+            ' [NOTIF] VoIP Token retrieved: \${voipToken != null ? \"Success\" : \"Empty\"}',
+          );
         } catch (e) {
-          debugPrint(' [NOTIF] Error fetching VoIP token: $e');
+          debugPrint(' [NOTIF] ❌ Error fetching VoIP token: $e');
         }
       }
 
@@ -445,8 +489,7 @@ class NotificationService {
       try {
         final activeCalls = await FlutterCallkitIncoming.activeCalls();
         if (activeCalls is List && activeCalls.isNotEmpty) {
-          debugPrint(
-              '[STARTUP] Found active call(s): ${activeCalls.length}');
+          debugPrint('[STARTUP] Found active call(s): ${activeCalls.length}');
           final firstCall = activeCalls.first;
           final extra = firstCall['extra'];
 
@@ -465,14 +508,16 @@ class NotificationService {
 
               if (diff > 2) {
                 debugPrint(
-                    ' [STARTUP] Found STALE call (Age: $diff min) - Clearing it.');
+                  ' [STARTUP] Found STALE call (Age: $diff min) - Clearing it.',
+                );
                 await FlutterCallkitIncoming.endAllCalls();
                 return;
               }
             }
 
             debugPrint(
-                '[STARTUP] Found VALID active call - Navigating to call screen');
+              '[STARTUP] Found VALID active call - Navigating to call screen',
+            );
             _handleCallKitAction({'extra': data}, accept: true);
           }
         }
@@ -559,7 +604,8 @@ class NotificationService {
   /// Handle navigation when notification is clicked
   static void handleNotificationClick(dynamic payload) async {
     debugPrint(
-        'Handling notification click. Payload type: ${payload.runtimeType}');
+      'Handling notification click. Payload type: ${payload.runtimeType}',
+    );
 
     if (navigatorKey?.currentState == null) {
       debugPrint(' Navigator not ready. Storing payload as pending.');
@@ -603,10 +649,8 @@ class NotificationService {
       // Handle chat notifications
       if (data['type'] == 'chat' || data['chatId'] != null) {
         final String? chatId = data['chatId']?.toString();
-        final String? userName =
-            data['userName']?.toString() ?? 'User';
-        final String otherUserId =
-            data['otherUserId']?.toString() ?? '';
+        final String userName = data['userName']?.toString() ?? 'User';
+        final String otherUserId = data['otherUserId']?.toString() ?? '';
         final String? userAvatar = data['userAvatar']?.toString();
 
         if (chatId != null) {
@@ -620,7 +664,7 @@ class NotificationService {
               MaterialPageRoute(
                 builder: (context) => DoctorChatDetailScreen(
                   chatId: chatId,
-                  userName: userName ?? 'User',
+                  userName: userName,
                   userAvatar: userAvatar,
                   userRole: 'patient',
                   otherUserId: otherUserId,
@@ -632,7 +676,7 @@ class NotificationService {
               MaterialPageRoute(
                 builder: (context) => ChatDetailScreen(
                   chatId: chatId,
-                  doctorName: userName ?? 'Doctor',
+                  doctorName: userName,
                   doctorAvatar: userAvatar,
                   doctorId: otherUserId,
                 ),
@@ -659,7 +703,8 @@ class NotificationService {
   static bool consumePendingCallData() {
     if (pendingCallData != null && navigatorKey?.currentState != null) {
       debugPrint(
-          ' Consuming pending call data — navigating directly to call screen');
+        ' Consuming pending call data — navigating directly to call screen',
+      );
       final data = pendingCallData!;
       pendingCallData = null;
       _handleCallKitAction({'extra': data}, accept: true);
@@ -668,23 +713,19 @@ class NotificationService {
     return false;
   }
 
-
-
   ///  Public Helper for Background Handler in main.dart
   static Future<void> showIncomingCall(Map<String, dynamic> data) async {
     await _showCallKitIncoming(data);
   }
 
   ///  Show CallKit Incoming UI
-  static Future<void> _showCallKitIncoming(
-      Map<String, dynamic> data) async {
+  static Future<void> _showCallKitIncoming(Map<String, dynamic> data) async {
     //  Login check — not logged in হলে call দেখাবো না
     try {
       final prefs = await SharedPreferences.getInstance();
       final authToken = prefs.getString('auth_token');
       if (authToken == null || authToken.isEmpty) {
-        debugPrint(
-            ' [CallKit] User not logged in — skipping incoming call UI');
+        debugPrint(' [CallKit] User not logged in — skipping incoming call UI');
         return;
       }
     } catch (e) {
@@ -694,13 +735,16 @@ class NotificationService {
     }
 
     try {
-      final uuid = data['uuid'] ?? const Uuid().v4();
+      if (_shouldSuppressIncomingCall(data)) {
+        return;
+      }
+
+      final uuid = data['uuid'] ?? data['id'] ?? const Uuid().v4();
       final String callerName = data['callerName'] ?? 'Unknown';
       final String? rawCallerId = data['callerId']?.toString();
       final String? callerId = rawCallerId?.split('/').first;
       final String callerAvatar = data['callerAvatar'] ?? '';
-      final bool isVideo =
-          data['isVideo'] == 'true' || data['isVideo'] == true;
+      final bool isVideo = data['isVideo'] == 'true' || data['isVideo'] == true;
 
       debugPrint(' [CallKit] Preparing to show call screen');
       debugPrint('   - Caller: $callerName');
@@ -713,7 +757,7 @@ class NotificationService {
         nameCaller: callerName,
         appName: 'Docmobi',
         avatar: callerAvatar,
-        handle: 'Docmobi Call', 
+        handle: 'Docmobi Call',
         type: isVideo ? 1 : 0,
         textAccept: 'Accept',
         textDecline: 'Decline',
@@ -727,9 +771,9 @@ class NotificationService {
         extra: data,
         headers: <String, dynamic>{'platform': 'flutter'},
         android: AndroidParams(
-          isCustomNotification: false, 
+          isCustomNotification: false,
           isShowLogo: false,
-          isShowFullLockedScreen: true, 
+          isShowFullLockedScreen: true,
           ringtonePath: 'system_ringtone_default',
           backgroundColor: '#0955fa',
           backgroundUrl: callerAvatar.isNotEmpty ? callerAvatar : '',
@@ -761,8 +805,6 @@ class NotificationService {
       debugPrint(' Error showing CallKit incoming: $e');
     }
   }
-
- 
 
   static Future<List<NotificationModel>> getNotifications() async {
     final response = await ApiService.get(ApiConfig.notifications);
@@ -819,13 +861,16 @@ class NotificationService {
   }
 
   /// Handle CallKit Action (Accept/Decline)
-  static void _handleCallKitAction(Map<String, dynamic> data,
-      {required bool accept}) async {
+  static void _handleCallKitAction(
+    Map<String, dynamic> data, {
+    required bool accept,
+  }) async {
     try {
       //  Ensure API Service is initialized for Cold Start
       if (!ApiService.isLoggedIn) {
         debugPrint(
-            ' ApiService not initialized in handleCallKitAction - initializing now...');
+          ' ApiService not initialized in handleCallKitAction - initializing now...',
+        );
         await ApiService.init();
       }
 
@@ -866,45 +911,52 @@ class NotificationService {
 
       if (accept) {
         debugPrint(
-            'Call accepted from CallKit, navigating directly to call screen...');
+          'Call accepted from CallKit, navigating directly to call screen...',
+        );
 
         if (chatId != null && callerId != null) {
+          final normalizedChatId = chatId.toString();
+
           //  FIX: Agora token pre-fetch with retry — prevent 'Securing connection...' hang
           for (int retry = 0; retry < 2; retry++) {
             try {
-              final channelName = 'call_$chatId';
-              debugPrint('Pre-fetching Agora token (attempt ${retry + 1}): $channelName');
-              final tokenResponse = await ApiService.get('/call/token?channelName=$channelName')
-                  .timeout(const Duration(seconds: 8));
+              final channelName = normalizedChatId;
+              debugPrint(
+                'Pre-fetching Agora token (attempt ${retry + 1}): $channelName',
+              );
+              final tokenResponse = await ApiService.getAgoraToken(
+                channelName: channelName,
+              ).timeout(const Duration(seconds: 8));
               final fetchedToken = tokenResponse['data']?['token'];
               if (fetchedToken != null) {
                 _cachedAgoraToken = fetchedToken;
-                _cachedChannelName = channelName;
                 debugPrint(' Agora token pre-fetched and cached!');
                 break; // Success — no more retries
               }
             } catch (e) {
               debugPrint(' Token pre-fetch attempt ${retry + 1} failed: $e');
-              if (retry == 0) await Future.delayed(const Duration(milliseconds: 500));
+              if (retry == 0) {
+                await Future.delayed(const Duration(milliseconds: 500));
+              }
             }
           }
 
           //  1. Send via REST API (most reliable path for cold start)
           ApiService.acceptCall({
-            'chatId': chatId,
-            'fromUserId': callerId,
-          })
+                'chatId': normalizedChatId,
+                'fromUserId': callerId,
+              })
               .then((_) => debugPrint(' API: Call accepted signal sent'))
-              .catchError(
-                  (e) => debugPrint('API: Call accept failed: $e'));
+              .catchError((e) => debugPrint('API: Call accept failed: $e'));
 
           //  2. Socket emit — PROPERLY AWAIT connection first
           try {
-            final connected = await SocketService.instance.ensureConnected()
+            final connected = await SocketService.instance
+                .ensureConnected()
                 .timeout(const Duration(seconds: 5), onTimeout: () => false);
             if (connected) {
               SocketService.instance.emit('call:accept', {
-                'chatId': chatId,
+                'chatId': normalizedChatId,
                 'fromUserId': callerId,
               });
               debugPrint('SOCKET: call:accept event sent');
@@ -912,7 +964,9 @@ class NotificationService {
               debugPrint('Socket not connected — relying on API accept path');
             }
           } catch (e) {
-            debugPrint('Socket connection failed: $e — relying on API accept path');
+            debugPrint(
+              'Socket connection failed: $e — relying on API accept path',
+            );
           }
         }
 
@@ -920,13 +974,14 @@ class NotificationService {
           if (isVideo) {
             navigatorKey!.currentState?.push(
               PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) => VideoCallScreen(
-                  chatId: chatId ?? '',
-                  userName: callerName,
-                  userAvatar: finalData['callerAvatar'],
-                  otherUserId: callerId ?? '',
-                  isInitiator: false,
-                ),
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    VideoCallScreen(
+                      chatId: chatId ?? '',
+                      userName: callerName,
+                      userAvatar: finalData['callerAvatar'],
+                      otherUserId: callerId ?? '',
+                      isInitiator: false,
+                    ),
                 transitionDuration: Duration.zero,
                 reverseTransitionDuration: Duration.zero,
               ),
@@ -934,13 +989,14 @@ class NotificationService {
           } else {
             navigatorKey!.currentState?.push(
               PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) => AudioCallScreen(
-                  chatId: chatId ?? '',
-                  userName: callerName,
-                  userAvatar: finalData['callerAvatar'],
-                  otherUserId: callerId ?? '',
-                  isInitiator: false,
-                ),
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    AudioCallScreen(
+                      chatId: chatId ?? '',
+                      userName: callerName,
+                      userAvatar: finalData['callerAvatar'],
+                      otherUserId: callerId ?? '',
+                      isInitiator: false,
+                    ),
                 transitionDuration: Duration.zero,
                 reverseTransitionDuration: Duration.zero,
               ),
@@ -948,7 +1004,8 @@ class NotificationService {
           }
         } else {
           debugPrint(
-              ' Navigator not ready, storing pending CALL data for direct navigation');
+            ' Navigator not ready, storing pending CALL data for direct navigation',
+          );
           pendingCallData = finalData;
         }
       } else {

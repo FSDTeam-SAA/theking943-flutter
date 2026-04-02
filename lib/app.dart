@@ -61,8 +61,11 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       //  Throttle — ignore rapid resume events within 30 seconds
       final now = DateTime.now();
-      if (_lastResumeTime != null && now.difference(_lastResumeTime!).inSeconds < 30) {
-        debugPrint('⏳ Resume throttled (${now.difference(_lastResumeTime!).inSeconds}s since last)');
+      if (_lastResumeTime != null &&
+          now.difference(_lastResumeTime!).inSeconds < 30) {
+        debugPrint(
+          '⏳ Resume throttled (${now.difference(_lastResumeTime!).inSeconds}s since last)',
+        );
         return;
       }
       _lastResumeTime = now;
@@ -92,7 +95,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       if (navigator == null) return;
 
       debugPrint(
-          'Restoring active call: ${callData['callType']} with ${callData['userName']}');
+        'Restoring active call: ${callData['callType']} with ${callData['userName']}',
+      );
 
       final callType = callData['callType'] ?? 'audio';
       final chatId = callData['chatId'] ?? '';
@@ -102,25 +106,29 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       final isInitiator = callData['isInitiator'] ?? false;
 
       if (callType == 'video') {
-        navigator.push(MaterialPageRoute(
-          builder: (context) => VideoCallScreen(
-            chatId: chatId,
-            userName: userName,
-            userAvatar: userAvatar,
-            otherUserId: otherUserId,
-            isInitiator: isInitiator,
+        navigator.push(
+          MaterialPageRoute(
+            builder: (context) => VideoCallScreen(
+              chatId: chatId,
+              userName: userName,
+              userAvatar: userAvatar,
+              otherUserId: otherUserId,
+              isInitiator: isInitiator,
+            ),
           ),
-        ));
+        );
       } else {
-        navigator.push(MaterialPageRoute(
-          builder: (context) => AudioCallScreen(
-            chatId: chatId,
-            userName: userName,
-            userAvatar: userAvatar,
-            otherUserId: otherUserId,
-            isInitiator: isInitiator,
+        navigator.push(
+          MaterialPageRoute(
+            builder: (context) => AudioCallScreen(
+              chatId: chatId,
+              userName: userName,
+              userAvatar: userAvatar,
+              otherUserId: otherUserId,
+              isInitiator: isInitiator,
+            ),
           ),
-        ));
+        );
       }
     } catch (e) {
       debugPrint(' Failed to restore active call: $e');
@@ -135,9 +143,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
       final role = prefs.getString('user_role');
-      final userId = prefs.getString('user_id');
-
-      
 
       final isLoggedIn = token != null && token.isNotEmpty;
 
@@ -159,7 +164,9 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
                   //  Valid active call — skip home screen entirely
                   _launchingIntoCall = true;
                   NotificationService.pendingCallData = data;
-                  debugPrint(' Valid active call on startup — will skip home screen');
+                  debugPrint(
+                    ' Valid active call on startup — will skip home screen',
+                  );
                 } else {
                   await FlutterCallkitIncoming.endAllCalls();
                   debugPrint(' Stale call ($diff min old) — cleared');
@@ -186,7 +193,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
             NotificationService.navigatorKey = navigatorKey;
             CallManager.instance.initialize(navigatorKey.currentContext!);
 
-           
             if (NotificationService.consumePendingCallData()) {
               debugPrint('📞 Navigated directly to call screen (cold start)');
               if (mounted) setState(() => _launchingIntoCall = false);
@@ -260,9 +266,11 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: Colors.white,
-        body: Center(child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1664CD)),
-        )),
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1664CD)),
+          ),
+        ),
       );
     }
 
@@ -270,7 +278,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     if (!_isLoggedIn) {
       return const SplashScreen();
     }
-
 
     if (_launchingIntoCall) {
       debugPrint('📞 Showing call connecting screen (no home screen flash)');
@@ -335,16 +342,20 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1664CD),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 12),
+                      horizontal: 32,
+                      vertical: 12,
+                    ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   child: const Text(
                     'Go to Login',
                     style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ],
@@ -356,7 +367,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
 
   Future<void> _logout() async {
     try {
-  
       try {
         final fcmToken = await FirebaseMessaging.instance.getToken();
         if (fcmToken != null) {
@@ -393,6 +403,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         }),
       ]).catchError((e) {
         debugPrint(' Background logout error: $e');
+        return <void>[];
       });
     } catch (e) {
       debugPrint(' Logout error: $e');

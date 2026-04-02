@@ -147,13 +147,17 @@ class AgoraChatService {
 
       // If no local conversations (e.g., after reinstall), try to get chat list from backend
       if (conversations.isEmpty) {
-        debugPrint('📋 [Agora] No local conversations, fetching from backend...');
+        debugPrint(
+          '📋 [Agora] No local conversations, fetching from backend...',
+        );
         try {
           final response = await ApiService.getMyChats();
           if (response['success'] == true && response['data'] != null) {
             final chatList = response['data'] as List? ?? [];
-            debugPrint('📋 [Agora] Found ${chatList.length} chats from backend');
-            
+            debugPrint(
+              '📋 [Agora] Found ${chatList.length} chats from backend',
+            );
+
             // For each chat, fetch history messages from Agora server using the other user's ID
             for (final chat in chatList) {
               final participants = chat['participants'] as List? ?? [];
@@ -170,7 +174,9 @@ class AgoraChatService {
                         );
                     debugPrint('  ✅ Synced messages for $participantId');
                   } catch (e) {
-                    debugPrint('  ⚠️ Failed to sync messages for $participantId: $e');
+                    debugPrint(
+                      '  ⚠️ Failed to sync messages for $participantId: $e',
+                    );
                   }
                 }
               }
@@ -180,8 +186,10 @@ class AgoraChatService {
           debugPrint('⚠️ [Agora] Backend chat list fetch failed: $e');
         }
       } else {
-        debugPrint('📋 [Agora] Found ${conversations.length} local conversations');
-        
+        debugPrint(
+          '📋 [Agora] Found ${conversations.length} local conversations',
+        );
+
         // For each conversation, fetch recent messages from server to ensure they're up to date
         for (final conv in conversations) {
           try {
@@ -255,7 +263,9 @@ class AgoraChatService {
           message.attributes = msgAttributes;
 
           // Add status listener for better debugging — use fixed key to prevent duplicates
-          ChatClient.getInstance.chatManager.removeMessageEvent("SEND_FILE_HANDLER");
+          ChatClient.getInstance.chatManager.removeMessageEvent(
+            "SEND_FILE_HANDLER",
+          );
           ChatClient.getInstance.chatManager.addMessageEvent(
             "SEND_FILE_HANDLER",
             ChatMessageEvent(
@@ -289,7 +299,9 @@ class AgoraChatService {
         message.attributes = msgAttributes;
 
         // Use fixed key to prevent stacking duplicate handlers
-        ChatClient.getInstance.chatManager.removeMessageEvent("SEND_MSG_HANDLER");
+        ChatClient.getInstance.chatManager.removeMessageEvent(
+          "SEND_MSG_HANDLER",
+        );
         ChatClient.getInstance.chatManager.addMessageEvent(
           "SEND_MSG_HANDLER",
           ChatMessageEvent(
@@ -461,13 +473,17 @@ class AgoraChatService {
 
   Future<void> markAllMessagesAsRead(String conversationId) async {
     try {
-      debugPrint('📖 [Agora] Marking all messages as read for: $conversationId');
+      debugPrint(
+        '📖 [Agora] Marking all messages as read for: $conversationId',
+      );
       ChatConversation? conv = await ChatClient.getInstance.chatManager
           .getConversation(conversationId);
-      
+
       if (conv != null) {
         await conv.markAllMessagesAsRead();
-        debugPrint('✅ [Agora] Successfully marked all messages as read for $conversationId');
+        debugPrint(
+          '✅ [Agora] Successfully marked all messages as read for $conversationId',
+        );
       } else {
         debugPrint('⚠️ [Agora] Conversation not found for $conversationId');
       }
@@ -552,7 +568,9 @@ class AgoraChatService {
     try {
       // 1. Get current logged in user ID to ensure we are the receiver
       final currentUserId = await ChatClient.getInstance.getCurrentUserId();
-      if (msg.from == currentUserId) return; // Don't notify for our own messages
+      if (msg.from == currentUserId) {
+        return; // Don't notify for our own messages
+      }
 
       // 2. Extract content
       String content = '';
@@ -565,9 +583,8 @@ class AgoraChatService {
       }
 
       // 3. Extract metadata from attributes if possible
-      final String senderName = msg.attributes?['senderName']?.toString() ??
-          msg.from ??
-          'User';
+      final String senderName =
+          msg.attributes?['senderName']?.toString() ?? msg.from ?? 'User';
       final String? avatar = msg.attributes?['senderAvatar']?.toString();
       final String? backendChatId =
           msg.attributes?['chatId']?.toString() ??

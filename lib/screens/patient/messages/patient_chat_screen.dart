@@ -4,8 +4,8 @@ import 'package:docmobi/services/agora_chat_service.dart';
 import 'package:docmobi/services/socket_service.dart';
 import 'package:docmobi/services/api_service.dart';
 import 'package:docmobi/services/notification_service.dart';
-import 'package:docmobi/screens/common/calls/video_call_screen.dart'; 
-import 'package:docmobi/screens/common/calls/audio_call_screen.dart'; 
+import 'package:docmobi/screens/common/calls/video_call_screen.dart';
+import 'package:docmobi/screens/common/calls/audio_call_screen.dart';
 import 'package:agora_chat_sdk/agora_chat_sdk.dart';
 import 'dart:io';
 import 'dart:async';
@@ -49,15 +49,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   String? _currentUserAvatar;
   String? _currentUserName;
   String? _otherUserId;
-  String? _actualDoctorAvatar; 
+  String? _actualDoctorAvatar;
   String? _actualDoctorName;
   bool _isOtherUserTyping = false;
   Timer? _myTypingTimer;
-  Timer? _otherUserTypingTimer; 
+  Timer? _otherUserTypingTimer;
 
   bool _isAutoScrollEnabled = true;
-  final Set<String> _selectedMessageIds = {}; 
-  bool _isSelectionMode = false; 
+  final Set<String> _selectedMessageIds = {};
+  bool _isSelectionMode = false;
 
   @override
   void initState() {
@@ -65,20 +65,19 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _actualDoctorAvatar = widget.doctorAvatar;
     _actualDoctorName = widget.doctorName;
     _loadCurrentUserProfile().then((_) {
-      _setupAgoraListeners(); 
+      _setupAgoraListeners();
       _loadMessages();
       _ensureAgoraConnection();
-      _setupSocketListeners(); 
+      _setupSocketListeners();
       if (widget.doctorId != null) {
         AgoraChatService.instance.markAllMessagesAsRead(widget.doctorId!);
-       
+
         ApiService.markChatAsRead(chatId: widget.chatId);
       }
     });
 
-   
     NotificationService.currentChatId = widget.chatId;
-    NotificationService.clearBadge(); 
+    NotificationService.clearBadge();
 
     _scrollController.addListener(() {
       if (_scrollController.hasClients) {
@@ -88,7 +87,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       }
     });
   }
-
 
   void _setupSocketListeners() {
     if (_currentUserId != null) {
@@ -389,7 +387,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 }
               }
 
-             
               if (incomingFormatted.length > 1) {
                 _messages.sort(
                   (a, b) => DateTime.parse(
@@ -401,11 +398,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
             _scrollToBottom();
 
-            AgoraChatService.instance.markAllMessagesAsRead(
-              widget.doctorId!,
-            ); 
+            AgoraChatService.instance.markAllMessagesAsRead(widget.doctorId!);
 
-          
             ApiService.markChatAsRead(chatId: widget.chatId);
           }
         },
@@ -489,12 +483,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         conversationId: widget.doctorId!,
         content: content,
         files: _selectedFiles.isNotEmpty ? _selectedFiles : null,
-        backendChatId: widget.chatId, 
+        backendChatId: widget.chatId,
       );
 
-      debugPrint(
-        ' Message returned from SDK: ${sentMessage?.msgId ?? "NULL"}',
-      );
+      debugPrint(' Message returned from SDK: ${sentMessage?.msgId ?? "NULL"}');
 
       if (sentMessage != null && mounted) {
         _controller.clear();

@@ -53,25 +53,49 @@ import flutter_callkit_incoming
   func pushRegistry(_ registry: PKPushRegistry, didUpdate PushCredentials: PKPushCredentials, for type: PKPushType) {
     let token = PushCredentials.token.map { String(format: "%02.2hhx", $0) }.joined()
     print("✅ [iOS] VoIP Token: \(token)")
-    
-    // Send token to Flutter
+
+    SwiftFlutterCallkitIncomingPlugin.sharedInstance?.setDevicePushTokenVoIP(token)
     methodChannel?.invokeMethod("onVoIPTokenUpdate", arguments: token)
   }
 
   func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload: PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) {
     let userInfo = payload.dictionaryPayload
     print("📞 [iOS] Received VoIP Push: \(userInfo)")
-    
-    // 🚀 CRITICAL: Report call to CallKit immediately
-    // flutter_callkit_incoming plugin provides a way to show call through its dedicated native API
-    
-    SwiftFlutterCallkitIncomingPlugin.sharedInstance?.showCallkitIncoming(userInfo)
-    
-    completion()
+
+    guard type == .voIP else {
+      completion()
+      return
+    }
+
+    let id = (userInfo["id"] as? String)
+      ?? (userInfo["uuid"] as? String)
+      ?? UUID().uuidString
+    let nameCaller = (userInfo["nameCaller"] as? String)
+      ?? (userInfo["callerName"] as? String)
+      ?? "Unknown"
+    let handle = (userInfo["handle"] as? String)
+      ?? "Docmobi Call"
+    let isVideo = (userInfo["isVideo"] as? Bool)
+      ?? ((userInfo["isVideo"] as? NSString)?.boolValue ?? false)
+
+    let data = flutter_callkit_incoming.Data(
+      id: id,
+      nameCaller: nameCaller,
+      handle: handle,
+      type: isVideo ? 1 : 0
+    )
+    data.avatar = userInfo["callerAvatar"] as? String ?? ""
+    data.extra = userInfo as NSDictionary
+
+    SwiftFlutterCallkitIncomingPlugin.sharedInstance?.showCallkitIncoming(data, fromPushKit: true) {
+      completion()
+    }
   }
 
   func pushRegistry(_ registry: PKPushRegistry, didInvalidatePushCredentialsFor type: PKPushType) {
     print("⚠️ [iOS] VoIP Token invalidated")
+    SwiftFlutterCallkitIncomingPlugin.sharedInstance?.setDevicePushTokenVoIP("")
+    methodChannel?.invokeMethod("onVoIPTokenUpdate", arguments: "")
   }
   
   // Handle notification when app is in foreground

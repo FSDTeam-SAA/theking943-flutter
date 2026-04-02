@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/api_config.dart'; 
+import '../services/notification_service.dart'; // Ensure token gets registered
 
 class ApiService {
   static String? _token;
@@ -418,6 +419,14 @@ class ApiService {
         if (avatarUrl != null) {
           await prefs.setString('user_avatar', avatarUrl.toString());
           debugPrint('Avatar URL saved: $avatarUrl');
+        }
+
+        // ✅ CRITICAL BUG FIX: Register device AFTER login so tokens go to backend!
+        try {
+          await NotificationService.registerUserDevice();
+          debugPrint('Device registered post-login');
+        } catch (e) {
+          debugPrint('Error triggering token registration post-login: $e');
         }
       }
     }
@@ -1190,6 +1199,19 @@ class ApiService {
     required String postId,
   }) async {
     return await post('/api/v1/posts/$postId/share', {}, requiresAuth: true);
+  }
+
+  /// Explicitly End Call (Triggers FCM/APNs Cancellation) - NEW
+  static Future<Map<String, dynamic>> endCall({
+    required String chatId,
+    required String toUserId,
+    String? uuid,
+  }) async {
+    return await post('/api/v1/call/end', {
+      'chatId': chatId,
+      'userId': toUserId,
+      'uuid': uuid ?? '',
+    }, requiresAuth: true);
   }
 
   // ========================================

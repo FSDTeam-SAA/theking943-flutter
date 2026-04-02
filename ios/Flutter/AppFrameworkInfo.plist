@@ -12,13 +12,15 @@
   <string>6.0</string>
   <key>CFBundleName</key>
   <string>App</string>
+  <key>MinimumOSVersion</key>
+  <string>14.0</string>
   <key>CFBundlePackageType</key>
   <string>FMWK</string>
   <key>CFBundleShortVersionString</key>
-  <string>1.0</string>
+  <string>2.0.1</string>
   <key>CFBundleSignature</key>
   <string>????</string>
   <key>CFBundleVersion</key>
-  <string>1.0</string>
+  <string>3</string>
 </dict>
 </plist>

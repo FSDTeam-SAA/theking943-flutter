@@ -31,8 +31,9 @@ class CallManager {
     _isListening = true;
 
     _connectionSubscription?.cancel();
-    _connectionSubscription =
-        SocketService.instance.connectionStream.listen((connected) {
+    _connectionSubscription = SocketService.instance.connectionStream.listen((
+      connected,
+    ) {
       if (connected) {
         debugPrint(' CallManager: Socket connected - ensuring listeners');
         _setupCallListeners();
@@ -40,8 +41,7 @@ class CallManager {
     });
 
     _reconnectSubscription?.cancel();
-    _reconnectSubscription =
-        SocketService.instance.reconnectStream.listen((_) {
+    _reconnectSubscription = SocketService.instance.reconnectStream.listen((_) {
       debugPrint('CallManager: Socket reconnected - ensuring listeners');
       _setupCallListeners();
     });
@@ -74,9 +74,7 @@ class CallManager {
       debugPrint(
         '╔═══════════════════════════════════════════════════════════╗',
       );
-      debugPrint(
-        '║               INCOMING CALL RECEIVED                    ║',
-      );
+      debugPrint('║               INCOMING CALL RECEIVED                    ║');
       debugPrint(
         '╚═══════════════════════════════════════════════════════════╝',
       );
@@ -163,8 +161,7 @@ class CallManager {
       return;
     }
 
-    debugPrint(
-        '📱 User available - Triggering CallKit UI from Socket Event');
+    debugPrint('📱 User available - Triggering CallKit UI from Socket Event');
 
     NotificationService.showIncomingCall({
       'uuid': data['uuid'],
@@ -219,14 +216,12 @@ class CallManager {
     final callerName = callData['callerName']?.toString() ?? 'Unknown User';
 
     debugPrint('');
+    debugPrint('╔═══════════════════════════════════════════════════════════╗');
+    debugPrint('║               AUTO-REJECTING CALL                    ║');
+    debugPrint('╚═══════════════════════════════════════════════════════════╝');
     debugPrint(
-        '╔═══════════════════════════════════════════════════════════╗');
-    debugPrint(
-        '║               AUTO-REJECTING CALL                    ║');
-    debugPrint(
-        '╚═══════════════════════════════════════════════════════════╝');
-    debugPrint(
-        '   • Reason: Doctor is not available for ${isVideo ? "video" : "audio"} calls');
+      '   • Reason: Doctor is not available for ${isVideo ? "video" : "audio"} calls',
+    );
     debugPrint('   • From: $callerName ($fromUserId)');
     debugPrint('   • Chat: $chatId');
 
@@ -383,14 +378,16 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
               CircleAvatar(
                 radius: 40,
                 backgroundColor: Colors.white.withValues(alpha: 0.2),
-                backgroundImage: widget.callerAvatar != null &&
+                backgroundImage:
+                    widget.callerAvatar != null &&
                         widget.callerAvatar!.isNotEmpty &&
                         widget.callerAvatar != 'file:///' &&
                         (widget.callerAvatar!.startsWith('http://') ||
                             widget.callerAvatar!.startsWith('https://'))
                     ? NetworkImage(widget.callerAvatar!)
                     : null,
-                child: widget.callerAvatar == null ||
+                child:
+                    widget.callerAvatar == null ||
                         widget.callerAvatar!.isEmpty ||
                         widget.callerAvatar == 'file:///' ||
                         (!widget.callerAvatar!.startsWith('http://') &&
@@ -486,8 +483,9 @@ class _IncomingCallDialogState extends State<IncomingCallDialog> {
         Text(
           label,
           style: TextStyle(
-            color:
-                isDisabled ? Colors.white.withValues(alpha: 0.5) : Colors.white,
+            color: isDisabled
+                ? Colors.white.withValues(alpha: 0.5)
+                : Colors.white,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),

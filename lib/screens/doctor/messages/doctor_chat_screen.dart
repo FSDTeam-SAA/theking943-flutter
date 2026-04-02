@@ -55,7 +55,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
   String? _actualUserAvatar;
   String? _actualUserName;
   bool _isAutoScrollEnabled = true;
-  final Set<String> _selectedMessageIds = {}; 
+  final Set<String> _selectedMessageIds = {};
   bool _isSelectionMode = false;
   bool _isOtherUserTyping = false;
   Timer? _myTypingTimer;
@@ -68,20 +68,20 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     _actualUserAvatar = widget.userAvatar;
     _actualUserName = widget.userName;
     _loadCurrentUserProfile().then((_) {
-      _setupAgoraListeners(); 
+      _setupAgoraListeners();
       _loadMessages();
       _ensureAgoraConnection();
-      _setupSocketListeners(); 
+      _setupSocketListeners();
       final targetId = _resolvedOtherUserId ?? widget.otherUserId;
       if (targetId != null) {
         AgoraChatService.instance.markAllMessagesAsRead(targetId);
-      
+
         ApiService.markChatAsRead(chatId: widget.chatId);
       }
     });
 
     NotificationService.currentChatId = widget.chatId;
-    NotificationService.clearBadge(); 
+    NotificationService.clearBadge();
 
     _scrollController.addListener(() {
       if (_scrollController.hasClients) {
@@ -639,7 +639,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
                   )
                 : ListView.separated(
                     controller: _scrollController,
-                    reverse: true, 
+                    reverse: true,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 10,
@@ -760,7 +760,6 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
                 }
               }
 
-            
               if (incomingFormatted.length > 1) {
                 _messages.sort(
                   (a, b) => DateTime.parse(
