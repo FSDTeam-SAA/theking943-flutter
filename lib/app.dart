@@ -10,6 +10,7 @@ import 'package:docmobi/screens/common/calls/video_call_screen.dart';
 import 'package:docmobi/screens/common/calls/audio_call_screen.dart';
 import 'package:docmobi/services/socket_service.dart';
 import 'package:docmobi/screens/patient/notification/patient_notification_screen.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:docmobi/screens/patient/navigation/patient_main_navigation.dart';
@@ -58,20 +59,28 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    debugPrint('App Lifecycle State: $state');
+    debugPrint(' [APP] Lifecycle State Change: $state');
 
     if (state == AppLifecycleState.resumed) {
-      //  Throttle — ignore rapid resume events within 30 seconds
+      // ✅ PRIORITY 1: Check for pending CallKit calls (unlocked from lock screen)
+      // Never throttle call-related navigation.
+      if (CallKitService.consumePendingCallData()) {
+        debugPrint(' [APP] Active call found and consumed on Resume');
+        if (mounted) setState(() => _launchingIntoCall = false);
+        return; // Don't proceed to general refresh if we just jumped into a call
+      }
+
+      //  Throttle general refresh — ignore rapid resume events within 30 seconds
       final now = DateTime.now();
       if (_lastResumeTime != null &&
           now.difference(_lastResumeTime!).inSeconds < 30) {
         debugPrint(
-          '⏳ Resume throttled (${now.difference(_lastResumeTime!).inSeconds}s since last)',
+          '⏳ General Refresh throttled (${now.difference(_lastResumeTime!).inSeconds}s since last)',
         );
         return;
       }
       _lastResumeTime = now;
-      debugPrint(' App resumed - Refreshing...');
+      debugPrint(' [APP] App resumed - General Refreshing...');
 
       if (_isLoggedIn) {
         NotificationPoller().refreshNotifications();
@@ -153,25 +162,33 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
           final activeCalls = await FlutterCallkitIncoming.activeCalls();
           if (activeCalls is List && activeCalls.isNotEmpty) {
             final firstCall = activeCalls.first;
-            final extra = firstCall['extra'];
+            var extra = firstCall['extra'];
+            
             if (extra != null) {
               Map<String, dynamic> data = {};
               if (extra is Map) {
                 data = Map<String, dynamic>.from(extra);
+              } else if (extra is String) {
+                try {
+                  data = Map<String, dynamic>.from(jsonDecode(extra));
+                } catch (e) {
+                  debugPrint(' [APP] Failed to parse extra JSON string: $e');
+                }
               }
-              if (data['timestamp'] != null) {
-                final callTime = DateTime.parse(data['timestamp']);
+
+              final chatId = data['chatId']?.toString();
+              if (chatId != null && chatId.isNotEmpty && data['timestamp'] != null) {
+                final callTime = DateTime.parse(data['timestamp'].toString());
                 final diff = DateTime.now().difference(callTime).inMinutes;
+                
                 if (diff <= 2) {
-                  //  Valid active call — skip home screen entirely
+                  //  Valid active call — stay in "Connecting" UI
                   _launchingIntoCall = true;
                   CallKitService.pendingCallData = data;
-                  debugPrint(
-                    ' Valid active call on startup — will skip home screen',
-                  );
+                  debugPrint(' [APP] Found VALID active call on startup ($chatId)');
                 } else {
                   await FlutterCallkitIncoming.endAllCalls();
-                  debugPrint(' Stale call ($diff min old) — cleared');
+                  debugPrint(' [APP] Stale call ($diff min old) — cleared');
                 }
               }
             }
@@ -195,12 +212,27 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
             PushNotificationService.navigatorKey = navigatorKey;
             CallManager.instance.initialize(navigatorKey.currentContext!);
 
-            if (CallKitService.consumePendingCallData()) {
-              debugPrint('📞 Navigated directly to call screen (cold start)');
+            // Try consuming pending call data.
+            // If it succeeds, we reset _launchingIntoCall.
+            // If it's still waiting for Resume/Navigator, we wait.
+            bool callStarted = CallKitService.consumePendingCallData();
+            
+            if (callStarted) {
+              debugPrint(' [APP] Active call consumed successfully');
               if (mounted) setState(() => _launchingIntoCall = false);
             } else {
+              // Standard initial message check
               await PushNotificationService.checkInitialMessage();
               PushNotificationService.consumePendingPayload();
+              
+              // If we were expecting a call but nothing happened after 5 seconds, reset state
+              if (_launchingIntoCall) {
+                Future.delayed(const Duration(seconds: 5), () {
+                  if (mounted && _launchingIntoCall) {
+                    setState(() => _launchingIntoCall = false);
+                  }
+                });
+              }
             }
           }
         });

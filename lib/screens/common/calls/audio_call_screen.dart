@@ -129,6 +129,18 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
         }
       };
 
+      // ✅ RECOVER REMOTE USERS (iOS Lock Screen Fix)
+      if (_agoraService.remoteUids.isNotEmpty) {
+        debugPrint(' [Audio] Recovering existing remote user');
+        if (mounted) {
+          setState(() {
+            _callConnected = true;
+            _callStatus = 'Connected';
+          });
+          _startTimer();
+        }
+      }
+
       _setupSocketListeners();
 
       if (widget.isInitiator) {
@@ -188,6 +200,19 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
         return;
       }
 
+      // ✅ CHECK FOR BACKGROUND CONNECTION (iOS Lock Screen Fix)
+      if (_agoraService.currentChannel == widget.chatId) {
+        debugPrint(' [Audio] App foregrounded — reusing background connection');
+        if (mounted) {
+          setState(() {
+            _callStatus = 'Connected';
+            _callConnected = true;
+          });
+          _startTimer();
+        }
+        return;
+      }
+
       if (_currentUserId != null) {
         await _agoraService.joinChannelWithUserAccount(
           channelName: widget.chatId,
@@ -206,6 +231,14 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
           token: token,
         );
         debugPrint(' Joined Agora channel with UID 0 (Fallback)');
+      }
+      
+      if (mounted) {
+        setState(() {
+          _callStatus = 'Connected';
+          _callConnected = true;
+        });
+        _startTimer();
       }
     } catch (e) {
       debugPrint(' Failed to join: $e');
@@ -242,7 +275,14 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
 
     socket.on('call:rejected', (data) {
       if (data['chatId'] == widget.chatId) {
-        _showError('Call declined');
+        debugPrint(' [Socket] Audio call rejected by recipient');
+        if (mounted) {
+          _showError('Call declined');
+          // Wait 1 second so the user can see the "Call declined" message before closing
+          Future.delayed(const Duration(seconds: 1), () {
+            if (mounted) _endCall();
+          });
+        }
       }
     });
   }

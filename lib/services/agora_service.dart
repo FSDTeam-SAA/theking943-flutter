@@ -11,6 +11,12 @@ class AgoraService {
 
   RtcEngine? _engine;
   bool _isInitialized = false;
+  String? _currentChannel;
+  final Set<int> _remoteUids = {};
+
+  bool get isInitialized => _isInitialized;
+  String? get currentChannel => _currentChannel;
+  Set<int> get remoteUids => _remoteUids;
 
   // Callbacks
   Function(int uid, int elapsed)? onUserJoined;
@@ -24,7 +30,7 @@ class AgoraService {
   /// Initialize the Agora engine ONCE. Reused across all calls.
   /// The engine is a native singleton — releasing and recreating it
   /// in quick succession causes AgoraRtcException(-17).
-  Future<void> initialize() async {
+  Future<void> initialize({bool skipPermissions = false}) async {
     //  If engine is already initialized and healthy, reuse it
     if (_isInitialized && _engine != null) {
       debugPrint("Agora Engine already initialized — reusing");
@@ -42,8 +48,12 @@ class AgoraService {
     _isInitialized = false;
 
     try {
-      // 1. Request permissions
-      await [Permission.microphone, Permission.camera].request();
+      // 1. Request permissions (SKIP IF IN BACKGROUND/LOCKED)
+      if (!skipPermissions) {
+        await [Permission.microphone, Permission.camera].request();
+      } else {
+        debugPrint(" [Agora] Skipping permission request for background initialization");
+      }
 
       // 2. Create and initialize engine
       _engine = createAgoraRtcEngine();
@@ -83,17 +93,21 @@ class AgoraService {
             debugPrint(
               " Local user ${connection.localUid} joined channel: ${connection.channelId}",
             );
+            _remoteUids.clear(); // ✅ Clear on fresh join
           },
           onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
             debugPrint(" Remote user $remoteUid joined");
+            _remoteUids.add(remoteUid); // ✅ Track user
             onUserJoined?.call(remoteUid, elapsed);
           },
           onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
             debugPrint(" Remote user $remoteUid left channel: $reason");
+            _remoteUids.remove(remoteUid); // ✅ Untrack user
             onUserOffline?.call(remoteUid, reason);
           },
           onLeaveChannel: (RtcConnection connection, RtcStats stats) {
             debugPrint("Left channel");
+            _remoteUids.clear(); // ✅ Clear on leave
             onLeaveChannel?.call(stats);
           },
           onUserMuteAudio: (RtcConnection connection, int remoteUid, bool muted) {
@@ -154,6 +168,7 @@ class AgoraService {
           clientRoleType: ClientRoleType.clientRoleBroadcaster,
         ),
       );
+      _currentChannel = channelName; // ✅ Set current channel
       debugPrint(" Joining channel: $channelName as uid: $uid");
     } catch (e) {
       debugPrint("Error joining channel: $e");
@@ -168,14 +183,16 @@ class AgoraService {
     bool isVideo = true,
     String? token,
   }) async {
-    if (!_isInitialized) await initialize();
+    if (!_isInitialized) await initialize(skipPermissions: !isVideo);
 
     try {
       // Always leave any existing channel first to prevent error -17
-      try {
-        await _engine!.leaveChannel();
-        debugPrint(" Left previous channel before joining new one");
-      } catch (_) {} // Ignore — might not be in a channel
+      if (_currentChannel != null && _currentChannel != channelName) {
+        try {
+          await _engine!.leaveChannel();
+          debugPrint(" Left previous channel before joining new one");
+        } catch (_) {} // Ignore — might not be in a channel
+      }
 
       if (isVideo) {
         await _engine!.enableVideo();
@@ -191,6 +208,7 @@ class AgoraService {
           clientRoleType: ClientRoleType.clientRoleBroadcaster,
         ),
       );
+      _currentChannel = channelName; // ✅ Set current channel
       debugPrint(" Joining channel with User Account: $userAccount in $channelName");
     } catch (e) {
       debugPrint(" Error joining channel with user account: $e");
@@ -206,6 +224,7 @@ class AgoraService {
     try {
       if (_engine != null) {
         await _engine!.leaveChannel();
+        _currentChannel = null; // ✅ Clear current channel
         debugPrint(" Left Agora channel (engine kept alive for reuse)");
       }
     } catch (e) {

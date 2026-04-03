@@ -1,5 +1,3 @@
-import 'package:docmobi/services/callkit_service.dart';
-import 'package:docmobi/services/push_notification_service.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/services.dart';
@@ -10,12 +8,12 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 import '../services/api_service.dart';
 import '../services/callkit_service.dart';
 import '../screens/doctor/messages/doctor_chat_screen.dart';
 import '../screens/patient/messages/patient_chat_screen.dart';
-import '../screens/common/calls/incoming_call_screen.dart';
 
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse notificationResponse) {
@@ -41,6 +39,13 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     debugPrint(' [BACKGROUND HANDLER] Raw Data: $data');
 
     if (data['type'] == 'incoming_call') {
+      // ✅ iOS SAFETY CHECK: On iOS, VoIP pushes (APNs) natively handle CallKit UI.
+      // Standard FCM data pushes for calls are redundant and cause "Ghost Screens" (Duplicate UI).
+      if (Platform.isIOS) {
+        debugPrint(' [BACKGROUND] Skipping FCM incoming call for iOS — VoIP (APNs) handles this.');
+        return;
+      }
+
       debugPrint(' [BACKGROUND] Incoming call detected!');
       try {
         await CallKitService.showCallKitIncoming(data);
@@ -132,6 +137,7 @@ class PushNotificationService {
   static String? currentChatId;
   static String? pendingPayload;
   static String? _cachedVoipToken;
+  static const String _deviceIdKey = 'docmobi_unique_device_id';
 
   static Future<void> init() async {
     debugPrint('[PUSH NOTIFICATION SERVICE] Starting initialization...');
@@ -237,6 +243,13 @@ class PushNotificationService {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       debugPrint('[FOREGROUND] FCM Message received');
       if (message.data['type'] == 'incoming_call') {
+        // ✅ iOS SAFETY CHECK: On iOS, VoIP pushes (APNs) natively handle CallKit UI.
+        // Standard FCM data pushes for calls are redundant and cause "Ghost Screens" (Duplicate UI).
+        if (Platform.isIOS) {
+          debugPrint(' [FOREGROUND] Skipping FCM incoming call for iOS — VoIP (APNs) handles this.');
+          return;
+        }
+
         await _localNotifications.cancelAll();
         await CallKitService.showCallKitIncoming(message.data);
       } else if (message.data['type'] == 'cancel_call') {
@@ -273,13 +286,26 @@ class PushNotificationService {
     debugPrint('[PUSH NOTIFICATION SERVICE] Initialization complete');
   }
 
+  static Future<String> _getDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? deviceId = prefs.getString(_deviceIdKey);
+    if (deviceId == null) {
+      deviceId = const Uuid().v4();
+      await prefs.setString(_deviceIdKey, deviceId);
+      debugPrint(' [NOTIF] Generated new unique deviceId: $deviceId');
+    }
+    return deviceId;
+  }
+
   static Future<void> registerUserDevice() async {
     try {
       if (!ApiService.isLoggedIn) {
         debugPrint(' [NOTIF] User not logged in — skipping device registration');
         return;
       }
-      debugPrint(' [NOTIF] Synchronizing device tokens...');
+      debugPrint(' [NOTIF] Synchronizing device tokens (Multi-Device)...');
+
+      final deviceId = await _getDeviceId();
 
       String? fcmToken;
       try {
@@ -298,14 +324,16 @@ class PushNotificationService {
       }
 
       final platform = Platform.isAndroid ? 'android' : 'ios';
+      
       final result = await ApiService.registerDeviceTokens(
         fcmToken: fcmToken,
         voipToken: voipToken,
         platform: platform,
+        deviceId: deviceId,
       );
 
       if (result['success'] == true) {
-        debugPrint(' ✅ Device tokens registered successfully ($platform)');
+        debugPrint(' ✅ Device tokens registered successfully (Device: $deviceId)');
       } else {
         debugPrint(" ❌ Device registration failed: ${result['message']}");
       }

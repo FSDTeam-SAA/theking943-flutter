@@ -130,6 +130,21 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         }
       };
 
+      // ✅ RECOVER REMOTE USERS (iOS Lock Screen Fix)
+      // Callers who joined while the recipient was locked/in-background won't trigger onUserJoined again.
+      if (_agoraService.remoteUids.isNotEmpty) {
+        final existingUid = _agoraService.remoteUids.first;
+        debugPrint(' [Video] Recovering existing remote user: $existingUid');
+        if (mounted) {
+          setState(() {
+            _remoteUid = existingUid;
+            _isCallConnected = true;
+            _callStatus = 'Connected';
+          });
+          _startCallTimer();
+        }
+      }
+
       _agoraService.onLeaveChannel = (stats) {
         debugPrint('I left the channel');
       };
@@ -226,7 +241,29 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         if (mounted) _showError('Connection security failed');
         return;
       }
-      debugPrint(' Call Token Ready');
+
+      // ✅ CHECK FOR BACKGROUND CONNECTION (iOS Lock Screen Fix)
+      if (_agoraService.currentChannel == widget.chatId) {
+        debugPrint(' [Video] App foregrounded — upgrading audio-only background connection to Video');
+        await _agoraService.engine?.enableVideo();
+        await _agoraService.engine?.startPreview();
+        
+        if (mounted) {
+          setState(() {
+            // ✅ Pick up remote user if they already joined in the background
+            if (_agoraService.remoteUids.isNotEmpty) {
+               _remoteUid = _agoraService.remoteUids.first;
+               _isCallConnected = true;
+               _callStatus = 'Connected';
+            } else {
+               _callStatus = 'Connected';
+               _isCallConnected = true;
+            }
+          });
+          if (_isCallConnected) _startCallTimer();
+        }
+        return;
+      }
 
       if (_currentUserId != null) {
         await _agoraService.joinChannelWithUserAccount(
@@ -245,7 +282,14 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         );
         debugPrint('Joined Agora channel with UID 0 (Fallback)');
       }
-      debugPrint(' Joined Agora channel: ${widget.chatId}');
+
+      if (mounted) {
+        setState(() {
+          _callStatus = 'Connected';
+          _isCallConnected = true;
+        });
+        _startCallTimer();
+      }
     } catch (e) {
       debugPrint('Failed to join channel: $e');
       _showError('Failed to connect to call');
@@ -284,7 +328,14 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
     socket.on('call:rejected', (data) {
       if (data['chatId'] == widget.chatId) {
-        _showError('Call declined');
+        debugPrint(' [Socket] Call rejected by recipient');
+        if (mounted) {
+          _showError('Call declined');
+          // Wait 1 second so the user can see the "Call declined" message before closing
+          Future.delayed(const Duration(seconds: 1), () {
+            if (mounted) _endCall();
+          });
+        }
       }
     });
 

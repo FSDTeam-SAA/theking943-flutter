@@ -347,9 +347,23 @@ class ApiService {
 
   /// Accept call via REST API (Fallback for slow socket connection)
   static Future<Map<String, dynamic>> acceptCall(Map<String, dynamic> data) async {
-    debugPrint('📞 Accepting call via REST API: $data');
-    final response = await post('/api/v1/call/accept', data, requiresAuth: true);
-    return response;
+    try {
+      debugPrint(' Accepting call via API: $data');
+      return await post('/api/v1/call/accept', data, requiresAuth: true);
+    } catch (e) {
+      debugPrint(' Error accepting call via API: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> rejectCall(Map<String, dynamic> data) async {
+    try {
+      debugPrint(' Rejecting call via API: $data');
+      return await post('/api/v1/call/reject', data, requiresAuth: true);
+    } catch (e) {
+      debugPrint(' Error rejecting call via API: $e');
+      return {'success': false, 'message': e.toString()};
+    }
   }
 
   // ========================================
@@ -754,16 +768,18 @@ class ApiService {
     );
   }
 
-  /// Register Device Tokens (Hybrid Approach)
+  /// Register Device Tokens (Professional Multi-Device Approach)
   static Future<Map<String, dynamic>> registerDeviceTokens({
     String? fcmToken,
     String? voipToken,
     required String platform,
+    String? deviceId,
   }) async {
     return await post('/api/v1/user/fcm-token', {
       'fcmToken': fcmToken,
       'voipToken': voipToken,
       'platform': platform.toLowerCase(),
+      'deviceId': deviceId,
     }, requiresAuth: true);
   }
 
